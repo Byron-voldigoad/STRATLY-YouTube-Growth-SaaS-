@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, ThumbsUp, MessageCircle, Eye, Clock } from 'lucide-react';
+import { Play, ThumbsUp, MessageCircle, Eye, Clock, Percent } from 'lucide-react';
 
 interface VideoData {
   id: string;
@@ -44,12 +44,20 @@ export function VideosTable({ videos }: VideosTableProps) {
     return num.toString();
   };
 
+  const calculateEngagementRate = (video: VideoData) => {
+  if (video.views === 0) return 0;
+  const engagement = ((video.likes + video.comments) / video.views) * 100;
+  return engagement.toFixed(1);
+};
+
   const formatDuration = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+  if (!seconds || seconds === 0) return 'N/A'; // Au lieu de "0s"
+  
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
 
   const handleSort = (column: typeof sortBy) => {
     if (sortBy === column) {
@@ -95,6 +103,10 @@ export function VideosTable({ videos }: VideosTableProps) {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
               <Clock className="inline w-4 h-4 mr-1" />
               Durée moyenne
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <Percent className="inline w-4 h-4 mr-1" />
+              Taux d'engagement
             </th>
           </tr>
         </thead>
@@ -145,6 +157,9 @@ export function VideosTable({ videos }: VideosTableProps) {
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                 {formatDuration(video.avg_view_duration)}
               </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+  {calculateEngagementRate(video)}%
+</td>
             </tr>
           ))}
         </tbody>
