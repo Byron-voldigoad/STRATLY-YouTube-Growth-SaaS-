@@ -1,14 +1,30 @@
 // app/api/youtube/channel-stats/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { google } from 'googleapis';
 
 const youtube = google.youtube('v3');
 
 export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createServerSupabaseClient();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          // The `set` method is not needed in a `GET` route.
+        },
+        remove(name: string, options: CookieOptions) {
+          // The `remove` method is not needed in a `GET` route.
+        },
+      },
+    }
+  )
     
+  try {
     // Vérifie l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     

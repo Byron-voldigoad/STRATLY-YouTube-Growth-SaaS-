@@ -31,17 +31,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Lance l'import
-    const result = await youtubeAnalyticsService.importYouTubeData(
+    // Lance l'import en arrière-plan (ne pas await)
+    youtubeAnalyticsService.importYouTubeData(
       user.id,
       profile.youtube_channel_id
     );
 
     return NextResponse.json({
       success: true,
-      message: 'Data imported successfully',
-      data: result
-    });
+      message: 'Data import started in the background.',
+    }, { status: 202 });
 
   } catch (error: any) {
     console.error('Import error:', error);
