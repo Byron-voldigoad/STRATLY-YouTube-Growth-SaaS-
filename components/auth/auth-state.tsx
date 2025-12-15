@@ -14,10 +14,6 @@ export function AuthStateHandler() {
       (event, session) => {
         console.log('Auth state changed:', event)
         
-        if (event === 'SIGNED_IN') {
-          router.push('/dashboard')
-        }
-        
         if (event === 'SIGNED_OUT') {
           router.push('/login')
         }

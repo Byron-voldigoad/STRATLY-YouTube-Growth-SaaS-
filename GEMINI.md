@@ -327,3 +327,24 @@ NEXT_PUBLIC_YOUTUBE_API_KEY=xxx
 ```
 
 **PROJET :** 🟢 **PRÊT POUR LA PHASE 2 - ANALYTICS AVANCÉS**
+
+---
+
+## Mises à jour par Gemini CLI
+
+### Correction de bugs et améliorations récentes :
+- **`middleware.ts`**: Changement du runtime par défaut du middleware en `nodejs` (`export const runtime = 'nodejs'`) pour diagnostiquer et contourner les erreurs de connectivité `fetch failed` qui pouvaient survenir dans l'environnement Edge, notamment avec les instances locales de Supabase.
+- **`components/auth/auth-state.tsx`**: Suppression du gestionnaire d'événements `SIGNED_IN` dans le composant `AuthStateHandler`. Cela résout le problème de redirection agressive vers le dashboard après chaque rechargement de page ou validation de session, permettant une navigation fluide au sein de l'application.
+- **`lib/ai/gemini-service.ts`**: Mise à jour du nom du modèle Gemini AI de `gemini-pro` à `gemini-1.5-flash-latest`. Cette modification corrige une erreur `404 Not Found` lors des appels à l'API Gemini, assurant l'utilisation d'un modèle plus récent et valide pour l'analyse.
+- **`app/dashboard/ai-insights/client-page.tsx`**:
+    - Remplacement de la balise `<a>` par le composant `Link` de Next.js pour une navigation client-side plus fluide vers le dashboard en cas d'absence de données.
+    - Suppression de la prop `className` des composants `ReactMarkdown` et application des styles `prose prose-invert max-w-none` aux divs parentes. Cette correction résout une erreur d'assertion de runtime causée par une prop `className` inattendue dans les versions récentes de `react-markdown`.
+- **`lib/ai/gemini-service.ts`**:
+    - Intégration d'une fonction `fetchWithRetry` avec backoff exponentiel pour gérer les erreurs de quota (`429 Too Many Requests`) de l'API Gemini.
+    - Mise à jour des méthodes `generateRealAIAnalysis` et `generateRealVideoIdeas` pour utiliser cette nouvelle logique de retry, améliorant ainsi la résilience des appels.
+    - Mise à jour du modèle IA vers `gemini-1.5-flash-latest`.
+
+- **`app/api/ai/analyze/route.ts`**:
+    - Remplacement du cache en mémoire par un système de **cache persistant en base de données** (table `ai_analyses` sur Supabase) pour les analyses de chaîne.
+    - L'API vérifie maintenant la présence d'une analyse de moins de 24 heures en base de données avant de solliciter l'IA.
+    - Les nouvelles analyses sont automatiquement sauvegardées dans la table `ai_analyses`, réduisant drastiquement les appels redondants et prévenant les erreurs de quota.
