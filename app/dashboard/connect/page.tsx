@@ -89,6 +89,8 @@ export default function ConnectYouTubePage() {
 
   const getErrorMessage = (errorCode: string) => {
     switch (errorCode) {
+      case 'reauth_required':
+        return 'For security reasons, your connection to YouTube has expired. Please reconnect your channel.';
       case 'no_code':
         return 'No authorization code received from Google.';
       case 'token_exchange_failed':

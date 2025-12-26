@@ -104,7 +104,7 @@ export function AIInsightsClientPage({ initialVideos, initialChannelStats, isAiE
                     🤖 Assistant IA YouTube
                 </h1>
                 <p className="text-gray-400">
-                    Analyse intelligente et recommandations personnalisées par Gemini AI
+                    Analyse intelligente et recommandations personnalisées par OpenAI
                 </p>
             </div>
             {isAiEnabled ? (
@@ -162,10 +162,10 @@ export function AIInsightsClientPage({ initialVideos, initialChannelStats, isAiE
                     <div>
                         <h3 className="font-bold text-lg">Mode Démo Actif</h3>
                         <p className="text-gray-300">
-                        Pour activer l\'IA réelle et obtenir des analyses personnalisées, veuillez configurer votre clé API Gemini dans un fichier 
+                        Pour activer l'IA réelle et obtenir des analyses personnalisées, veuillez configurer votre clé API OpenAI dans un fichier 
                         <code className="bg-gray-700 text-yellow-300 px-1 py-0.5 rounded text-sm">.env.local</code> à la racine de votre projet.
                         <br />
-                        Exemple: <code className="bg-gray-700 text-yellow-300 px-1 py-0.5 rounded text-sm">GEMINI_API_KEY=AIzaSy...</code>
+                        Exemple: <code className="bg-gray-700 text-yellow-300 px-1 py-0.5 rounded text-sm">OPENAI_API_KEY=sk-...</code>
                         </p>
                     </div>
                 </div>

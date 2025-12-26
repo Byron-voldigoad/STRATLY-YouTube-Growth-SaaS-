@@ -1,7 +1,9 @@
-import { createServerClient } from '@supabase/ssr'
+// lib/supabase/server.ts - VERSION COMPATIBLE Next.js 15+
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export async function createServerSupabaseClient() {
+export async function createClient() {
+  // ⭐ IMPORTANT : 'cookies()' est maintenant ASYNCHRONE
   const cookieStore = await cookies()
   
   return createServerClient(
@@ -9,16 +11,22 @@ export async function createServerSupabaseClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
+        async get(name: string) {
+          const cookie = cookieStore.get(name)
+          return cookie?.value
         },
-        setAll(cookiesToSet) {
+        async set(name: string, value: string, options: CookieOptions) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Gestion des cookies en middleware
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // Gère les erreurs (ex: exécution côté serveur uniquement)
+          }
+        },
+        async remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // Gère les erreurs
           }
         },
       },

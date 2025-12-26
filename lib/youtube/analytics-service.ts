@@ -1,5 +1,5 @@
 // lib/youtube/analytics-service.ts
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { google } from 'googleapis';
 
 const youtube = google.youtube('v3');
@@ -41,7 +41,7 @@ export interface YouTubeVideoAnalytics {
 
 export class YouTubeAnalyticsService {
   private async getAuthenticatedClient(userId: string) {
-    const supabase = await createServerSupabaseClient();
+    const supabase = await createClient();
     
     // Récupère les tokens depuis la base de données
     const { data: profile } = await supabase
@@ -50,8 +50,13 @@ export class YouTubeAnalyticsService {
       .eq('id', userId)
       .single();
 
-    if (!profile?.youtube_access_token) {
-      throw new Error('YouTube not connected');
+    if (!profile) {
+      throw new Error('User profile not found.');
+    }
+    
+    if (!profile.youtube_refresh_token) {
+        console.error(`[Auth Refresh] No refresh token for user ${userId}. Re-authentication required.`);
+        throw new Error('YouTube re-authentication required. No refresh token.');
     }
 
     // Crée un client OAuth2
@@ -66,6 +71,42 @@ export class YouTubeAnalyticsService {
       refresh_token: profile.youtube_refresh_token,
       expiry_date: new Date(profile.youtube_token_expires_at!).getTime()
     });
+
+    // Vérifie si le token a expiré ou expire bientôt
+    const isTokenExpired = new Date(profile.youtube_token_expires_at!).getTime() < (new Date().getTime() + 5 * 60 * 1000);
+
+    if (isTokenExpired) {
+        console.log(`[Auth Refresh] Token for user ${userId} is expired or expiring soon. Refreshing...`);
+        try {
+            const { credentials } = await oauth2Client.refreshAccessToken();
+            
+            console.log(`[Auth Refresh] Successfully refreshed token for user ${userId}.`);
+            
+            const newExpiryDate = credentials.expiry_date ? new Date(credentials.expiry_date).toISOString() : new Date(Date.now() + 3500 * 1000).toISOString();
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    youtube_access_token: credentials.access_token,
+                    youtube_token_expires_at: newExpiryDate,
+                    // Le refresh_token peut parfois être renouvelé aussi
+                    ...(credentials.refresh_token && { youtube_refresh_token: credentials.refresh_token }),
+                })
+                .eq('id', userId);
+            
+            if (updateError) {
+                console.error(`[Auth Refresh] Failed to save new token for user ${userId}:`, updateError);
+                // On continue avec le token en mémoire pour cette fois
+            }
+
+            oauth2Client.setCredentials(credentials);
+
+        } catch (error: any) {
+            console.error(`[Auth Refresh] Failed to refresh token for user ${userId}:`, error.message);
+            // Si le refresh échoue (ex: token révoqué), on lève une erreur pour forcer la reconnexion
+            throw new Error('Failed to refresh YouTube token. Please reconnect your account.');
+        }
+    }
 
     return oauth2Client;
   }
@@ -195,7 +236,7 @@ export class YouTubeAnalyticsService {
    * Importe les données YouTube dans la base de données
    */
   async importYouTubeData(userId: string, channelId: string) {
-    const supabase = await createServerSupabaseClient();
+    const supabase = await createClient();
     
     try {
       // 1. Récupère les statistiques de base
@@ -286,7 +327,7 @@ export class YouTubeAnalyticsService {
    * Récupère les données historiques pour les graphiques
    */
   async getHistoricalData(userId: string, channelId: string, days = 30) {
-    const supabase = await createServerSupabaseClient();
+    const supabase = await createClient();
     
     const { data: analytics } = await supabase
       .from('channel_analytics')

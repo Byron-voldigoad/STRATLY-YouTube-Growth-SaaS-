@@ -1,22 +1,10 @@
 // app/api/ai/analyze/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { YouTubeAIAnalyzer } from '@/lib/ai/gemini-service';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
+import { OpenAIAnalyzer } from '@/lib/ai/openai-service';
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value; },
-        set(name: string, value: string, options: CookieOptions) { cookieStore.set({ name, value, ...options }); },
-        remove(name: string, options: CookieOptions) { cookieStore.set({ name, value: '', ...options }); },
-      },
-    }
-  );
+  const supabase = await createClient();
 
   try {
     // 1. Authenticate the user
@@ -69,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // 5. If not cached or not applicable, generate new analysis
     console.log(`🔄 [AI ANALYZE] Generating new analysis for type: ${analysisType}`);
-    const analyzer = new YouTubeAIAnalyzer();
+    const analyzer = new OpenAIAnalyzer();
     let responseData: any;
     const generatedAt = new Date().toISOString();
 
@@ -84,7 +72,7 @@ export async function POST(request: NextRequest) {
           user_id: user.id,
           channel_id: profile.youtube_channel_id,
           analysis_text: analysis,
-          provider: 'gemini',
+          provider: 'openai',
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         }, { onConflict: 'user_id,channel_id' });
       }

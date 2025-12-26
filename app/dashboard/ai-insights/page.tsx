@@ -1,6 +1,5 @@
 // app/dashboard/ai-insights/page.tsx (Server Component)
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { RefreshCw } from 'lucide-react';
@@ -21,7 +20,7 @@ interface ChannelStats {
 }
 
 async function getInitialData() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -30,7 +29,7 @@ async function getInitialData() {
   }
 
   // Determine if AI is enabled based on server-side env variable
-  const isAiEnabled = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith('AIza');
+  const isAiEnabled = !!process.env.OPENAI_API_KEY;
 
   let videos: VideoData[] = [];
   let channelStats: ChannelStats | null = null;

@@ -1,14 +1,11 @@
 // app/dashboard/page.tsx (Server Component)
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
-import { google } from 'googleapis';
+import { createClient } from "@/lib/supabase/server";
+import { youtubeAnalyticsService } from "@/lib/youtube/analytics-service";
 
 import { DashboardClient } from "./dashboard-client";
 import { RefreshCw } from "lucide-react";
-
-const youtube = google.youtube('v3');
 
 // Define interfaces for the data shapes
 interface ChannelStats {
@@ -40,50 +37,8 @@ interface VideoData {
     thumbnail_url: string;
 }
 
-async function getCurrentChannelStats(profile: any, channelId: string) {
-    if (!profile?.youtube_access_token) {
-        console.warn('User does not have a YouTube access token.');
-        return null;
-    }
-
-    try {
-        const oauth2Client = new google.auth.OAuth2(
-            process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET,
-            `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`
-        );
-
-        oauth2Client.setCredentials({
-            access_token: profile.youtube_access_token,
-            refresh_token: profile.youtube_refresh_token
-        });
-
-        const response = await youtube.channels.list({
-            auth: oauth2Client,
-            part: ['statistics', 'snippet'],
-            id: [channelId]
-        });
-
-        const channel = response.data.items?.[0];
-        if (!channel) {
-            return null;
-        }
-
-        return {
-            subscribers: parseInt(channel.statistics?.subscriberCount || '0'),
-            views: parseInt(channel.statistics?.viewCount || '0'),
-            videos: parseInt(channel.statistics?.videoCount || '0'),
-        };
-    } catch (error) {
-        console.error('Failed to fetch current channel stats from YouTube:', error);
-        return null; // Return null on error to avoid crashing the whole page
-    }
-}
-
-
 async function getDashboardData() {
-    const cookieStore = cookies();
-    const supabase = await createServerSupabaseClient();
+    const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -110,13 +65,31 @@ async function getDashboardData() {
     }
 
     const channelId = profile.youtube_channel_id;
+    let currentStats = null;
+
+    try {
+        // Use the centralized service with auto-refresh logic
+        const channelData = await youtubeAnalyticsService.getChannelStatistics(user.id, channelId);
+        currentStats = {
+            subscribers: channelData.statistics.subscriberCount,
+            views: channelData.statistics.viewCount,
+            videos: channelData.statistics.videoCount,
+        };
+    } catch (error: any) {
+        console.error("[Dashboard Page] Failed to fetch live YouTube stats:", error.message);
+        // If refresh token is invalid, redirect user to reconnect
+        if (error.message.includes('reconnect')) {
+            redirect('/dashboard/connect?error=reauth_required');
+        }
+        // For other errors, we can proceed with stale data from DB
+    }
+
 
     // Fetch all data in parallel
     const [
         latestStatsResult,
         historicalDataResult,
         videosDataResult,
-        currentStatsResult
     ] = await Promise.allSettled([
         supabase
             .from("channel_analytics")
@@ -136,14 +109,12 @@ async function getDashboardData() {
             .eq("channel_id", channelId)
             .order("published_at", { ascending: false })
             .limit(10),
-        getCurrentChannelStats(profile, channelId)
     ]);
     
     // Process results
     const latestStats = latestStatsResult.status === 'fulfilled' ? latestStatsResult.value.data : null;
     const historicalData = historicalDataResult.status === 'fulfilled' ? historicalDataResult.value.data : [];
     const videosData = videosDataResult.status === 'fulfilled' ? videosDataResult.value.data : [];
-    const currentStats = currentStatsResult.status === 'fulfilled' ? currentStatsResult.value : null;
 
     const channel: ChannelStats = {
         title: profile.youtube_channel_title || "Ma Chaîne",

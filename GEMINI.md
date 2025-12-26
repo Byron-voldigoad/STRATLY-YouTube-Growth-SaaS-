@@ -330,6 +330,31 @@ NEXT_PUBLIC_YOUTUBE_API_KEY=xxx
 
 ---
 
+## 🚨 **INCIDENT & PLAN DE CONTINUITÉ : Suspension de l'API Gemini**
+
+**Date de l'incident :** 23 décembre 2025
+
+### **Description du problème**
+Le projet Google Cloud associé à l'API Gemini (`gen-lang-client-0760515861`) a été **suspendu** par Google. La cause la plus probable est un volume élevé d'appels API générés durant les phases de test et de débogage intensif, ayant déclenché les systèmes automatiques de protection contre les abus.
+
+### **Actions immédiates**
+1.  **Recours soumis à Google :** Un appel a été officiellement soumis à Google pour demander la révision et la réactivation du projet. Les arguments principaux sont :
+    *   L'usage est légitime et s'inscrit dans le cadre d'un SaaS pour créateurs YouTube.
+    *   Des mesures correctives (cache en base de données, backoff exponentiel) ont déjà été implémentées **avant la suspension** pour garantir une utilisation efficiente de l'API.
+2.  **Décision en attente :** Une réponse de Google est attendue sous 2 jours ouvrables.
+
+### **Plan de continuité stratégique**
+Pour ne pas interrompre le développement et pour renforcer la résilience de l'application, la décision a été prise de **migrer temporairement la fonctionnalité IA vers OpenAI**.
+
+**Objectifs :**
+1.  **Débloquer le développement :** Rendre la fonctionnalité d'analyse IA de nouveau opérationnelle immédiatement en utilisant l'API OpenAI.
+2.  **Construire une solution de secours :** Disposer d'une alternative fonctionnelle, quelle que soit la décision finale de Google.
+3.  **Maintenir l'architecture :** La migration se fera de manière modulaire en créant un `openai-service.ts`, sans altérer la logique de cache existante (`ai_analyses`).
+
+**Prochaine étape technique :** Implémenter le service `lib/ai/openai-service.ts` et mettre à jour la route `app/api/ai/analyze/route.ts` pour utiliser ce nouveau service.
+
+---
+
 ## Mises à jour par Gemini CLI
 
 ### Correction de bugs et améliorations récentes :
@@ -348,3 +373,11 @@ NEXT_PUBLIC_YOUTUBE_API_KEY=xxx
     - Remplacement du cache en mémoire par un système de **cache persistant en base de données** (table `ai_analyses` sur Supabase) pour les analyses de chaîne.
     - L'API vérifie maintenant la présence d'une analyse de moins de 24 heures en base de données avant de solliciter l'IA.
     - Les nouvelles analyses sont automatiquement sauvegardées dans la table `ai_analyses`, réduisant drastiquement les appels redondants et prévenant les erreurs de quota.
+
+### Migration vers OpenAI et corrections de bugs critiques :
+- **Migration de Gemini vers OpenAI** : En réponse à la suspension de l'API Gemini, une migration complète vers OpenAI a été effectuée. Cela inclut l'ajout de la librairie `openai`, la création d'un nouveau service `lib/ai/openai-service.ts` et la mise à jour de la route API `app/ai/analyze/route.ts` et du frontend correspondant.
+- **Correction Erreur `invalid_grant` YouTube** : Résolution d'une erreur critique d'authentification YouTube. La cause racine (absence de `refresh_token`) a été corrigée en :
+    - Refactorisant la route de callback `api/youtube/callback` pour utiliser `google-auth-library` pour un échange de token robuste.
+    - Implémentant une logique de **rafraîchissement automatique du token** dans `lib/youtube/analytics-service.ts` avant chaque appel à l'API YouTube.
+    - Améliorant l'UX en redirigeant l'utilisateur vers la page de connexion en cas d'échec du rafraîchissement.
+- **Correction Erreur `cookieStore.get` Supabase SSR** : Résolution d'une `TypeError` persistante liée à la gestion des cookies par Supabase SSR avec Next.js 15+. Le helper `lib/supabase/server.ts` a été rendu **asynchrone** et tous les appels à ce helper dans les pages, routes API et services côté serveur ont été mis à jour avec `await` pour se conformer à la nouvelle API de Next.js.
