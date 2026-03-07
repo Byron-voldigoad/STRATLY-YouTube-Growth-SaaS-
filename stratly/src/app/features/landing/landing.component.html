@@ -1,0 +1,130 @@
+<div class="min-h-screen bg-white">
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-slate-900 font-heading">Stratly</h1>
+            <div class="flex items-center gap-4">
+                <a routerLink="/login"
+                    class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Se connecter</a>
+                <a routerLink="/signup"
+                    class="bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                    Commencer gratuitement
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <div
+                class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-sm font-medium px-4 py-2 rounded-full mb-8">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                        d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                </svg>
+                Propulsé par l'IA
+            </div>
+
+            <h2 class="text-5xl md:text-6xl font-bold text-slate-900 font-heading leading-tight mb-6">
+                Boostez votre croissance
+                <span class="text-blue-600">YouTube</span>
+            </h2>
+
+            <p class="text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+                Analysez vos performances, obtenez des recommandations IA personnalisées et découvrez les meilleures
+                idées de contenu pour votre chaîne.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a routerLink="/signup"
+                    class="bg-blue-600 text-white px-8 py-4 rounded-xl hover:bg-blue-700 transition-all font-medium text-base shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-200">
+                    Démarrer l'analyse gratuite →
+                </a>
+                <a routerLink="/login"
+                    class="text-gray-600 px-8 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-base">
+                    J'ai déjà un compte
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-20 px-6 bg-gray-50">
+        <div class="max-w-6xl mx-auto">
+            <h3 class="text-3xl font-bold text-center text-slate-900 font-heading mb-14">
+                Tout ce qu'il faut pour grandir
+            </h3>
+
+            <div class="grid md:grid-cols-3 gap-8">
+
+                <!-- Feature 1 -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-5">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-semibold text-slate-900 mb-2">Analytics détaillés</h4>
+                    <p class="text-gray-500 text-sm leading-relaxed">
+                        Visualisez vos abonnés, vues, watch time et CTR avec des graphiques interactifs et des tendances
+                        claires.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-5">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-semibold text-slate-900 mb-2">Analyse IA</h4>
+                    <p class="text-gray-500 text-sm leading-relaxed">
+                        Notre IA analyse votre chaîne et vous donne des recommandations concrètes pour améliorer vos
+                        performances.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-5">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-semibold text-slate-900 mb-2">Idées de contenu</h4>
+                    <p class="text-gray-500 text-sm leading-relaxed">
+                        Générez des idées de vidéos optimisées pour votre niche, basées sur ce qui fonctionne dans votre
+                        secteur.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 px-6">
+        <div class="max-w-3xl mx-auto text-center">
+            <h3 class="text-3xl font-bold text-slate-900 font-heading mb-4">Prêt à accélérer votre croissance ?</h3>
+            <p class="text-gray-500 mb-8">Rejoignez des créateurs qui utilisent l'IA pour développer leur chaîne
+                YouTube.</p>
+            <a routerLink="/signup"
+                class="inline-block bg-blue-600 text-white px-8 py-4 rounded-xl hover:bg-blue-700 transition-all font-medium text-base shadow-lg shadow-blue-200">
+                Commencer maintenant — C'est gratuit
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-100 py-8 px-6">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <span class="text-sm text-gray-400">© 2026 Stratly. Tous droits réservés.</span>
+            <span class="text-sm text-gray-400">Propulsé par Genkit & Angular</span>
+        </div>
+    </footer>
+</div>

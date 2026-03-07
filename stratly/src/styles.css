@@ -1,0 +1,97 @@
+@import "@angular/cdk/overlay-prebuilt.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply antialiased text-gray-900;
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors;
+    }
+
+    .btn-secondary {
+        @apply border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors;
+    }
+
+    .card {
+        @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6;
+    }
+}
+
+
+:root {
+    color-scheme: light;
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+    --background: 0deg 0% 100%;
+    --foreground: 0deg 0.02% 3.94%;
+    --card: 0deg 0% 100%;
+    --card-foreground: 0deg 0.02% 3.94%;
+    --popover: 0deg 0% 100%;
+    --popover-foreground: 0deg 0.02% 3.94%;
+    --primary: 0deg 0.02% 9.06%;
+    --primary-foreground: 0deg 0.5% 98.03%;
+    --secondary: 0deg 0.24% 96.06%;
+    --secondary-foreground: 0deg 0.02% 9.06%;
+    --muted: 0deg 0.24% 96.06%;
+    --muted-foreground: 0deg 0.01% 45.16%;
+    --accent: 0deg 0.24% 96.06%;
+    --accent-foreground: 0deg 0.02% 9.06%;
+    --destructive: 351.72deg 100% 40.53%;
+    --border: 0deg 0.09% 89.82%;
+    --input: 0deg 0.09% 89.82%;
+    --ring: 0deg 0.02% 63.02%;
+    --radius: 0.625rem;
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 63%;
+}
+
+:root.dark {
+    color-scheme: dark;
+
+    --background: 0deg 0.02% 3.94%;
+    --foreground: 0deg 0.5% 98.03%;
+    --card: 0deg 0.02% 9.06%;
+    --card-foreground: 0deg 0.5% 98.03%;
+    --popover: 0deg 0.02% 9.06%;
+    --popover-foreground: 0deg 0.5% 98.03%;
+    --primary: 0deg 0.09% 89.82%;
+    --primary-foreground: 0deg 0.02% 9.06%;
+    --secondary: 0deg 0.01% 14.94%;
+    --secondary-foreground: 0deg 0.5% 98.03%;
+    --muted: 0deg 0.01% 14.94%;
+    --muted-foreground: 0deg 0.02% 63.02%;
+    --accent: 0deg 0% 14.9%;
+    --accent-foreground: 0deg 0.5% 98.03%;
+    --destructive: 358.76deg 100% 69.84%;
+    --border: 0deg 0% 13.73%;
+    --input: 0deg 0% 18.43%;
+    --ring: 0deg 0.01% 45.16%;
+    --sidebar: 0 0% 9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 100% / 0.1;
+    --sidebar-ring: 0 0% 32%;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+}
