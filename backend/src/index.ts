@@ -1,8 +1,11 @@
+console.log('--- SCRIPT STARTING ---');
 import 'dotenv/config';
 import { genkit, z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { openAI } from 'genkitx-openai';  // Plugin OpenAI
-import { startFlowServer } from '@genkit-ai/express';
+import { openAI, gpt4oMini } from 'genkitx-openai';  // Plugin OpenAI
+import { expressHandler } from '@genkit-ai/express';
+import express from 'express';
+import cors from 'cors';
 import { google } from 'googleapis';
 import { createClient } from '@supabase/supabase-js';
 
@@ -11,12 +14,26 @@ console.log('--- BACKEND STARTING ---');
 const ai = genkit({
     plugins: [
         googleAI({ apiKey: process.env.GEMINI_API_KEY }),
-        openAI({ apiKey: process.env.OPENAI_API_KEY })
+        openAI({
+            apiKey: process.env.GROQ_API_KEY,
+            baseURL: 'https://api.groq.com/openai/v1',
+            models: [{
+                name: 'llama-3.3-70b-versatile',
+                info: {
+                    label: 'Llama 3.3 70B',
+                    supports: {
+                        multiturn: true,
+                        media: false,
+                        tools: false,
+                        systemRole: true
+                    }
+                },
+                configSchema: z.any(),
+            }]
+        })
     ],
     // Modèle par défaut (avec fallback)
-    model: googleAI.model('gemini-1.5-flash', {
-        temperature: 0.7,
-    }),
+    model: 'openai/llama-3.3-70b-versatile',
 });
 
 // Schéma pour les données YouTube
@@ -41,6 +58,8 @@ export const analyzeChannelFlow = ai.defineFlow(
     {
         name: 'analyzeChannel',
         inputSchema: z.object({
+            userId: z.string(),
+            channelId: z.string(),
             videos: z.array(VideoSchema),
             channelStats: ChannelStatsSchema,
         }),
@@ -66,7 +85,6 @@ export const analyzeChannelFlow = ai.defineFlow(
       Réponds en markdown avec des titres (##).
     `;
 
-        // Genkit gère automatiquement le cache, les retry, le fallback
         const { text } = await ai.generate({
             prompt,
             config: {
@@ -74,6 +92,20 @@ export const analyzeChannelFlow = ai.defineFlow(
                 maxOutputTokens: 1000,
             },
         });
+
+        // PERSISTANCE DANS SUPABASE
+        const supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        await supabase.from('ai_analyses').upsert({
+            user_id: input.userId,
+            channel_id: input.channelId,
+            analysis_type: 'channel',
+            content: text,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id, channel_id, analysis_type' });
 
         return text;
     }
@@ -84,6 +116,8 @@ export const generateIdeasFlow = ai.defineFlow(
     {
         name: 'generateIdeas',
         inputSchema: z.object({
+            userId: z.string(),
+            channelId: z.string(),
             niche: z.string(),
             topVideos: z.array(z.object({ title: z.string(), views: z.number() })),
         }),
@@ -110,7 +144,23 @@ export const generateIdeasFlow = ai.defineFlow(
             },
         });
 
-        return output || [];
+        const ideas = output || [];
+
+        // PERSISTANCE DANS SUPABASE
+        const supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        await supabase.from('ai_analyses').upsert({
+            user_id: input.userId,
+            channel_id: input.channelId,
+            analysis_type: 'ideas',
+            content: JSON.stringify(ideas),
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id, channel_id, analysis_type' });
+
+        return ideas;
     }
 );
 
@@ -225,7 +275,7 @@ export const importYouTubeFlow = ai.defineFlow(
                 success: true,
                 videosImported: videoAnalyticData.length,
                 message: 'Données YouTube importées avec succès',
-                channelTitle: channel.snippet?.title,
+                channelTitle: channel.snippet?.title || undefined,
             };
 
         } catch (error: any) {
@@ -235,17 +285,21 @@ export const importYouTubeFlow = ai.defineFlow(
     }
 );
 
-// Démarrer le serveur de flows
-const app = startFlowServer({
-    flows: [analyzeChannelFlow, generateIdeasFlow, importYouTubeFlow],
-    port: 3400,
-    cors: {
-        origin: ['http://localhost:4200'], // Angular
-        credentials: true,
-    },
-});
+// --- Server Configuration ---
+const app = express();
 
-// Santé du serveur
+app.use(cors({
+    origin: ['http://localhost:4200'], // Angular
+    credentials: true,
+}));
+app.use(express.json());
+
+// Genkit Flows as Endpoints
+app.post('/analyzeChannel', expressHandler(analyzeChannelFlow));
+app.post('/generateIdeas', expressHandler(generateIdeasFlow));
+app.post('/importYouTube', expressHandler(importYouTubeFlow));
+
+// Health Check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -305,7 +359,7 @@ app.post('/auth/youtube/callback', async (req, res) => {
 
         if (error) throw error;
 
-        res.json({ success: true, channelTitle: channel.snippet?.title });
+        res.json({ success: true, channelTitle: channel.snippet?.title || undefined });
     } catch (error: any) {
         console.error('YouTube OAuth Error:', error);
         res.status(500).json({
@@ -315,5 +369,7 @@ app.post('/auth/youtube/callback', async (req, res) => {
     }
 });
 
-console.log('🚀 Genkit server running on http://localhost:3400');
-console.log('📊 Developer UI: http://localhost:4000');
+app.listen(3400, () => {
+    console.log('🚀 Genkit server running on http://localhost:3400');
+    console.log('📊 Developer UI: http://localhost:4000');
+});

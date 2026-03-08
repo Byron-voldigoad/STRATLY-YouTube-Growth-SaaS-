@@ -1,0 +1,28 @@
+--- SCRIPT STARTING ---
+--- BACKEND STARTING ---
+🚀 Genkit server running on http://localhost:3400
+📊 Developer UI: http://localhost:4000
+Non-streaming request failed with error: openAI.model is not a function
+TypeError: openAI.model is not a function
+    at <anonymous> (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\src\index.ts:74:27)
+    at <anonymous> (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\flow.ts:135:14)
+    at actFn (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\action.ts:383:13)
+    at AsyncLocalStorage.run (node:async_hooks:346:14)
+    at NodeAsyncContext.run (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\node-async-context.ts:34:27)
+    at runInActionRuntimeContext (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\action.ts:604:28)
+    at <anonymous> (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\context.ts:45:5)
+    at AsyncLocalStorage.run (node:async_hooks:346:14)
+    at NodeAsyncContext.run (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\node-async-context.ts:34:27)
+    at runWithContext (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\context.ts:44:28)
+Non-streaming request failed with error: openAI.model is not a function
+TypeError: openAI.model is not a function
+    at <anonymous> (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\src\index.ts:74:27)
+    at <anonymous> (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\flow.ts:135:14)
+    at actFn (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\action.ts:383:13)
+    at AsyncLocalStorage.run (node:async_hooks:346:14)
+    at NodeAsyncContext.run (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\node-async-context.ts:34:27)
+    at runInActionRuntimeContext (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\action.ts:604:28)
+    at <anonymous> (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\context.ts:45:5)
+    at AsyncLocalStorage.run (node:async_hooks:346:14)
+    at NodeAsyncContext.run (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\node-async-context.ts:34:27)
+    at runWithContext (D:\expose\progammation\mes-stack\monthly-youtube-growth\backend\node_modules\@genkit-ai\core\src\context.ts:44:28)

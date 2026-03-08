@@ -43,13 +43,15 @@ export class GenkitService {
      * Analyse les performances d'une chaîne YouTube
      */
     async analyzeChannel(
+        userId: string,
+        channelId: string,
         videos: VideoData[],
         channelStats: ChannelStats
     ): Promise<AnalysisResponse> {
         try {
             const response = await lastValueFrom(
                 this.http.post<AnalysisResponse>(`${this.apiUrl}/analyzeChannel`, {
-                    data: { videos, channelStats }
+                    data: { userId, channelId, videos, channelStats }
                 })
             );
             return response;
@@ -63,13 +65,15 @@ export class GenkitService {
      * Génère des idées de vidéos
      */
     async generateIdeas(
+        userId: string,
+        channelId: string,
         niche: string,
         topVideos: Array<{ title: string; views: number }>
     ): Promise<IdeasResponse> {
         try {
             const response = await lastValueFrom(
                 this.http.post<IdeasResponse>(`${this.apiUrl}/generateIdeas`, {
-                    data: { niche, topVideos }
+                    data: { userId, channelId, niche, topVideos }
                 })
             );
             return response;

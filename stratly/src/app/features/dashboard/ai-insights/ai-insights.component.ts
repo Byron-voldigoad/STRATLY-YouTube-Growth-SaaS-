@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GenkitService, VideoData, ChannelStats } from '../../../core/services/genkit.service';
 import { YouTubeService } from '../../../core/services/youtube.service';
+import { SupabaseService } from '../../../core/services/supabase.service';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
@@ -131,8 +132,8 @@ import { MarkdownComponent } from 'ngx-markdown';
                     }
                     <div class="mt-8 pt-6 border-t border-border/30 flex justify-center">
                       <button (click)="runGenerateIdeas()" 
-                              class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-2">
-                        <ng-icon name="lucideRefreshCw"></ng-icon>
+                               class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-2">
+                         <ng-icon name="lucideRefreshCw"></ng-icon>
                         Générer d'autres idées
                       </button>
                     </div>
@@ -168,19 +169,57 @@ export class AiInsightsComponent implements OnInit {
 
   constructor(
     private genkit: GenkitService,
-    private youtube: YouTubeService
+    private youtube: YouTubeService,
+    private supabase: SupabaseService
   ) { }
 
-  ngOnInit() { }
+  ngOnInit() {
+    this.loadStoredAnalyses();
+  }
+
+  async loadStoredAnalyses() {
+    try {
+      const profile = await this.supabase.getProfile();
+      if (!profile?.youtube_channel_id) return;
+
+      const { data: analyses, error } = await this.supabase.client
+        .from('ai_analyses')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('channel_id', profile.youtube_channel_id);
+
+      if (error) throw error;
+
+      if (analyses) {
+        const channelAnalysis = analyses.find(a => a.analysis_type === 'channel');
+        const ideasAnalysis = analyses.find(a => a.analysis_type === 'ideas');
+
+        if (channelAnalysis) {
+          this.analysisResult = channelAnalysis.content;
+        }
+
+        if (ideasAnalysis) {
+          try {
+            this.ideas = JSON.parse(ideasAnalysis.content);
+          } catch (e) {
+            console.error('Error parsing stored ideas:', e);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading stored analyses:', err);
+    }
+  }
 
   async runAnalysis() {
     this.isAnalyzing = true;
     try {
       // 1. Charger les données réelles
+      const profile = await this.supabase.getProfile();
       const stats = await this.youtube.getChannelAnalytics();
       const videos = await this.youtube.getVideoAnalytics();
 
-      if (!stats || stats.length === 0 || !videos || videos.length === 0) {
+      if (!profile || !profile.youtube_channel_id || !stats || stats.length === 0 || !videos || videos.length === 0) {
         alert("Pas assez de données pour l'analyse. Synchronisez votre chaîne d'abord.");
         return;
       }
@@ -190,7 +229,7 @@ export class AiInsightsComponent implements OnInit {
         subscriberCount: latestStats.subscribers,
         viewCount: latestStats.total_views,
         videoCount: latestStats.total_videos,
-        channelTitle: 'Votre Chaîne'
+        channelTitle: profile.youtube_channel_title || 'Votre Chaîne'
       };
 
       const videoData: VideoData[] = videos.map(v => ({
@@ -201,7 +240,12 @@ export class AiInsightsComponent implements OnInit {
       }));
 
       // 2. Appeler Genkit
-      const response = await this.genkit.analyzeChannel(videoData, channelStats);
+      const response = await this.genkit.analyzeChannel(
+        profile.id,
+        profile.youtube_channel_id,
+        videoData,
+        channelStats
+      );
       this.analysisResult = response.result;
     } catch (err) {
       console.error('Analysis Error:', err);
@@ -214,8 +258,10 @@ export class AiInsightsComponent implements OnInit {
   async runGenerateIdeas() {
     this.isGenerating = true;
     try {
+      const profile = await this.supabase.getProfile();
       const videos = await this.youtube.getVideoAnalytics();
-      if (!videos || videos.length === 0) {
+
+      if (!profile || !profile.youtube_channel_id || !videos || videos.length === 0) {
         alert("Besoin de données vidéos pour générer des idées.");
         return;
       }
@@ -226,7 +272,12 @@ export class AiInsightsComponent implements OnInit {
         .map(v => ({ title: v.video_title, views: v.views }));
 
       // Appeler Genkit
-      const response = await this.genkit.generateIdeas("votre niche", topVideos);
+      const response = await this.genkit.generateIdeas(
+        profile.id,
+        profile.youtube_channel_id,
+        profile.youtube_channel_title || "votre niche",
+        topVideos
+      );
       this.ideas = response.result;
     } catch (err) {
       console.error('Generation Error:', err);

@@ -5,6 +5,8 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { routes } from './app.routes';
 import { provideMarkdown } from 'ngx-markdown';
+import { importProvidersFrom } from '@angular/core';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -13,5 +15,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideAnimations(),
     provideMarkdown(),
+    importProvidersFrom(NgxChartsModule),
   ],
 };
