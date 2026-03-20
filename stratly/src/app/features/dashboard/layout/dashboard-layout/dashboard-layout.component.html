@@ -4,11 +4,14 @@
     <aside class="bg-white border-r border-gray-200 flex flex-col transition-all duration-300"
         [class.w-64]="sidebarOpen" [class.w-16]="!sidebarOpen">
         <!-- Logo -->
-        <div class="h-16 flex items-center px-4 border-b border-gray-100">
+        <div class="h-16 flex items-center justify-center px-4 border-b border-gray-100">
             @if (sidebarOpen) {
-            <h1 class="text-xl font-bold text-slate-900 font-heading">Stratly</h1>
+            <div class="flex items-center gap-3 w-full">
+                <img src="/assets/images/logo.png" alt="Stratly" class="h-8 w-auto">
+                <h1 class="text-2xl font-bold text-slate-900 font-heading">Stratly</h1>
+            </div>
             } @else {
-            <span class="text-xl font-bold text-blue-600">S</span>
+            <img src="/assets/images/logo.png" alt="Stratly" class="h-8 w-auto">
             }
         </div>
 

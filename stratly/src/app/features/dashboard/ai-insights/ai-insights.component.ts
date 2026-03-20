@@ -1,23 +1,24 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GenkitService, VideoData, ChannelStats } from '../../../core/services/genkit.service';
+import { GenkitService, VideoData, ChannelStats, ChannelAnalysis } from '../../../core/services/genkit.service';
 import { YouTubeService } from '../../../core/services/youtube.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { lucideSparkles, lucideBarChart2, lucideLightbulb, lucideLoader2, lucideCheckCircle2, lucideAlertCircle } from '@ng-icons/lucide';
-import { MarkdownComponent } from 'ngx-markdown';
+import { lucideSparkles, lucideBarChart2, lucideLightbulb, lucideLoader2, lucideCheckCircle2, lucideAlertCircle, lucideTrendingUp, lucideTrendingDown, lucideMinus, lucideRefreshCw } from '@ng-icons/lucide';
+import { AuditScoreComponent } from './components/audit-score.component';
 
 @Component({
   selector: 'app-ai-insights',
   standalone: true,
-  imports: [CommonModule, HlmCardImports, HlmButton, NgIconComponent, MarkdownComponent],
+  imports: [CommonModule, HlmCardImports, HlmButton, NgIconComponent, AuditScoreComponent],
   providers: [
     provideIcons({
-      lucideSparkles, lucideBarChart2, lucideLightbulb, lucideLoader2, lucideCheckCircle2, lucideAlertCircle,
+      lucideSparkles, lucideBarChart2, lucideLightbulb, lucideLoader2, lucideCheckCircle2, lucideAlertCircle, lucideTrendingUp, lucideTrendingDown, lucideMinus, lucideRefreshCw,
       lucSparkles: lucideSparkles, lucBarChart2: lucideBarChart2, lucLightbulb: lucideLightbulb,
-      lucLoader2: lucideLoader2, lucCheckCircle2: lucideCheckCircle2, lucAlertCircle: lucideAlertCircle
+      lucLoader2: lucideLoader2, lucCheckCircle2: lucideCheckCircle2, lucAlertCircle: lucideAlertCircle,
+      lucTrendUp: lucideTrendingUp, lucTrendDown: lucideTrendingDown, lucMinus: lucideMinus
     })
   ],
   template: `
@@ -78,7 +79,7 @@ import { MarkdownComponent } from 'ngx-markdown';
             @if (activeTab === 'analysis') {
               <div hlmCardHeader class="border-b border-border/10 bg-slate-50/50">
                 <h3 hlmCardTitle>Audit IA de la chaîne</h3>
-                <p hlmCardDescription>Cette analyse se base sur vos 50 dernières vidéos.</p>
+                <p hlmCardDescription>Cette analyse se base sur vos dernières vidéos.</p>
               </div>
               
               <div hlmCardContent class="flex-1 p-8">
@@ -89,8 +90,130 @@ import { MarkdownComponent } from 'ngx-markdown';
                     <p class="text-sm text-muted-foreground mt-2">Cela peut prendre jusqu'à 20 secondes.</p>
                   </div>
                 } @else if (analysisResult) {
-                  <div class="prose prose-slate max-w-none animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <markdown [data]="analysisResult"></markdown>
+                  <div class="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    
+                    <!-- Score & Main Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center border-b border-slate-100 pb-12">
+                      <app-audit-score [score]="analysisResult.globalScore"></app-audit-score>
+                      
+                      <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Engagement</p>
+                          <p class="text-2xl font-black text-slate-900">{{ ((analysisResult.metrics.engagementRate || 0) * 100).toFixed(1) }}%</p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Rétention</p>
+                          <p class="text-2xl font-black text-slate-900">{{ ((analysisResult.metrics.retentionRate || 0) * 100).toFixed(0) }}%</p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 group">
+                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Vues Moy.</p>
+                          <p class="text-2xl font-black text-slate-900">{{ ((analysisResult.metrics.totalViews?.value || 0) / 1000).toFixed(1) }}k</p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tendance</p>
+                          <div class="flex items-center gap-2">
+                             <ng-icon [name]="analysisResult.metrics.totalViews?.trend === 'up' ? 'lucideTrendingUp' : 'lucideTrendingDown'" 
+                                      [class]="analysisResult.metrics.totalViews?.trend === 'up' ? 'text-emerald-500' : 'text-rose-500'"></ng-icon>
+                             <span class="text-sm font-bold capitalize">{{ analysisResult.metrics.totalViews?.trend || 'stable' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Video Performance Patterns -->
+                    <div class="space-y-6">
+                      <h4 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                        <div class="size-2 bg-blue-500 rounded-full"></div>
+                        Patterns de Performance
+                      </h4>
+                      
+                      @if (analysisResult.videoAnalysis) {
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          @if (analysisResult.videoAnalysis.worstVideo) {
+                            <div class="space-y-3">
+                              <p class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center gap-2">
+                                <ng-icon name="lucideTrendingDown"></ng-icon> À éviter
+                              </p>
+                              <div class="p-4 rounded-2xl border border-rose-100 bg-rose-50/30">
+                                <p class="text-sm font-bold text-slate-900 mb-2 truncate" [title]="analysisResult.videoAnalysis.worstVideo.title">
+                                  {{ analysisResult.videoAnalysis.worstVideo.title }}
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                  @for (factor of analysisResult.videoAnalysis.worstVideo.factors; track factor) {
+                                    <span class="px-2 py-0.5 rounded-full bg-white border border-rose-100 text-[10px] font-bold text-rose-600">
+                                      {{ factor }}
+                                    </span>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          }
+
+                          @if (analysisResult.videoAnalysis.bestVideo) {
+                            <div class="space-y-3">
+                              <p class="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                <ng-icon name="lucideTrendingUp"></ng-icon> À multiplier
+                              </p>
+                              <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/30">
+                                <p class="text-sm font-bold text-slate-900 mb-2 truncate" [title]="analysisResult.videoAnalysis.bestVideo.title">
+                                  {{ analysisResult.videoAnalysis.bestVideo.title }}
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                  @for (factor of analysisResult.videoAnalysis.bestVideo.factors; track factor) {
+                                    <span class="px-2 py-0.5 rounded-full bg-white border border-emerald-100 text-[10px] font-bold text-emerald-600">
+                                      {{ factor }}
+                                    </span>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Suggestions & Calendar -->
+                    @if (analysisResult.suggestions) {
+                      <div class="space-y-6">
+                         <h4 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                          <div class="size-2 bg-amber-500 rounded-full"></div>
+                          Stratégie Recommandée
+                        </h4>
+                        
+                        <div class="space-y-4">
+                          @for (item of (analysisResult.suggestions.continuity || []); track item.suggestion) {
+                            <div class="flex items-start gap-4 p-5 rounded-2xl bg-blue-50/50 border border-blue-100">
+                              <div class="size-8 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
+                                <ng-icon name="lucideSparkles" class="text-white text-sm"></ng-icon>
+                              </div>
+                              <div>
+                                 <p class="text-sm font-black text-slate-900">{{ item.suggestion }}</p>
+                                 <p class="text-xs text-blue-600 font-bold mt-1">Basé sur : {{ item.basedOn }}</p>
+                              </div>
+                            </div>
+                          }
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6">
+                          @for (day of (analysisResult.calendar || []); track day.date) {
+                            <div class="flex flex-col gap-2 p-3 rounded-xl border border-slate-100 text-center">
+                              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ day.date }}</span>
+                              <span class="text-[10px] font-black px-2 py-0.5 rounded-full mx-auto"
+                                    [class]="day.type === 'continuity' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                                {{ day.type }}
+                              </span>
+                              <span class="text-[9px] text-slate-600 font-bold line-clamp-2 leading-tight mt-1">{{ day.description }}</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <div class="pt-12 text-center text-slate-400">
+                       <button (click)="analysisResult = null" class="text-xs font-bold hover:text-blue-600 transition-colors">
+                         Générer une nouvelle analyse
+                       </button>
+                    </div>
                   </div>
                 } @else {
                   <div class="flex flex-col items-center justify-center h-full text-center py-12">
@@ -164,7 +287,7 @@ export class AiInsightsComponent implements OnInit {
   isAnalyzing = false;
   isGenerating = false;
 
-  analysisResult = '';
+  analysisResult: ChannelAnalysis | null = null;
   ideas: string[] = [];
 
   constructor(
@@ -180,7 +303,11 @@ export class AiInsightsComponent implements OnInit {
   async loadStoredAnalyses() {
     try {
       const profile = await this.supabase.getProfile();
-      if (!profile?.youtube_channel_id) return;
+      console.log('Loading profile for AI analyses:', profile?.id);
+      if (!profile?.youtube_channel_id) {
+        console.warn('No youtube_channel_id found for profile');
+        return;
+      }
 
       const { data: analyses, error } = await this.supabase.client
         .from('ai_analyses')
@@ -189,18 +316,40 @@ export class AiInsightsComponent implements OnInit {
         .eq('channel_id', profile.youtube_channel_id);
 
       if (error) throw error;
+      console.log('Stored analyses found:', analyses?.length || 0);
 
       if (analyses) {
         const channelAnalysis = analyses.find(a => a.analysis_type === 'channel');
-        const ideasAnalysis = analyses.find(a => a.analysis_type === 'ideas');
 
         if (channelAnalysis) {
-          this.analysisResult = channelAnalysis.content;
+          console.log('Found channel analysis row:', channelAnalysis.id);
+          try {
+            const rawContent = channelAnalysis.content;
+            const parsed = typeof rawContent === 'string'
+              ? JSON.parse(rawContent)
+              : rawContent;
+
+            console.log('Parsed analysis content properties:', Object.keys(parsed || {}));
+
+            if (parsed && typeof parsed === 'object' && 'globalScore' in parsed) {
+              this.analysisResult = parsed;
+              console.log('Analysis result successfully loaded from Supabase. Score:', this.analysisResult?.globalScore);
+            } else {
+              console.warn('Invalid data format in Supabase, content:', rawContent);
+              this.analysisResult = null;
+            }
+          } catch (e) {
+            console.error('Error parsing stored channel analysis:', e);
+            this.analysisResult = null;
+          }
         }
 
+        const ideasAnalysis = analyses.find(a => a.analysis_type === 'ideas');
         if (ideasAnalysis) {
           try {
-            this.ideas = JSON.parse(ideasAnalysis.content);
+            this.ideas = typeof ideasAnalysis.content === 'string'
+              ? JSON.parse(ideasAnalysis.content)
+              : ideasAnalysis.content;
           } catch (e) {
             console.error('Error parsing stored ideas:', e);
           }
@@ -214,7 +363,6 @@ export class AiInsightsComponent implements OnInit {
   async runAnalysis() {
     this.isAnalyzing = true;
     try {
-      // 1. Charger les données réelles
       const profile = await this.supabase.getProfile();
       const stats = await this.youtube.getChannelAnalytics();
       const videos = await this.youtube.getVideoAnalytics();
@@ -239,17 +387,31 @@ export class AiInsightsComponent implements OnInit {
         publishedAt: v.published_at
       }));
 
-      // 2. Appeler Genkit
+      console.log('--- DEBUG UI: DATA BEFORE ANALYSIS ---');
+      console.log('Videos count:', videoData.length);
+      console.log('Videos views:', videoData.map(v => v.views));
+      console.log('Channel Stats:', channelStats);
+      console.log('---------------------------------------');
+
+      console.log('Calling Genkit analyzeChannel...');
+
       const response = await this.genkit.analyzeChannel(
         profile.id,
         profile.youtube_channel_id,
         videoData,
         channelStats
       );
-      this.analysisResult = response.result;
+
+      console.log('Genkit Response received:', response);
+      if (response && response.result) {
+        this.analysisResult = response.result;
+        console.log('analysisResult set to:', this.analysisResult);
+      } else {
+        throw new Error("Réponse Genkit invalide");
+      }
     } catch (err) {
       console.error('Analysis Error:', err);
-      alert("Erreur lors de l'analyse IA.");
+      alert("Erreur lors de l'analyse IA. Est-ce que le serveur est lancé ?");
     } finally {
       this.isAnalyzing = false;
     }
@@ -271,14 +433,15 @@ export class AiInsightsComponent implements OnInit {
         .slice(0, 5)
         .map(v => ({ title: v.video_title, views: v.views }));
 
-      // Appeler Genkit
       const response = await this.genkit.generateIdeas(
         profile.id,
         profile.youtube_channel_id,
         profile.youtube_channel_title || "votre niche",
         topVideos
       );
-      this.ideas = response.result;
+      if (response && response.result) {
+        this.ideas = response.result;
+      }
     } catch (err) {
       console.error('Generation Error:', err);
       alert("Erreur lors de la génération d'idées.");

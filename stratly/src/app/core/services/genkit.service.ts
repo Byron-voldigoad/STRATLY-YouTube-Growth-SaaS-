@@ -20,10 +20,53 @@ export interface ChannelStats {
 }
 
 export interface AnalysisResponse {
-    result: string;
+    result: ChannelAnalysis;
     cached?: boolean;
     flowId?: string;
     traceId?: string;
+}
+
+export interface ChannelAnalysis {
+    globalScore: number;
+    metrics: {
+        subscribers: { value: number; trend: 'up' | 'down' | 'stable' };
+        totalViews: { value: number; trend: 'up' | 'down' | 'stable' };
+        engagementRate: number;
+        retentionRate: number;
+    };
+    videoAnalysis: {
+        bestVideo: VideoPerformance;
+        worstVideo: VideoPerformance;
+        patterns: {
+            topSubjects: Array<{ subject: string; performance: number }>;
+            optimalLength: { min: number; max: number };
+            optimalDay: string;
+            optimalTime: number;
+        };
+        detectedCategories: Array<{
+            name: string;
+            avgViews: number;
+            commonKeywords: string[];
+        }>;
+    };
+    suggestions: {
+        continuity: Array<{ suggestion: string; basedOn: string }>;
+        exploration: Array<{ suggestion: string; riskLevel: 'low' | 'medium' | 'high' }>;
+        timing: { bestDay: string; bestHour: number };
+    };
+    calendar: Array<{
+        date: string;
+        type: 'continuity' | 'exploration';
+        description: string;
+    }>;
+}
+
+export interface VideoPerformance {
+    id: string;
+    title: string;
+    views: number;
+    engagement: number;
+    factors: string[];
 }
 
 export interface IdeasResponse {
