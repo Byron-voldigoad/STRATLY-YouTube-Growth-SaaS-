@@ -89,6 +89,25 @@ const AnalysisResultSchema = z.object({
     })),
 });
 
+// --- SCHÉMAS NICHE DETECTION ---
+const DetectedNicheSchema = z.object({
+    name: z.string(),
+    videoCount: z.number(),
+    videoIds: z.array(z.string()),
+    avgViews: z.number(),
+    keywords: z.array(z.string()),
+});
+
+const NicheDetectionResultSchema = z.object({
+    niches: z.array(DetectedNicheSchema),
+    outliers: z.array(z.object({
+        id: z.string(),
+        title: z.string(),
+        views: z.number(),
+        reason: z.string(),
+    })),
+});
+
 // FLOW 1: Analyse de chaîne
 export const analyzeChannelFlow = ai.defineFlow(
     {
@@ -98,6 +117,7 @@ export const analyzeChannelFlow = ai.defineFlow(
             channelId: z.string(),
             videos: z.array(VideoSchema),
             channelStats: z.any(),
+            focusNiches: z.array(z.string()).optional(),
         }),
         outputSchema: AnalysisResultSchema,
     },
@@ -127,6 +147,11 @@ export const analyzeChannelFlow = ai.defineFlow(
 
         console.log('--- GENKIT DEBUG: ANALYZING', input.videos.length, 'VIDEOS ---');
 
+        // Construire le contexte des niches si disponible
+        const nicheContext = input.focusNiches && input.focusNiches.length > 0
+            ? `\nNICHES SÉLECTIONNÉES PAR L'UTILISATEUR: ${input.focusNiches.join(', ')}.\nIMPORTANT: Base tes suggestions et recommandations UNIQUEMENT sur les vidéos qui correspondent à ces niches. Les vidéos hors de ces niches doivent être ignorées dans tes recommandations stratégiques (mais peuvent apparaître dans les stats brutes).`
+            : '';
+
         const { output } = await ai.generate({
             model: 'openai/llama-3.3-70b-versatile',
             system: `Tu es un expert analyste de données YouTube. Tu dois RIGOUREUSEMENT utiliser le schéma JSON fourni. NE RENVOIE QUE DU JSON VALIDE ET RIEN D'AUTRE. 
@@ -144,7 +169,7 @@ export const analyzeChannelFlow = ai.defineFlow(
             
             Analyse ces données YouTube et remplis ce schéma JSON avec tes conclusions.
              STATS DE LA CHAINE: ${JSON.stringify(input.channelStats)}
-             LISTE DES VIDEOS: ${input.videos.map(v => `- ${v.title} (${v.views} vues)`).join('\n')}
+             LISTE DES VIDEOS: ${input.videos.map(v => `- ${v.title} (${v.views} vues)`).join('\n')}${nicheContext}
             `,
             output: {
                 format: 'json',
@@ -285,36 +310,158 @@ export const importYouTubeFlow = ai.defineFlow(
     }
 );
 
+// FLOW 4: Détection de niches
+export const detectNichesFlow = ai.defineFlow(
+    {
+        name: 'detectNiches',
+        inputSchema: z.object({
+            userId: z.string(),
+            channelId: z.string(),
+            videos: z.array(VideoSchema),
+        }),
+        outputSchema: NicheDetectionResultSchema,
+    },
+    async (input) => {
+        console.log('--- GENKIT DEBUG: DETECTING NICHES FOR', input.videos.length, 'VIDEOS ---');
+
+        const { output } = await ai.generate({
+            model: 'openai/llama-3.3-70b-versatile',
+            system: `Tu es un expert en classification thématique de contenus YouTube. NE RENVOIE QUE DU JSON VALIDE. Ton JSON DOIT contenir 'niches' et 'outliers'. Pas de markdown, pas de texte autour.`,
+            prompt: `
+            Analyse les titres de ces vidéos YouTube et regroupe-les par thème/niche.
+
+            RÈGLES:
+            - Un thème doit avoir AU MINIMUM 3 vidéos pour être considéré comme une "niche"
+            - Les vidéos qui n'appartiennent à aucune niche (moins de 3 vidéos sur un thème) sont des "outliers"
+            - Donne un nom clair et concis à chaque niche (ex: "AMV Anime", "Tech Reviews", "Vlogs")
+            - Pour chaque niche, identifie des mots-clés communs
+            - Pour chaque outlier, explique brièvement pourquoi il est hors-niche
+
+            Gabarit JSON :
+            {
+              "niches": [
+                { "name": "...", "videoCount": N, "videoIds": ["id1", ...], "avgViews": N, "keywords": ["..."] }
+              ],
+              "outliers": [
+                { "id": "...", "title": "...", "views": N, "reason": "..." }
+              ]
+            }
+
+            VIDÉOS À CLASSIFIER:
+            ${input.videos.map(v => `- ID: ${v.id} | Titre: ${v.title} | Vues: ${v.views}`).join('\n')}
+            `,
+            output: {
+                format: 'json',
+                schema: NicheDetectionResultSchema
+            },
+            config: {
+                temperature: 0.1,
+                // @ts-ignore
+                response_format: { type: "json_object" }
+            },
+        });
+
+        if (!output) {
+            throw new Error('Le modèle IA n\'a pas généré de réponse pour la détection de niches.');
+        }
+
+        console.log('--- GENKIT DEBUG: NICHES DETECTED:', output.niches.length, '---');
+
+        // Persistance dans Supabase
+        const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+        await supabase.from('user_niches').upsert({
+            user_id: input.userId,
+            channel_id: input.channelId,
+            detected_niches: JSON.stringify(output.niches),
+            selected_niches: JSON.stringify(output.niches.map(n => n.name)),
+            video_count_at_detection: input.videos.length,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id, channel_id' });
+
+        return output;
+    }
+);
+
 // --- SERVER ---
 const app = express();
 app.use(cors({ origin: ['http://localhost:4200'], credentials: true }));
 app.use(express.json());
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] INCOMING:`, req.method, req.path);
+    next();
+});
 
 app.post('/analyzeChannel', expressHandler(analyzeChannelFlow));
 app.post('/generateIdeas', expressHandler(generateIdeasFlow));
 app.post('/importYouTube', expressHandler(importYouTubeFlow));
+app.post('/detectNiches', expressHandler(detectNichesFlow));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/auth/youtube/callback', async (req, res) => {
-    const { code, userId } = req.body;
-    const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_CALLBACK_URL);
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-    const channelRes = await youtube.channels.list({ mine: true, part: ['snippet', 'statistics'] });
-    const channel = channelRes.data.items?.[0];
-    if (!channel) return res.status(404).send('Chaîne non trouvée');
+    try {
+        console.log('--- ENTERING OAUTH CALLBACK ROUTE ---', req.body);
+        const { code, userId } = req.body;
 
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-    await supabase.from('profiles').update({
-        youtube_access_token: tokens.access_token,
-        youtube_refresh_token: tokens.refresh_token,
-        youtube_channel_id: channel.id,
-        youtube_channel_title: channel.snippet?.title,
-        updated_at: new Date().toISOString(),
-    }).eq('id', userId);
+        if (!code || !userId) {
+            console.error('CALLBACK ERROR: Missing code or userId');
+            return res.status(400).json({ success: false, error: 'Code et userId requis' });
+        }
 
-    res.json({ success: true });
+        // 1. Échanger le code contre des tokens
+        console.log('Step 1: Exchanging code for tokens...');
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_CALLBACK_URL
+        );
+        const { tokens } = await oauth2Client.getToken(code);
+        console.log('Step 1 OK: Got tokens. access_token:', !!tokens.access_token, 'refresh_token:', !!tokens.refresh_token);
+
+        if (!tokens.refresh_token) {
+            console.warn('⚠️ WARNING: No refresh_token received from Google. The user may need to revoke access at https://myaccount.google.com/permissions and re-authorize.');
+        }
+
+        // 2. Récupérer les infos de la chaîne
+        console.log('Step 2: Fetching channel info...');
+        oauth2Client.setCredentials(tokens);
+        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+        const channelRes = await youtube.channels.list({ mine: true, part: ['snippet', 'statistics'] });
+        const channel = channelRes.data.items?.[0];
+        if (!channel) {
+            console.error('CALLBACK ERROR: No channel found');
+            return res.status(404).json({ success: false, error: 'Chaîne YouTube non trouvée' });
+        }
+        console.log('Step 2 OK: Channel found:', channel.snippet?.title, '(', channel.id, ')');
+
+        // 3. Sauvegarder dans Supabase
+        console.log('Step 3: Saving to Supabase for userId:', userId);
+        const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+        const updateData: Record<string, any> = {
+            youtube_access_token: tokens.access_token,
+            youtube_channel_id: channel.id,
+            youtube_channel_title: channel.snippet?.title,
+            updated_at: new Date().toISOString(),
+        };
+
+        // Ne mettre à jour le refresh_token QUE s'il est présent (sinon on écraserait l'ancien avec null)
+        if (tokens.refresh_token) {
+            updateData.youtube_refresh_token = tokens.refresh_token;
+        }
+
+        const { error: dbError } = await supabase.from('profiles').update(updateData).eq('id', userId);
+
+        if (dbError) {
+            console.error('Step 3 FAILED: Supabase error:', dbError);
+            return res.status(500).json({ success: false, error: 'Erreur de sauvegarde: ' + dbError.message });
+        }
+        console.log('Step 3 OK: Profile updated successfully');
+
+        res.json({ success: true, channelTitle: channel.snippet?.title, hasRefreshToken: !!tokens.refresh_token });
+    } catch (error: any) {
+        console.error('---- OAUTH CALLBACK ERROR ----', error?.message || error);
+        res.status(500).json({ success: false, error: error?.message || 'Erreur OAuth' });
+    }
 });
 
 app.listen(3400, () => {

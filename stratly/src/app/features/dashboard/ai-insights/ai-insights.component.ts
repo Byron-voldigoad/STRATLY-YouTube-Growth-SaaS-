@@ -395,11 +395,32 @@ export class AiInsightsComponent implements OnInit {
 
       console.log('Calling Genkit analyzeChannel...');
 
+      // Charger les niches sélectionnées par l'utilisateur
+      let focusNiches: string[] = [];
+      try {
+        const { data: nicheData } = await this.supabase.client
+          .from('user_niches')
+          .select('selected_niches')
+          .eq('user_id', profile.id)
+          .eq('channel_id', profile.youtube_channel_id)
+          .maybeSingle();
+
+        if (nicheData?.selected_niches) {
+          focusNiches = typeof nicheData.selected_niches === 'string'
+            ? JSON.parse(nicheData.selected_niches)
+            : nicheData.selected_niches;
+          console.log('Focus niches loaded:', focusNiches);
+        }
+      } catch (e) {
+        console.warn('Impossible de charger les niches, analyse sans filtre:', e);
+      }
+
       const response = await this.genkit.analyzeChannel(
         profile.id,
         profile.youtube_channel_id,
         videoData,
-        channelStats
+        channelStats,
+        focusNiches.length > 0 ? focusNiches : undefined
       );
 
       console.log('Genkit Response received:', response);

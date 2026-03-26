@@ -74,6 +74,31 @@ export interface IdeasResponse {
     cached?: boolean;
 }
 
+export interface DetectedNiche {
+    name: string;
+    videoCount: number;
+    videoIds: string[];
+    avgViews: number;
+    keywords: string[];
+}
+
+export interface NicheOutlier {
+    id: string;
+    title: string;
+    views: number;
+    reason: string;
+}
+
+export interface NicheDetectionResult {
+    niches: DetectedNiche[];
+    outliers: NicheOutlier[];
+}
+
+export interface NicheDetectionResponse {
+    result: NicheDetectionResult;
+    cached?: boolean;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -89,12 +114,13 @@ export class GenkitService {
         userId: string,
         channelId: string,
         videos: VideoData[],
-        channelStats: ChannelStats
+        channelStats: ChannelStats,
+        focusNiches?: string[]
     ): Promise<AnalysisResponse> {
         try {
             const response = await lastValueFrom(
                 this.http.post<AnalysisResponse>(`${this.apiUrl}/analyzeChannel`, {
-                    data: { userId, channelId, videos, channelStats }
+                    data: { userId, channelId, videos, channelStats, focusNiches }
                 })
             );
             return response;
@@ -139,6 +165,27 @@ export class GenkitService {
             return response;
         } catch (error) {
             console.error("Erreur lors de l'import YouTube: ", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Détecte les niches thématiques d'une chaîne YouTube
+     */
+    async detectNiches(
+        userId: string,
+        channelId: string,
+        videos: VideoData[]
+    ): Promise<NicheDetectionResponse> {
+        try {
+            const response = await lastValueFrom(
+                this.http.post<NicheDetectionResponse>(`${this.apiUrl}/detectNiches`, {
+                    data: { userId, channelId, videos }
+                })
+            );
+            return response;
+        } catch (error) {
+            console.error("Erreur lors de la détection de niches: ", error);
             throw error;
         }
     }

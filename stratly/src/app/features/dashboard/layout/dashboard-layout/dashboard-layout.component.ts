@@ -3,20 +3,22 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { SupabaseService } from '../../../../core/services/supabase.service';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { lucideLayoutDashboard, lucideSparkles, lucideYoutube, lucideLogOut, lucideMenu } from '@ng-icons/lucide';
+import { lucideLayoutDashboard, lucideSparkles, lucideYoutube, lucideLogOut, lucideMenu, lucideTarget } from '@ng-icons/lucide';
+import { NicheDetectorComponent } from '../../../../shared/components/niche-detector/niche-detector.component';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent, NicheDetectorComponent],
   providers: [
-    provideIcons({ lucideLayoutDashboard, lucideSparkles, lucideYoutube, lucideLogOut, lucideMenu })
+    provideIcons({ lucideLayoutDashboard, lucideSparkles, lucideYoutube, lucideLogOut, lucideMenu, lucideTarget })
   ],
   templateUrl: './dashboard-layout.component.html',
   styleUrl: './dashboard-layout.component.css',
 })
 export class DashboardLayoutComponent {
   sidebarOpen = true;
+  nicheDetectorOpen = false;
 
   navItems = [
     { label: 'Vue d\'ensemble', path: '/dashboard', icon: 'lucideLayoutDashboard', exact: true },
@@ -36,5 +38,9 @@ export class DashboardLayoutComponent {
 
   toggleSidebar() {
     this.sidebarOpen = !this.sidebarOpen;
+  }
+
+  toggleNicheDetector() {
+    this.nicheDetectorOpen = !this.nicheDetectorOpen;
   }
 }
