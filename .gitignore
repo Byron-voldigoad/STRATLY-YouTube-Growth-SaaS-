@@ -17,6 +17,10 @@ backend/dist/
 stratly/out-tsc/
 stratly/.angular/
 
+.kombai/
+*.backup
+backend/raw_llama_output.json
+
 # IDEs
 .vscode/
 *.swp

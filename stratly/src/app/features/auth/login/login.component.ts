@@ -18,6 +18,11 @@ export class LoginComponent {
   password = '';
   loading = false;
   errorMessage = '';
+  showPassword = false;
+
+  togglePassword() {
+    this.showPassword = !this.showPassword;
+  }
 
   constructor(
     private supabase: SupabaseService,

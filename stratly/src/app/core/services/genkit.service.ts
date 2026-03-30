@@ -28,37 +28,23 @@ export interface AnalysisResponse {
 
 export interface ChannelAnalysis {
     globalScore: number;
+    scoreExplanation: string;
     metrics: {
-        subscribers: { value: number; trend: 'up' | 'down' | 'stable' };
-        totalViews: { value: number; trend: 'up' | 'down' | 'stable' };
-        engagementRate: number;
-        retentionRate: number;
+        engagement: number;
+        engagementContext: string;
+        views: number;
+        trend: 'hausse' | 'stable' | 'baisse';
     };
-    videoAnalysis: {
-        bestVideo: VideoPerformance;
-        worstVideo: VideoPerformance;
-        patterns: {
-            topSubjects: Array<{ subject: string; performance: number }>;
-            optimalLength: { min: number; max: number };
-            optimalDay: string;
-            optimalTime: number;
-        };
-        detectedCategories: Array<{
-            name: string;
-            avgViews: number;
-            commonKeywords: string[];
-        }>;
+    recommendation: {
+        action: string;
+        proof: string;
+        confidence: string;
+        nextStep: string;
     };
-    suggestions: {
-        continuity: Array<{ suggestion: string; basedOn: string }>;
-        exploration: Array<{ suggestion: string; riskLevel: 'low' | 'medium' | 'high' }>;
-        timing: { bestDay: string; bestHour: number };
+    patterns: {
+        toAvoid: Array<{ videoTitle: string; reason: string }>;
+        toRepeat: Array<{ videoTitle: string; reason: string }>;
     };
-    calendar: Array<{
-        date: string;
-        type: 'continuity' | 'exploration';
-        description: string;
-    }>;
 }
 
 export interface VideoPerformance {

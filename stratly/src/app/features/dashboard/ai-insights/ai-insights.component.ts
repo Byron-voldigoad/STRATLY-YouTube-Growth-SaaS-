@@ -92,122 +92,98 @@ import { AuditScoreComponent } from './components/audit-score.component';
                 } @else if (analysisResult) {
                   <div class="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     
-                    <!-- Score & Main Metrics -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center border-b border-slate-100 pb-12">
+                    <!-- Score & Explanation -->
+                    <div class="space-y-4 border-b border-slate-100 pb-12">
                       <app-audit-score [score]="analysisResult.globalScore"></app-audit-score>
-                      
-                      <div class="grid grid-cols-2 gap-4">
-                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Engagement</p>
-                          <p class="text-2xl font-black text-slate-900">{{ ((analysisResult.metrics.engagementRate || 0) * 100).toFixed(1) }}%</p>
-                        </div>
-                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Rétention</p>
-                          <p class="text-2xl font-black text-slate-900">{{ ((analysisResult.metrics.retentionRate || 0) * 100).toFixed(0) }}%</p>
-                        </div>
-                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 group">
-                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Vues Moy.</p>
-                          <p class="text-2xl font-black text-slate-900">{{ ((analysisResult.metrics.totalViews?.value || 0) / 1000).toFixed(1) }}k</p>
-                        </div>
-                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tendance</p>
-                          <div class="flex items-center gap-2">
-                             <ng-icon [name]="analysisResult.metrics.totalViews?.trend === 'up' ? 'lucideTrendingUp' : 'lucideTrendingDown'" 
-                                      [class]="analysisResult.metrics.totalViews?.trend === 'up' ? 'text-emerald-500' : 'text-rose-500'"></ng-icon>
-                             <span class="text-sm font-bold capitalize">{{ analysisResult.metrics.totalViews?.trend || 'stable' }}</span>
-                          </div>
-                        </div>
+                      <p class="text-slate-600 font-semibold">{{ analysisResult.scoreExplanation }}</p>
+                    </div>
+
+                    <!-- KPIs Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div class="p-6 rounded-2xl bg-slate-50 border border-slate-100">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Réactions audience</p>
+                        <p class="text-sm font-bold text-slate-900 mb-3">{{ viewerRatio(analysisResult.metrics.engagement) }}</p>
+                        <p class="text-xs text-slate-500 mb-2">taux d'engagement : {{ analysisResult.metrics.engagement.toFixed(1) }}%</p>
+                        <p class="text-xs text-slate-600 italic">{{ analysisResult.metrics.engagementContext }}</p>
+                      </div>
+                      <div class="p-6 rounded-2xl bg-slate-50 border border-slate-100">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Découverte</p>
+                        <p class="text-2xl font-black text-slate-900 mb-2">{{ (analysisResult.metrics.views / 1000).toFixed(1) }}k vues</p>
+                        <p class="text-xs text-slate-600">tendance : <span class="font-bold capitalize">{{ analysisResult.metrics.trend }}</span></p>
                       </div>
                     </div>
 
-                    <!-- Video Performance Patterns -->
+                    <!-- Patterns (toAvoid / toRepeat) -->
                     <div class="space-y-6">
                       <h4 class="text-lg font-black text-slate-900 flex items-center gap-2">
                         <div class="size-2 bg-blue-500 rounded-full"></div>
-                        Patterns de Performance
+                        Patterns à Retenir
                       </h4>
                       
-                      @if (analysisResult.videoAnalysis) {
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          @if (analysisResult.videoAnalysis.worstVideo) {
-                            <div class="space-y-3">
-                              <p class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center gap-2">
-                                <ng-icon name="lucideTrendingDown"></ng-icon> À éviter
-                              </p>
-                              <div class="p-4 rounded-2xl border border-rose-100 bg-rose-50/30">
-                                <p class="text-sm font-bold text-slate-900 mb-2 truncate" [title]="analysisResult.videoAnalysis.worstVideo.title">
-                                  {{ analysisResult.videoAnalysis.worstVideo.title }}
-                                </p>
-                                <div class="flex flex-wrap gap-2">
-                                  @for (factor of analysisResult.videoAnalysis.worstVideo.factors; track factor) {
-                                    <span class="px-2 py-0.5 rounded-full bg-white border border-rose-100 text-[10px] font-bold text-rose-600">
-                                      {{ factor }}
-                                    </span>
-                                  }
-                                </div>
-                              </div>
-                            </div>
-                          }
-
-                          @if (analysisResult.videoAnalysis.bestVideo) {
-                            <div class="space-y-3">
-                              <p class="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                                <ng-icon name="lucideTrendingUp"></ng-icon> À multiplier
-                              </p>
-                              <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/30">
-                                <p class="text-sm font-bold text-slate-900 mb-2 truncate" [title]="analysisResult.videoAnalysis.bestVideo.title">
-                                  {{ analysisResult.videoAnalysis.bestVideo.title }}
-                                </p>
-                                <div class="flex flex-wrap gap-2">
-                                  @for (factor of analysisResult.videoAnalysis.bestVideo.factors; track factor) {
-                                    <span class="px-2 py-0.5 rounded-full bg-white border border-emerald-100 text-[10px] font-bold text-emerald-600">
-                                      {{ factor }}
-                                    </span>
-                                  }
-                                </div>
-                              </div>
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-
-                    <!-- Suggestions & Calendar -->
-                    @if (analysisResult.suggestions) {
-                      <div class="space-y-6">
-                         <h4 class="text-lg font-black text-slate-900 flex items-center gap-2">
-                          <div class="size-2 bg-amber-500 rounded-full"></div>
-                          Stratégie Recommandée
-                        </h4>
-                        
-                        <div class="space-y-4">
-                          @for (item of (analysisResult.suggestions.continuity || []); track item.suggestion) {
-                            <div class="flex items-start gap-4 p-5 rounded-2xl bg-blue-50/50 border border-blue-100">
-                              <div class="size-8 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-                                <ng-icon name="lucideSparkles" class="text-white text-sm"></ng-icon>
-                              </div>
-                              <div>
-                                 <p class="text-sm font-black text-slate-900">{{ item.suggestion }}</p>
-                                 <p class="text-xs text-blue-600 font-bold mt-1">Basé sur : {{ item.basedOn }}</p>
-                              </div>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3" *ngIf="analysisResult.patterns.toAvoid.length > 0">
+                          <p class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center gap-2">
+                            <ng-icon name="lucideTrendingDown"></ng-icon> À éviter
+                          </p>
+                          @for (pattern of analysisResult.patterns.toAvoid; track pattern.videoTitle) {
+                            <div class="p-4 rounded-2xl border border-rose-100 bg-rose-50/30">
+                              <p class="text-sm font-bold text-slate-900 mb-2">{{ pattern.videoTitle }}</p>
+                              <p class="text-xs text-rose-600">{{ pattern.reason }}</p>
                             </div>
                           }
                         </div>
 
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6">
-                          @for (day of (analysisResult.calendar || []); track day.date) {
-                            <div class="flex flex-col gap-2 p-3 rounded-xl border border-slate-100 text-center">
-                              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ day.date }}</span>
-                              <span class="text-[10px] font-black px-2 py-0.5 rounded-full mx-auto"
-                                    [class]="day.type === 'continuity' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
-                                {{ day.type }}
-                              </span>
-                              <span class="text-[9px] text-slate-600 font-bold line-clamp-2 leading-tight mt-1">{{ day.description }}</span>
+                        <div class="space-y-3" *ngIf="analysisResult.patterns.toRepeat.length > 0">
+                          <p class="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                            <ng-icon name="lucideTrendingUp"></ng-icon> À multiplier
+                          </p>
+                          @for (pattern of analysisResult.patterns.toRepeat; track pattern.videoTitle) {
+                            <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/30">
+                              <p class="text-sm font-bold text-slate-900 mb-2">{{ pattern.videoTitle }}</p>
+                              <p class="text-xs text-emerald-600">{{ pattern.reason }}</p>
                             </div>
                           }
                         </div>
                       </div>
-                    }
+                    </div>
+
+                    <!-- Recommendation Block -->
+                    <div class="space-y-6 p-6 rounded-2xl bg-amber-50/50 border border-amber-100">
+                      <h4 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                        <div class="size-2 bg-amber-500 rounded-full"></div>
+                        Stratégie Recommandée
+                      </h4>
+                      
+                      <div class="space-y-4">
+                        <p class="text-base font-bold text-slate-900">
+                          {{ analysisResult.recommendation.action }}
+                        </p>
+                        
+                        <div class="bg-white p-4 rounded-xl border border-amber-200">
+                          <span class="text-xs font-bold text-amber-600 uppercase tracking-wider">Pourquoi</span>
+                          <p class="text-sm text-slate-700 mt-2">
+                            {{ analysisResult.recommendation.proof }}
+                          </p>
+                        </div>
+                        
+                        <span class="text-xs text-slate-500 italic">
+                          {{ analysisResult.recommendation.confidence }}
+                        </span>
+                        
+                        <button (click)="showNextStep = !showNextStep"
+                                class="mt-4 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition-colors">
+                          {{ showNextStep ? 'Masquer' : 'Voir' }} la prochaine étape
+                        </button>
+                        
+                        @if (showNextStep) {
+                          <div class="p-4 rounded-xl bg-amber-100/30 border border-amber-200 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <p class="text-sm text-slate-700">
+                              {{ analysisResult.recommendation.nextStep }}
+                            </p>
+                          </div>
+                        }
+                      </div>
+                    </div>
 
                     <div class="pt-12 text-center text-slate-400">
                        <button (click)="analysisResult = null" class="text-xs font-bold hover:text-blue-600 transition-colors">
@@ -286,6 +262,7 @@ export class AiInsightsComponent implements OnInit {
   activeTab: 'analysis' | 'ideas' = 'analysis';
   isAnalyzing = false;
   isGenerating = false;
+  showNextStep = false;
 
   analysisResult: ChannelAnalysis | null = null;
   ideas: string[] = [];
@@ -298,6 +275,13 @@ export class AiInsightsComponent implements OnInit {
 
   ngOnInit() {
     this.loadStoredAnalyses();
+  }
+
+  viewerRatio(engagement: number): string {
+    if (!engagement || engagement <= 0)
+      return 'Pas assez de données';
+    const ratio = Math.round(100 / engagement);
+    return `1 viewer sur ${ratio} a réagi`;
   }
 
   async loadStoredAnalyses() {
@@ -324,14 +308,21 @@ export class AiInsightsComponent implements OnInit {
         if (channelAnalysis) {
           console.log('Found channel analysis row:', channelAnalysis.id);
           try {
-            const rawContent = channelAnalysis.content;
+            const rawContent = channelAnalysis.analysis_text;
             const parsed = typeof rawContent === 'string'
               ? JSON.parse(rawContent)
               : rawContent;
 
             console.log('Parsed analysis content properties:', Object.keys(parsed || {}));
 
-            if (parsed && typeof parsed === 'object' && 'globalScore' in parsed) {
+            if (
+              parsed &&
+              typeof parsed === 'object' &&
+              typeof parsed.globalScore === 'number' &&
+              parsed.recommendation?.action &&
+              Array.isArray(parsed.patterns?.toAvoid) &&
+              Array.isArray(parsed.patterns?.toRepeat)
+            ) {
               this.analysisResult = parsed;
               console.log('Analysis result successfully loaded from Supabase. Score:', this.analysisResult?.globalScore);
             } else {
@@ -384,6 +375,8 @@ export class AiInsightsComponent implements OnInit {
         id: v.video_id,
         title: v.video_title,
         views: v.views,
+        likes: v.likes || 0,
+        comments: v.comments || 0,
         publishedAt: v.published_at
       }));
 

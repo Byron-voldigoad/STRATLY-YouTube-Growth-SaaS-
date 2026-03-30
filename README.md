@@ -26,15 +26,15 @@
 
 ## 👤 Auteur
 
-**BYRON_VDG** — Développeur & Créateur
+**Tchango louis Miller** — Développeur & Créateur
 
 - GitHub : [@Byron-voldigoad](https://github.com/Byron-voldigoad)
 
 ## 📄 Licence
 
-**© 2026 BYRON_VDG. Tous droits réservés.**
+**© 2026 Tchango louis Miller. Tous droits réservés.**
 
-Ce logiciel et son code source sont la propriété exclusive de leur auteur.
+Ce logiciel et son code source sont la propriété exclusive de son auteur.
 
 **Il est strictement interdit de :**
 - Copier, reproduire ou dupliquer tout ou partie du code source
