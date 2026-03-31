@@ -59,7 +59,7 @@ const AnalysisResultSchema = z.object({
   metrics: z.object({
     engagement: z.number(),
     engagementContext: z.string(),
-    views: z.number(),
+    views: z.number().default(0),
     trend: z.enum(["hausse", "stable", "baisse"]),
   }),
   recommendation: z.object({
@@ -287,7 +287,9 @@ export const analyzeChannelFlow = ai.defineFlow(
 STATISTIQUES GLOBALES :
 - Format dominant : ${channelStats.topContentType}
 - Engagement moyen historique de la chaîne : ${channelStats.avgEngagement.toFixed(2)}%
-- Niche déclarée : ${userNiche ?? "Non renseignée"}
+- Niche OBLIGATOIRE : ${userNiche ?? "Non renseignée"}
+  (aucune recommandation hors de cette niche)
+- Vues totales de la chaîne : ${input.channelStats.viewCount}
 - Vidéos analysées : ${filteredVideos.length}
 - Nombre exact de vidéos : ${filteredVideos.length}
 
@@ -346,7 +348,28 @@ Tu reçois des données réelles et calculées d'une chaîne.
 
 RÈGLES ABSOLUES :
 1. Tu donnes UNE SEULE recommandation 
-   dans recommendation.action
+   dans recommendation.action.
+   Cette recommandation doit être 
+   une instruction concrète et spécifique
+   qui répond à : QUOI faire, 
+   dans quel FORMAT, et POURQUOI maintenant.
+   
+   Exemples de mauvaises recommandations :
+   - 'Créer plus de contenu similaire' ❌
+   - 'Améliorer le taux d engagement' ❌
+   - 'Poster plus régulièrement' ❌
+   
+   Exemples de bonnes recommandations :
+   - 'Refais une vidéo AMV fairy tail style 
+     — c est ton format le plus engageant 
+     avec 20% de réactions sur 15 vues' ✅
+   - 'Arrête les compilations mixte — 
+     0% d engagement sur 8 vidéos testées,
+     concentre toi sur un seul anime par vidéo' ✅
+   
+   La recommandation doit nommer 
+   un format ou un type de contenu précis,
+   pas une direction générale.
 2. Le champ proof DOIT contenir des chiffres 
    issus des données fournies — pas d'invention
 3. Si une donnée manque, tu écris 
@@ -368,7 +391,17 @@ RÈGLES ABSOLUES :
    dans les données fournies — aucun titre inventé
 9. RENVOIE UNIQUEMENT DU JSON VALIDE. 
    Aucun texte avant ou après. 
-   Aucun bloc markdown.`,
+   Aucun bloc markdown.
+10. La niche indiquée dans 
+    'Niche OBLIGATOIRE' du prompt
+    est une contrainte absolue.
+    Toutes tes recommandations doivent 
+    être cohérentes avec cette niche.
+    Si la niche est 'Non renseignée',
+    déduis la niche implicite depuis 
+    les titres des vidéos et reste 
+    cohérent avec elle.
+    `,
       prompt: userPrompt,
       output: {
         format: "json",
@@ -390,31 +423,37 @@ RÈGLES ABSOLUES :
     const result = output;
 
     // Validation post-génération
-    // Filtrer les patterns qui citent
-    // des vidéos non autorisées
     const allowedTitles = new Set(promptVideos.map((v) => v.title));
 
-    if (result.patterns?.toRepeat) {
-      result.patterns.toRepeat = result.patterns.toRepeat.filter((p) =>
-        allowedTitles.has(p.videoTitle),
-      );
-    }
-
-    if (result.patterns?.toAvoid) {
-      result.patterns.toAvoid = result.patterns.toAvoid.filter((p) =>
-        allowedTitles.has(p.videoTitle),
-      );
-    }
+    const validatedResult = {
+      ...result,
+      metrics: {
+        ...result.metrics,
+        views: input.videos.reduce(
+          (sum: number, v: any) => sum + (v.views || 0),
+          0,
+        ),
+      },
+      patterns: {
+        toAvoid: (result.patterns?.toAvoid ?? []).filter((p) =>
+          allowedTitles.has(p.videoTitle),
+        ),
+        toRepeat: (result.patterns?.toRepeat ?? []).filter((p) =>
+          allowedTitles.has(p.videoTitle),
+        ),
+      },
+    };
 
     console.log(
       "AFTER VALIDATION - toRepeat:",
-      result.patterns?.toRepeat?.map((p) => p.videoTitle),
+      validatedResult.patterns?.toRepeat?.map((p) => p.videoTitle),
     );
 
-    // Ajoute dans le résultat retourné
     console.log("VALIDATION RESULT:", {
       toRepeatBefore: result.patterns?.toRepeat?.length,
-      toRepeatAfter: result.patterns?.toRepeat?.map((p) => p.videoTitle),
+      toRepeatAfter: validatedResult.patterns?.toRepeat?.map(
+        (p) => p.videoTitle,
+      ),
       allowedTitlesCount: allowedTitles.size,
       allowedTitlesList: [...allowedTitles].slice(0, 5),
     });
@@ -430,13 +469,13 @@ RÈGLES ABSOLUES :
         user_id: input.userId,
         channel_id: input.channelId,
         analysis_type: "channel",
-        analysis_text: JSON.stringify(result),
+        analysis_text: JSON.stringify(validatedResult),
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id, channel_id, analysis_type" },
     );
 
-    return result;
+    return validatedResult;
   },
 );
 
