@@ -142,6 +142,7 @@ export const analyzeChannelFlow = ai.defineFlow(
       4. EVALUER LE globalScore (0-100) objectivement.
       5. CALCULER l'engagementRate (vues moyennes / abonnés).
       6. NE JAMAIS NOMMER LA NICHE (ex: AMV). Parle de "patterns".
+      7. Pour les champs patterns.toAvoid et patterns.toRepeat, tu n'utilises QUE des vidéos ayant au minimum 10 vues. Une vidéo avec moins de 10 vues n'est jamais citée comme exemple — son engagement n'est pas statistiquement significatif.
 
       RETOURNE UN OBJET JSON CONFORME AU SCHÉMA AnalysisResultSchema.
     `;
@@ -173,12 +174,17 @@ export const analyzeChannelFlow = ai.defineFlow(
     }));
 
     console.log(
-      "SAMPLE publishedAt:",
-      rawVideos.slice(0, 3).map((v) => ({
-        title: v.title.slice(0, 20),
-        publishedAt: v.publishedAt,
-        type: typeof v.publishedAt,
-      })),
+      "RAW VIDEOS FROM FRONTEND:",
+      rawVideos
+        .sort((a, b) => b.viewCount - a.viewCount)
+        .slice(0, 5)
+        .map((v) => ({
+          title: v.title.slice(0, 25),
+          views: v.viewCount,
+          likes: v.likeCount,
+          comments: v.commentCount,
+          publishedAt: v.publishedAt?.slice(0, 10),
+        })),
     );
 
     const { videos: processedVideos, channelStats } = processVideos(rawVideos);
@@ -258,6 +264,24 @@ export const analyzeChannelFlow = ai.defineFlow(
     );
     console.log("ANALYTICS: retentionMap reçu :", JSON.stringify(retentionMap));
 
+    const promptVideos = filteredVideos.filter((v) => v.viewCount >= 10);
+
+    console.log(
+      "PROMPT VIDEOS:",
+      promptVideos.map((v) => ({
+        title: v.title.slice(0, 25),
+        views: v.viewCount,
+      })),
+    );
+    console.log("BEST IDS:", channelStats.bestVideoIds);
+    console.log(
+      "BEST IDS IN PROMPT:",
+      channelStats.bestVideoIds
+        .map((id) => promptVideos.find((v) => v.videoId === id))
+        .filter(Boolean)
+        .map((v) => v!.title.slice(0, 25)),
+    );
+
     const userPrompt = `Analyse cette chaîne YouTube.
 
 STATISTIQUES GLOBALES :
@@ -268,27 +292,33 @@ STATISTIQUES GLOBALES :
 - Nombre exact de vidéos : ${filteredVideos.length}
 
 MEILLEURES VIDÉOS (par taux d'engagement) :
-${channelStats.bestVideoIds
-  .map((id) => {
-    const v = filteredVideos.find((v) => v.videoId === id);
-    if (!v) return "";
-    return `- "${v.title}" | ${v.contentType} | ${v.engagementRate.toFixed(2)}% engagement | ${v.viewCount} vues`;
-  })
-  .filter(Boolean)
-  .join("\n")}
+${
+  channelStats.bestVideoIds
+    .map((id) => promptVideos.find((v) => v.videoId === id))
+    .filter(Boolean)
+    .slice(0, 3)
+    .map(
+      (v) =>
+        `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
+    )
+    .join("\n") || "Données insuffisantes"
+}
 
 PIRES VIDÉOS (par taux d'engagement) :
-${channelStats.worstVideoIds
-  .map((id) => {
-    const v = filteredVideos.find((v) => v.videoId === id);
-    if (!v) return "";
-    return `- "${v.title}" | ${v.contentType} | ${v.engagementRate.toFixed(2)}% engagement | ${v.viewCount} vues`;
-  })
-  .filter(Boolean)
-  .join("\n")}
+${
+  channelStats.worstVideoIds
+    .map((id) => promptVideos.find((v) => v.videoId === id))
+    .filter(Boolean)
+    .slice(0, 3)
+    .map(
+      (v) =>
+        `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
+    )
+    .join("\n") || "Données insuffisantes"
+}
 
 TOUTES LES VIDÉOS ANALYSÉES :
-${filteredVideos
+${promptVideos
   .map((v) => {
     const analytics = analyticsData[v.videoId];
     const retention = retentionMap[v.videoId];
@@ -358,6 +388,36 @@ RÈGLES ABSOLUES :
 
     console.log("--- GENKIT DEBUG: SUCCESSFUL JSON RESPONSE ---");
     const result = output;
+
+    // Validation post-génération
+    // Filtrer les patterns qui citent
+    // des vidéos non autorisées
+    const allowedTitles = new Set(promptVideos.map((v) => v.title));
+
+    if (result.patterns?.toRepeat) {
+      result.patterns.toRepeat = result.patterns.toRepeat.filter((p) =>
+        allowedTitles.has(p.videoTitle),
+      );
+    }
+
+    if (result.patterns?.toAvoid) {
+      result.patterns.toAvoid = result.patterns.toAvoid.filter((p) =>
+        allowedTitles.has(p.videoTitle),
+      );
+    }
+
+    console.log(
+      "AFTER VALIDATION - toRepeat:",
+      result.patterns?.toRepeat?.map((p) => p.videoTitle),
+    );
+
+    // Ajoute dans le résultat retourné
+    console.log("VALIDATION RESULT:", {
+      toRepeatBefore: result.patterns?.toRepeat?.length,
+      toRepeatAfter: result.patterns?.toRepeat?.map((p) => p.videoTitle),
+      allowedTitlesCount: allowedTitles.size,
+      allowedTitlesList: [...allowedTitles].slice(0, 5),
+    });
 
     // PERSISTANCE DANS SUPABASE
     const supabase = createClient(

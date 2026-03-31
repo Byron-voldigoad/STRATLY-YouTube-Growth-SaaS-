@@ -139,7 +139,13 @@ export function processVideos(videos: RawVideo[]): ProcessedData {
 
   const topContentType = getMostFrequent(enriched.map((v) => v.contentType));
 
-  const sortedByEngagement = [...enriched].sort(
+  const MIN_VIEWS_FOR_RANKING = 10;
+  const rankableVideos = enriched.filter(
+    (v) => v.viewCount >= MIN_VIEWS_FOR_RANKING,
+  );
+  const rankingSource = rankableVideos.length >= 3 ? rankableVideos : enriched;
+
+  const sortedByEngagement = [...rankingSource].sort(
     (a, b) => b.engagementRate - a.engagementRate,
   );
   const bestVideoIds = sortedByEngagement.slice(0, 3).map((v) => v.videoId);
