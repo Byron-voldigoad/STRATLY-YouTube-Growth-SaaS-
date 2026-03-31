@@ -9,7 +9,13 @@ export interface RawVideo {
   publishedAt: string;
 }
 
-export type ContentType = "liste" | "versus" | "tutoriel" | "vlog" | "general";
+export type ContentType =
+  | "liste"
+  | "versus"
+  | "tutoriel"
+  | "vlog"
+  | "clip"
+  | "general";
 
 export interface ProcessedVideo {
   videoId: string;
@@ -60,17 +66,29 @@ function computeDaysSincePublished(publishedAt: string): number {
 function detectContentType(title: string): ContentType {
   const lower = title.toLowerCase();
 
-  if (/\btop\b|\bbest\b|\bmeilleur\b|\b\d+\s/.test(lower)) return "liste";
-  if (/\s+vs\s+|\s+vs\.|contre\s+|ou bien|ou le/.test(lower)) return "versus";
-  if (
-    /\bcomment\b|\bhow to\b|\btuto\b|\bguide\b|\bapprendre\b|\bfacile\b/.test(
-      lower,
-    )
-  )
+  // Format liste / classement
+  if (/\btop\b|\bbest\b|\bmeilleur|\b\d+\s/.test(lower)) return "liste";
+
+  // Format versus / comparaison
+  if (/\svs\.?\s|\scontre\s/.test(lower)) return "versus";
+
+  // Format tutoriel / guide
+  if (/\bcomment\b|\bhow to\b|\btuto\b|\bguide\b|\bapprendre\b/.test(lower))
     return "tutoriel";
-  if (/\bmon\s+|\bma\s+|\bvlog\b|\bday in\b|\bjour dans\b/.test(lower))
+
+  // Format vlog / journal
+  if (
+    /\bvlog\b|\bday in\b|\bjour dans\b|\bma vie\b|\bmon quotidien\b/.test(lower)
+  )
     return "vlog";
 
+  // Format court / clip (Shorts, Reels, Edit)
+  if (/\bedit\b|\bclip\b|\bshort\b|\bmix\b|\bmixte\b/.test(lower))
+    return "clip";
+
+  // Contenu de marque / série nommée
+  // (titre contient un nom propre récurrent
+  // détecté par majuscule en début de mot)
   return "general";
 }
 

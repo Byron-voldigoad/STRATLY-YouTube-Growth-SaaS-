@@ -173,20 +173,6 @@ export const analyzeChannelFlow = ai.defineFlow(
       publishedAt: v.publishedAt || "",
     }));
 
-    console.log(
-      "RAW VIDEOS FROM FRONTEND:",
-      rawVideos
-        .sort((a, b) => b.viewCount - a.viewCount)
-        .slice(0, 5)
-        .map((v) => ({
-          title: v.title.slice(0, 25),
-          views: v.viewCount,
-          likes: v.likeCount,
-          comments: v.commentCount,
-          publishedAt: v.publishedAt?.slice(0, 10),
-        })),
-    );
-
     const { videos: processedVideos, channelStats } = processVideos(rawVideos);
 
     const filteredVideos = processedVideos.filter((v) => !v.isOutlier);
@@ -237,12 +223,6 @@ export const analyzeChannelFlow = ai.defineFlow(
       }
     }
 
-    console.log("ANALYTICS: access_token présent ?", !!accessToken);
-    console.log(
-      "ANALYTICS: nombre de videoIds :",
-      filteredVideos.map((v) => v.videoId).length,
-    );
-
     if (accessToken) {
       const videoIds = filteredVideos.map((v) => v.videoId);
 
@@ -258,29 +238,7 @@ export const analyzeChannelFlow = ai.defineFlow(
       }
     }
 
-    console.log(
-      "ANALYTICS: analyticsData reçu :",
-      JSON.stringify(analyticsData),
-    );
-    console.log("ANALYTICS: retentionMap reçu :", JSON.stringify(retentionMap));
-
     const promptVideos = filteredVideos.filter((v) => v.viewCount >= 10);
-
-    console.log(
-      "PROMPT VIDEOS:",
-      promptVideos.map((v) => ({
-        title: v.title.slice(0, 25),
-        views: v.viewCount,
-      })),
-    );
-    console.log("BEST IDS:", channelStats.bestVideoIds);
-    console.log(
-      "BEST IDS IN PROMPT:",
-      channelStats.bestVideoIds
-        .map((id) => promptVideos.find((v) => v.videoId === id))
-        .filter(Boolean)
-        .map((v) => v!.title.slice(0, 25)),
-    );
 
     const userPrompt = `Analyse cette chaîne YouTube.
 
@@ -443,20 +401,6 @@ RÈGLES ABSOLUES :
         ),
       },
     };
-
-    console.log(
-      "AFTER VALIDATION - toRepeat:",
-      validatedResult.patterns?.toRepeat?.map((p) => p.videoTitle),
-    );
-
-    console.log("VALIDATION RESULT:", {
-      toRepeatBefore: result.patterns?.toRepeat?.length,
-      toRepeatAfter: validatedResult.patterns?.toRepeat?.map(
-        (p) => p.videoTitle,
-      ),
-      allowedTitlesCount: allowedTitles.size,
-      allowedTitlesList: [...allowedTitles].slice(0, 5),
-    });
 
     // PERSISTANCE DANS SUPABASE
     const supabase = createClient(
