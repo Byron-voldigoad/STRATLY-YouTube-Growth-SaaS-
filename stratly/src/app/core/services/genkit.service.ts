@@ -27,8 +27,8 @@ export interface AnalysisResponse {
 }
 
 export interface ChannelAnalysis {
-    globalScore: number;
-    scoreExplanation: string;
+    channelStatus: 'inactive' | 'stable' | 'en_croissance' | 'en_déclin';
+    statusExplanation: string;
     metrics: {
         engagement: number;
         engagementContext: string;

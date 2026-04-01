@@ -23,7 +23,6 @@ import {
   lucideMinus,
   lucideRefreshCw,
 } from '@ng-icons/lucide';
-import { AuditScoreComponent } from './components/audit-score.component';
 
 @Component({
   selector: 'app-ai-insights',
@@ -33,7 +32,6 @@ import { AuditScoreComponent } from './components/audit-score.component';
     HlmCardImports,
     HlmButton,
     NgIconComponent,
-    AuditScoreComponent,
   ],
   providers: [
     provideIcons({
@@ -168,11 +166,11 @@ import { AuditScoreComponent } from './components/audit-score.component';
                   >
                     <!-- Score & Explanation -->
                     <div class="space-y-4 border-b border-slate-100 pb-12">
-                      <app-audit-score
-                        [score]="analysisResult.globalScore"
-                      ></app-audit-score>
-                      <p class="text-slate-600 font-semibold">
-                        {{ analysisResult.scoreExplanation }}
+                      <div class="status-badge">
+                        {{ analysisResult.channelStatus | uppercase }}
+                      </div>
+                      <p class="status-explanation">
+                        {{ analysisResult.statusExplanation }}
                       </p>
                     </div>
 
@@ -453,7 +451,7 @@ export class AiInsightsComponent implements OnInit {
             if (
               parsed &&
               typeof parsed === 'object' &&
-              typeof parsed.globalScore === 'number' &&
+              parsed.channelStatus &&
               parsed.recommendation?.action &&
               Array.isArray(parsed.patterns?.toAvoid) &&
               Array.isArray(parsed.patterns?.toRepeat)
@@ -464,8 +462,8 @@ export class AiInsightsComponent implements OnInit {
                 parsed?.patterns?.toRepeat?.map((p: any) => p.videoTitle),
               );
               console.log(
-                'Analysis result successfully loaded from Supabase. Score:',
-                this.analysisResult?.globalScore,
+                'Analysis result successfully loaded from Supabase. Status:',
+                this.analysisResult?.channelStatus,
               );
             } else {
               console.warn(

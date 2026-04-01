@@ -54,8 +54,8 @@ const VideoSchema = z.object({
 });
 
 const AnalysisResultSchema = z.object({
-  globalScore: z.number().min(0).max(100),
-  scoreExplanation: z.string(),
+  channelStatus: z.enum(["inactive", "stable", "en_croissance", "en_déclin"]),
+  statusExplanation: z.string(),
   metrics: z.object({
     engagement: z.number(),
     engagementContext: z.string(),
@@ -250,6 +250,21 @@ STATISTIQUES GLOBALES :
 - Vues totales de la chaîne : ${input.channelStats.viewCount}
 - Vidéos analysées : ${filteredVideos.length}
 - Nombre exact de vidéos : ${filteredVideos.length}
+- Dernière publication : il y a ${channelStats.lastPublishedDaysAgo ?? "inconnu"} jours
+- Intervalle moyen entre publications : ${channelStats.avgDaysBetweenPublications ?? "inconnu"} jours
+
+VIDÉO OUTLIER DÉTECTÉE :
+${
+  filteredVideos.length < processedVideos.length
+    ? processedVideos
+        .filter((v) => v.isOutlier)
+        .map(
+          (v) =>
+            `- "${v.title}" | ${v.viewCount} vues | ${v.engagementRate.toFixed(2)}% engagement | HORS NICHE`,
+        )
+        .join("\n")
+    : "Aucune"
+}
 
 MEILLEURES VIDÉOS (par taux d'engagement) :
 ${
@@ -305,7 +320,8 @@ ${promptVideos
 Tu reçois des données réelles et calculées d'une chaîne.
 
 RÈGLES ABSOLUES :
-1. Tu donnes UNE SEULE recommandation 
+1. Tu assignes un statut à la chaîne dans channelStatus selon ces critères stricts : 'inactive' si lastPublishedDaysAgo > 90, 'en_déclin' si trend est baisse ET lastPublishedDaysAgo > 30, 'en_croissance' si avgEngagement > 5% ET lastPublishedDaysAgo < 30, 'stable' dans tous les autres cas. statusExplanation explique en une phrase pourquoi ce statut en citant les chiffres réels.
+2. Tu donnes UNE SEULE recommandation 
    dans recommendation.action.
    Cette recommandation doit être 
    une instruction concrète et spécifique
@@ -328,13 +344,11 @@ RÈGLES ABSOLUES :
    La recommandation doit nommer 
    un format ou un type de contenu précis,
    pas une direction générale.
-2. Le champ proof DOIT contenir des chiffres 
+3. Le champ proof DOIT contenir des chiffres 
    issus des données fournies — pas d'invention
-3. Si une donnée manque, tu écris 
+4. Si une donnée manque, tu écris 
    "Données insuffisantes" — jamais une valeur inventée
-4. Tu ignores les vidéos marquées isOutlier: true
-5. scoreExplanation explique en une phrase 
-   pourquoi ce score précisément
+5. Tu ignores les vidéos marquées isOutlier: true
 6. engagementContext compare l'engagement 
    à la moyenne historique de la chaîne fournie
 7. Le champ confidence doit contenir EXACTEMENT 
@@ -359,6 +373,8 @@ RÈGLES ABSOLUES :
     déduis la niche implicite depuis 
     les titres des vidéos et reste 
     cohérent avec elle.
+11. Si une vidéo outlier est listée dans VIDÉO OUTLIER DÉTECTÉE, tu dois OBLIGATOIREMENT la mentionner dans statusExplanation en expliquant qu'elle représente X% des vues totales mais qu'elle est hors-niche. C'est l'insight le plus important à communiquer.
+12. Tu dois commenter la régularité de publication dans engagementContext ou statusExplanation. Si la dernière publication date de plus de 30 jours, c'est un signal négatif à mentionner explicitement. Si l'intervalle moyen dépasse 14 jours, mentionne que la fréquence est insuffisante pour la croissance.
     `,
       prompt: userPrompt,
       output: {
