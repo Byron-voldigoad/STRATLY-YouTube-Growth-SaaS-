@@ -27,12 +27,7 @@ import {
 @Component({
   selector: 'app-ai-insights',
   standalone: true,
-  imports: [
-    CommonModule,
-    HlmCardImports,
-    HlmButton,
-    NgIconComponent,
-  ],
+  imports: [CommonModule, HlmCardImports, HlmButton, NgIconComponent],
   providers: [
     provideIcons({
       lucideSparkles,
@@ -58,342 +53,275 @@ import {
   ],
   template: `
     <div class="space-y-8 animate-in fade-in duration-700 pb-12">
-      <div class="flex flex-col gap-2">
-        <h2
-          class="text-3xl font-bold tracking-tight text-slate-900 font-heading flex items-center gap-3"
+      <div class="space-y-6">
+        <section
+          hlmCard
+          class="border-border/50 shadow-lg min-h-[500px] flex flex-col bg-white overflow-hidden"
         >
-          <ng-icon name="lucideSparkles" class="text-blue-600"></ng-icon>
-          AI Insights
-        </h2>
-        <p class="text-muted-foreground">
-          Utilisez l'intelligence artificielle pour booster la croissance de
-          votre chaîne.
-        </p>
-      </div>
+          <div hlmCardHeader class="border-b border-border/10 bg-slate-50/50">
+            <h3 hlmCardTitle>Audit IA de la chaîne</h3>
+            <p hlmCardDescription>
+              Cette analyse se base sur vos dernières vidéos.
+            </p>
+          </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Sidebar / Navigation -->
-        <div class="space-y-4">
-          <button
-            (click)="activeTab = 'analysis'"
-            class="w-full flex items-center gap-3 p-4 rounded-2xl transition-all border shadow-sm text-left group"
-            [class.bg-slate-900]="activeTab === 'analysis'"
-            [class.text-white]="activeTab === 'analysis'"
-            [class.border-slate-800]="activeTab === 'analysis'"
-            [class.bg-white]="activeTab !== 'analysis'"
-            [class.text-slate-600]="activeTab !== 'analysis'"
-            [class.hover:bg-slate-50]="activeTab !== 'analysis'"
-          >
-            <div
-              class="size-10 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-              [class.bg-slate-800]="activeTab === 'analysis'"
-              [class.bg-slate-100]="activeTab !== 'analysis'"
-            >
-              <ng-icon name="lucideBarChart2" class="size-5"></ng-icon>
-            </div>
-            <div>
-              <p class="font-bold">Analyse Stratégique</p>
-              <p class="text-xs opacity-70">Audit complet de vos KPIs</p>
-            </div>
-          </button>
-
-          <button
-            (click)="activeTab = 'ideas'"
-            disabled
-            class="w-full flex items-center gap-3 p-4 rounded-2xl transition-all border shadow-sm text-left group opacity-40 cursor-not-allowed pointer-events-none"
-            [class.bg-slate-900]="activeTab === 'ideas'"
-            [class.text-white]="activeTab === 'ideas'"
-            [class.border-slate-800]="activeTab === 'ideas'"
-            [class.bg-white]="activeTab !== 'ideas'"
-            [class.text-slate-600]="activeTab !== 'ideas'"
-            [class.hover:bg-slate-50]="activeTab !== 'ideas'"
-          >
-            <div
-              class="size-10 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-              [class.bg-slate-800]="activeTab === 'ideas'"
-              [class.bg-slate-100]="activeTab !== 'ideas'"
-            >
-              <ng-icon name="lucideLightbulb" class="size-5"></ng-icon>
-            </div>
-            <div>
-              <p class="font-bold">
-                Idées de Contenu
-                <span class="text-xs ml-1 opacity-50">(bientôt)</span>
-              </p>
-              <p class="text-xs opacity-70">
-                Suggestions basées sur la tendance
-              </p>
-            </div>
-          </button>
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="lg:col-span-2 space-y-6">
-          <section
-            hlmCard
-            class="border-border/50 shadow-lg min-h-[500px] flex flex-col bg-white overflow-hidden"
-          >
-            @if (activeTab === 'analysis') {
+          <div hlmCardContent class="flex-1 p-8">
+            @if (isAnalyzing) {
               <div
-                hlmCardHeader
-                class="border-b border-border/10 bg-slate-50/50"
+                class="flex flex-col items-center justify-center h-full py-12"
               >
-                <h3 hlmCardTitle>Audit IA de la chaîne</h3>
-                <p hlmCardDescription>
-                  Cette analyse se base sur vos dernières vidéos.
+                <ng-icon
+                  name="lucideLoader2"
+                  class="size-12 text-blue-600 animate-spin mb-4"
+                ></ng-icon>
+                <p class="font-bold text-slate-900 text-lg animate-pulse">
+                  L'IA parcourt vos données...
+                </p>
+                <p class="text-sm text-muted-foreground mt-2">
+                  Cela peut prendre jusqu'à 20 secondes.
                 </p>
               </div>
+            } @else if (analysisResult) {
+              <div
+                class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700"
+              >
+                <!-- Status Badge Card - Prominent -->
+                <div
+                  [ngClass]="getStatusCardClass(analysisResult.channelStatus)"
+                  class="p-6 rounded-2xl border"
+                >
+                  <div class="flex items-center gap-3 mb-3">
+                    <div
+                      [ngClass]="
+                        getStatusBadgeClass(analysisResult.channelStatus)
+                      "
+                      class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider"
+                    >
+                      {{ analysisResult.channelStatus }}
+                    </div>
+                  </div>
+                  <p class="text-sm text-slate-700">
+                    {{ analysisResult.statusExplanation }}
+                  </p>
+                </div>
 
-              <div hlmCardContent class="flex-1 p-8">
-                @if (isAnalyzing) {
+                <!-- KPIs Section - 3 Columns -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div
-                    class="flex flex-col items-center justify-center h-full py-12"
+                    class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
                   >
-                    <ng-icon
-                      name="lucideLoader2"
-                      class="size-12 text-blue-600 animate-spin mb-4"
-                    ></ng-icon>
-                    <p class="font-bold text-slate-900 text-lg animate-pulse">
-                      L'IA parcourt vos données...
+                    <p
+                      class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
+                    >
+                      Réactions audience
                     </p>
-                    <p class="text-sm text-muted-foreground mt-2">
-                      Cela peut prendre jusqu'à 20 secondes.
+                    <p class="text-2xl font-black text-slate-900 mb-3">
+                      {{ viewerRatio(analysisResult.metrics.engagement) }}
+                    </p>
+                    <p class="text-xs text-slate-500 mb-2">
+                      taux d'engagement:
+                      {{ analysisResult.metrics.engagement.toFixed(1) }}%
                     </p>
                   </div>
-                } @else if (analysisResult) {
                   <div
-                    class="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+                    class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
                   >
-                    <!-- Score & Explanation -->
-                    <div class="space-y-4 border-b border-slate-100 pb-12">
-                      <div class="status-badge">
-                        {{ analysisResult.channelStatus | uppercase }}
-                      </div>
-                      <p class="status-explanation">
-                        {{ analysisResult.statusExplanation }}
+                    <p
+                      class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
+                    >
+                      Découverte
+                    </p>
+                    <p class="text-2xl font-black text-slate-900 mb-3">
+                      {{ (analysisResult.metrics.views / 1000).toFixed(1) }}k
+                      vues
+                    </p>
+                    <p class="text-xs text-slate-600">
+                      tendance :
+                      <span class="font-bold capitalize">{{
+                        analysisResult.metrics.trend
+                      }}</span>
+                    </p>
+                  </div>
+                  <div
+                    class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
+                  >
+                    <p
+                      class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
+                    >
+                      Dernière vidéo
+                    </p>
+                    <p class="text-2xl font-black text-slate-900 mb-3">
+                      {{ lastVideoDaysAgo !== null ? lastVideoDaysAgo + ' jours' : '--' }}
+                    </p>
+                    <p class="text-xs text-slate-600">
+                      {{ lastVideoDaysAgo !== null ? 'depuis la dernière publication' : 'Générer une analyse' }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Patterns (toAvoid / toRepeat) - Side by Side -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="space-y-3">
+                    <p
+                      class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <ng-icon name="lucideTrendingDown"></ng-icon> À éviter
+                    </p>
+                    @if (analysisResult.patterns.toAvoid.length > 0) {
+                      @for (
+                        pattern of analysisResult.patterns.toAvoid;
+                        track pattern.videoTitle
+                      ) {
+                        <div
+                          class="p-4 rounded-2xl border border-rose-100 bg-rose-50/30"
+                        >
+                          <p class="text-sm font-bold text-slate-900 mb-2">
+                            {{ pattern.videoTitle }}
+                          </p>
+                          <p class="text-xs text-rose-600">
+                            {{ pattern.reason }}
+                          </p>
+                        </div>
+                      }
+                    } @else {
+                      <p class="text-xs text-slate-400 italic">
+                        Aucun pattern à éviter
+                      </p>
+                    }
+                  </div>
+
+                  <div class="space-y-3">
+                    <p
+                      class="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <ng-icon name="lucideTrendingUp"></ng-icon> À multiplier
+                    </p>
+                    @if (analysisResult.patterns.toRepeat.length > 0) {
+                      @for (
+                        pattern of analysisResult.patterns.toRepeat;
+                        track pattern.videoTitle
+                      ) {
+                        <div
+                          class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/30"
+                        >
+                          <p class="text-sm font-bold text-slate-900 mb-2">
+                            {{ pattern.videoTitle }}
+                          </p>
+                          <p class="text-xs text-emerald-600">
+                            {{ pattern.reason }}
+                          </p>
+                        </div>
+                      }
+                    } @else {
+                      <p class="text-xs text-slate-400 italic">
+                        Aucun pattern à multiplier
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <!-- Recommendation Block -->
+                <div
+                  class="space-y-6 p-6 rounded-2xl bg-amber-50/50 border border-amber-100"
+                >
+                  <h4
+                    class="text-lg font-black text-slate-900 flex items-center gap-2"
+                  >
+                    <div class="size-2 bg-amber-500 rounded-full"></div>
+                    Stratégie Recommandée
+                  </h4>
+
+                  <div class="space-y-4">
+                    <p class="text-base font-bold text-slate-900">
+                      {{ analysisResult.recommendation.action }}
+                    </p>
+
+                    <div
+                      class="bg-white p-4 rounded-xl border border-amber-200"
+                    >
+                      <span
+                        class="text-xs font-bold text-amber-600 uppercase tracking-wider"
+                        >Pourquoi</span
+                      >
+                      <p class="text-sm text-slate-700 mt-2">
+                        {{ analysisResult.recommendation.proof }}
                       </p>
                     </div>
 
-                    <!-- KPIs Section -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div
-                        class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
-                      >
-                        <p
-                          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
-                        >
-                          Réactions audience
-                        </p>
-                        <p class="text-sm font-bold text-slate-900 mb-3">
-                          {{ viewerRatio(analysisResult.metrics.engagement) }}
-                        </p>
-                        <p class="text-xs text-slate-500 mb-2">
-                          taux d'engagement :
-                          {{ analysisResult.metrics.engagement.toFixed(1) }}%
-                        </p>
-                        <p class="text-xs text-slate-600 italic">
-                          {{ analysisResult.metrics.engagementContext }}
-                        </p>
-                      </div>
-                      <div
-                        class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
-                      >
-                        <p
-                          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
-                        >
-                          Découverte
-                        </p>
-                        <p class="text-2xl font-black text-slate-900 mb-2">
-                          {{
-                            (analysisResult.metrics.views / 1000).toFixed(1)
-                          }}k vues
-                        </p>
-                        <p class="text-xs text-slate-600">
-                          tendance :
-                          <span class="font-bold capitalize">{{
-                            analysisResult.metrics.trend
-                          }}</span>
-                        </p>
-                      </div>
-                    </div>
+                    <span class="text-xs text-slate-500 italic">
+                      {{ analysisResult.recommendation.confidence }}
+                    </span>
 
-                    <!-- Patterns (toAvoid / toRepeat) -->
-                    <div class="space-y-6">
-                      <h4
-                        class="text-lg font-black text-slate-900 flex items-center gap-2"
-                      >
-                        <div class="size-2 bg-blue-500 rounded-full"></div>
-                        Patterns à Retenir
-                      </h4>
-
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div
-                          class="space-y-3"
-                          *ngIf="analysisResult.patterns.toAvoid.length > 0"
-                        >
-                          <p
-                            class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center gap-2"
-                          >
-                            <ng-icon name="lucideTrendingDown"></ng-icon> À
-                            éviter
-                          </p>
-                          @for (
-                            pattern of analysisResult.patterns.toAvoid;
-                            track pattern.videoTitle
-                          ) {
-                            <div
-                              class="p-4 rounded-2xl border border-rose-100 bg-rose-50/30"
-                            >
-                              <p class="text-sm font-bold text-slate-900 mb-2">
-                                {{ pattern.videoTitle }}
-                              </p>
-                              <p class="text-xs text-rose-600">
-                                {{ pattern.reason }}
-                              </p>
-                            </div>
-                          }
-                        </div>
-
-                        <div
-                          class="space-y-3"
-                          *ngIf="analysisResult.patterns.toRepeat.length > 0"
-                        >
-                          <p
-                            class="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2"
-                          >
-                            <ng-icon name="lucideTrendingUp"></ng-icon> À
-                            multiplier
-                          </p>
-                          @for (
-                            pattern of analysisResult.patterns.toRepeat;
-                            track pattern.videoTitle
-                          ) {
-                            <div
-                              class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/30"
-                            >
-                              <p class="text-sm font-bold text-slate-900 mb-2">
-                                {{ pattern.videoTitle }}
-                              </p>
-                              <p class="text-xs text-emerald-600">
-                                {{ pattern.reason }}
-                              </p>
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Recommendation Block -->
-                    <div
-                      class="space-y-6 p-6 rounded-2xl bg-amber-50/50 border border-amber-100"
-                    >
-                      <h4
-                        class="text-lg font-black text-slate-900 flex items-center gap-2"
-                      >
-                        <div class="size-2 bg-amber-500 rounded-full"></div>
-                        Stratégie Recommandée
-                      </h4>
-
-                      <div class="space-y-4">
-                        <p class="text-base font-bold text-slate-900">
-                          {{ analysisResult.recommendation.action }}
-                        </p>
-
-                        <div
-                          class="bg-white p-4 rounded-xl border border-amber-200"
-                        >
-                          <span
-                            class="text-xs font-bold text-amber-600 uppercase tracking-wider"
-                            >Pourquoi</span
-                          >
-                          <p class="text-sm text-slate-700 mt-2">
-                            {{ analysisResult.recommendation.proof }}
-                          </p>
-                        </div>
-
-                        <span class="text-xs text-slate-500 italic">
-                          {{ analysisResult.recommendation.confidence }}
-                        </span>
-
-                        <button
-                          (click)="showNextStep = !showNextStep"
-                          class="mt-4 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition-colors"
-                        >
-                          {{ showNextStep ? 'Masquer' : 'Voir' }} la prochaine
-                          étape
-                        </button>
-
-                        @if (showNextStep) {
-                          <div
-                            class="p-4 rounded-xl bg-amber-100/30 border border-amber-200 animate-in fade-in slide-in-from-top-2 duration-300"
-                          >
-                            <p class="text-sm text-slate-700">
-                              {{ analysisResult.recommendation.nextStep }}
-                            </p>
-                          </div>
-                        }
-                      </div>
-                    </div>
-
-                    <div class="pt-12 text-center text-slate-400">
-                      <button
-                        (click)="analysisResult = null"
-                        class="text-xs font-bold hover:text-blue-600 transition-colors"
-                      >
-                        Générer une nouvelle analyse
-                      </button>
-                    </div>
-                  </div>
-                } @else {
-                  <div
-                    class="flex flex-col items-center justify-center h-full text-center py-12"
-                  >
-                    <div
-                      class="size-20 rounded-full bg-blue-50 flex items-center justify-center mb-6 shadow-inner"
-                    >
-                      <ng-icon
-                        name="lucideSparkles"
-                        class="size-10 text-blue-300"
-                      ></ng-icon>
-                    </div>
-                    <h4 class="text-xl font-bold text-slate-900 mb-2">
-                      Prêt pour l'analyse ?
-                    </h4>
-                    <p class="text-slate-500 max-w-sm mb-8">
-                      Obtenez un rapport personnalisé sur vos points forts et
-                      les opportunités de croissance.
-                    </p>
                     <button
-                      hlmBtn
-                      class="px-8 py-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-xl shadow-blue-500/20"
-                      (click)="runAnalysis()"
+                      (click)="showNextStep = !showNextStep"
+                      class="mt-4 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition-colors"
                     >
-                      Lancer l'audit stratégique
+                      {{ showNextStep ? 'Masquer' : 'Voir' }} la prochaine étape
                     </button>
-                  </div>
-                }
-              </div>
-            }
 
-            @if (activeTab === 'ideas') {
-              <div class="text-center py-12 opacity-50">
-                <p class="font-medium">Cette fonctionnalité arrive bientôt.</p>
+                    @if (showNextStep) {
+                      <div
+                        class="p-4 rounded-xl bg-amber-100/30 border border-amber-200 animate-in fade-in slide-in-from-top-2 duration-300"
+                      >
+                        <p class="text-sm text-slate-700">
+                          {{ analysisResult.recommendation.nextStep }}
+                        </p>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="pt-8 text-center text-slate-400">
+                  <button
+                    (click)="analysisResult = null"
+                    class="text-xs font-bold hover:text-blue-600 transition-colors"
+                  >
+                    Générer une nouvelle analyse
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div
+                class="flex flex-col items-center justify-center h-full text-center py-12"
+              >
+                <div
+                  class="size-20 rounded-full bg-blue-50 flex items-center justify-center mb-6 shadow-inner"
+                >
+                  <ng-icon
+                    name="lucideSparkles"
+                    class="size-10 text-blue-300"
+                  ></ng-icon>
+                </div>
+                <h4 class="text-xl font-bold text-slate-900 mb-2">
+                  Prêt pour l'analyse ?
+                </h4>
+                <p class="text-slate-500 max-w-sm mb-8">
+                  Obtenez un rapport personnalisé sur vos points forts et les
+                  opportunités de croissance.
+                </p>
+                <button
+                  hlmBtn
+                  class="px-8 py-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-xl shadow-blue-500/20"
+                  (click)="runAnalysis()"
+                >
+                  Lancer l'audit stratégique
+                </button>
               </div>
             }
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   `,
 })
 export class AiInsightsComponent implements OnInit {
-  activeTab: 'analysis' | 'ideas' = 'analysis';
   isAnalyzing = false;
   isGenerating = false;
   showNextStep = false;
 
   analysisResult: ChannelAnalysis | null = null;
   ideas: string[] = [];
+  lastVideoDaysAgo: number | null = null;
 
   constructor(
     private genkit: GenkitService,
@@ -501,6 +429,20 @@ export class AiInsightsComponent implements OnInit {
       const profile = await this.supabase.getProfile();
       const stats = await this.youtube.getChannelAnalytics();
       const videos = await this.youtube.getVideoAnalytics();
+
+      if (videos && videos.length > 0) {
+        const sorted = [...videos].sort((a, b) =>
+          new Date(b.published_at).getTime() - 
+          new Date(a.published_at).getTime()
+        );
+        this.lastVideoDaysAgo = Math.floor(
+          (Date.now() - new Date(
+            sorted[0].published_at
+          ).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        console.log('LAST VIDEO DAYS AGO:', 
+          this.lastVideoDaysAgo);
+      }
 
       if (
         !profile ||
@@ -630,6 +572,36 @@ export class AiInsightsComponent implements OnInit {
       alert("Erreur lors de la génération d'idées.");
     } finally {
       this.isGenerating = false;
+    }
+  }
+
+  getStatusCardClass(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'inactive':
+        return 'bg-red-50/50 border-red-200';
+      case 'stable':
+        return 'bg-slate-50 border-slate-200';
+      case 'en_croissance':
+        return 'bg-emerald-50/50 border-emerald-200';
+      case 'en_déclin':
+        return 'bg-orange-50/50 border-orange-200';
+      default:
+        return 'bg-slate-50 border-slate-200';
+    }
+  }
+
+  getStatusBadgeClass(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'inactive':
+        return 'bg-red-500 text-white';
+      case 'stable':
+        return 'bg-slate-500 text-white';
+      case 'en_croissance':
+        return 'bg-emerald-500 text-white';
+      case 'en_déclin':
+        return 'bg-orange-500 text-white';
+      default:
+        return 'bg-slate-500 text-white';
     }
   }
 }
