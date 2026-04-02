@@ -13,6 +13,7 @@ import {
   fetchVideoMetricsBatch,
   fetchRetentionCurve,
   getKeyRetentionPoints,
+  fetchNicheTrends
 } from "./youtubeAnalytics.js";
 console.log("--- BACKEND STARTING ---");
 
@@ -238,6 +239,14 @@ export const analyzeChannelFlow = ai.defineFlow(
       }
     }
 
+    // Tendances de la niche sur YouTube
+    let nicheTrends: Array<{ title: string; views: number; channelTitle: string }> = [];
+    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+    if (userNiche && userNiche !== 'Non renseignée' && youtubeApiKey) {
+      nicheTrends = await fetchNicheTrends(userNiche, youtubeApiKey);
+      console.log('NICHE TRENDS:', nicheTrends.length, 'vidéos trouvées');
+    }
+
     const promptVideos = filteredVideos.filter((v) => v.viewCount >= 10);
 
     const userPrompt = `Analyse cette chaîne YouTube.
@@ -310,7 +319,15 @@ ${promptVideos
 
     return `- "${v.title}" | ${v.contentType} | ${v.engagementRate.toFixed(2)}% engagement | ${v.viewCount} vues | ${v.viewsPerDay.toFixed(0)} vues/jour${ctrInfo}${retentionInfo}${dropInfo}`;
   })
-  .join("\n")}`;
+  .join("\n")}
+
+TENDANCES DE LA NICHE "${userNiche}" :
+${nicheTrends.length > 0
+  ? nicheTrends
+      .slice(0, 10)
+      .map((trend, index) => `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`)
+      .join("\n")
+  : "Aucune tendance trouvée pour cette niche"}`;
 
     console.log("--- USER PROMPT ---", userPrompt);
 
@@ -375,6 +392,7 @@ RÈGLES ABSOLUES :
     cohérent avec elle.
 11. Si une vidéo outlier est listée dans VIDÉO OUTLIER DÉTECTÉE, tu dois OBLIGATOIREMENT la mentionner dans statusExplanation en expliquant qu'elle représente X% des vues totales mais qu'elle est hors-niche. C'est l'insight le plus important à communiquer.
 12. Tu dois commenter la régularité de publication dans engagementContext ou statusExplanation. Si la dernière publication date de plus de 30 jours, c'est un signal négatif à mentionner explicitement. Si l'intervalle moyen dépasse 14 jours, mentionne que la fréquence est insuffisante pour la croissance.
+13. Tu dois analyser les TENDANCES DE LA NICHE fournies et les mentionner dans recommendation.proof si elles sont pertinentes pour étayer ta recommandation. Si aucune tendance n'est fournie, ignore cette règle.
     `,
       prompt: userPrompt,
       output: {

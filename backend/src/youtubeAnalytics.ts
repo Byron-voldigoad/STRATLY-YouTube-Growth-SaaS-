@@ -215,3 +215,40 @@ export function getKeyRetentionPoints(
     dropPoint,
   };
 }
+
+export async function fetchNicheTrends(
+  niche: string,
+  apiKey: string
+): Promise<Array<{ title: string; views: number; channelTitle: string }>> {
+  try {
+    const query = encodeURIComponent(niche);
+    const publishedAfter = new Date(
+      Date.now() - 30 * 24 * 60 * 60 * 1000
+    ).toISOString();
+
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&order=viewCount&publishedAfter=${publishedAfter}&maxResults=5&key=${apiKey}`;
+
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json();
+
+    if (!searchData.items || searchData.items.length === 0) return [];
+
+    const videoIds = searchData.items
+      .map((item: any) => item.id?.videoId)
+      .filter(Boolean)
+      .join(',');
+
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${apiKey}`;
+    const statsRes = await fetch(statsUrl);
+    const statsData = await statsRes.json();
+
+    return (statsData.items || []).map((item: any) => ({
+      title: item.snippet?.title || '',
+      views: parseInt(item.statistics?.viewCount || '0', 10),
+      channelTitle: item.snippet?.channelTitle || ''
+    }));
+  } catch (error) {
+    console.error('fetchNicheTrends error:', error);
+    return [];
+  }
+}
