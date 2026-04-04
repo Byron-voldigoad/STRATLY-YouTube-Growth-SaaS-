@@ -466,13 +466,14 @@ export class AiInsightsComponent implements OnInit {
         channelTitle: profile.youtube_channel_title || 'Votre Chaîne',
       };
 
-      const videoData: VideoData[] = videos.map((v) => ({
+      const videoData: VideoData[] = videos.map((v: any) => ({
         id: v.video_id,
         title: v.video_title,
-        views: v.views,
+        views: v.views || 0,
         likes: v.likes || 0,
         comments: v.comments || 0,
-        publishedAt: v.published_at,
+        publishedAt: v.published_at || '',
+        thumbnailUrl: v.thumbnail_url || ''
       }));
 
       console.log('--- DEBUG UI: DATA BEFORE ANALYSIS ---');

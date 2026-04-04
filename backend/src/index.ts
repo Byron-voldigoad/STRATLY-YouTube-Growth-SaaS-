@@ -13,7 +13,8 @@ import {
   fetchVideoMetricsBatch,
   fetchRetentionCurve,
   getKeyRetentionPoints,
-  fetchNicheTrends
+  fetchNicheTrends,
+  analyzeThumbnail,
 } from "./youtubeAnalytics.js";
 console.log("--- BACKEND STARTING ---");
 
@@ -52,6 +53,7 @@ const VideoSchema = z.object({
   likes: z.number().optional(),
   comments: z.number().optional(),
   publishedAt: z.string(),
+  thumbnailUrl: z.string().optional(),
 });
 
 const AnalysisResultSchema = z.object({
@@ -240,14 +242,71 @@ export const analyzeChannelFlow = ai.defineFlow(
     }
 
     // Tendances de la niche sur YouTube
-    let nicheTrends: Array<{ title: string; views: number; channelTitle: string }> = [];
+    let nicheTrends: Array<{
+      title: string;
+      views: number;
+      channelTitle: string;
+    }> = [];
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-    if (userNiche && userNiche !== 'Non renseignée' && youtubeApiKey) {
+    if (userNiche && userNiche !== "Non renseignée" && youtubeApiKey) {
       nicheTrends = await fetchNicheTrends(userNiche, youtubeApiKey);
-      console.log('NICHE TRENDS:', nicheTrends.length, 'vidéos trouvées');
+      console.log("NICHE TRENDS:", nicheTrends.length, "vidéos trouvées");
     }
 
     const promptVideos = filteredVideos.filter((v) => v.viewCount >= 10);
+
+    const visionApiKey = process.env.GOOGLE_VISION_API_KEY;
+    const thumbnailAnalyses: Record<string, {
+      labels: string[];
+      dominantColors: string[];
+      text: string[];
+      missing?: boolean;
+    }> = {};
+
+    if (visionApiKey) {
+      const top3Videos = promptVideos
+        .filter(v => channelStats.bestVideoIds.includes(v.videoId))
+        .slice(0, 3);
+
+      for (const video of top3Videos) {
+        const thumbnailUrl = input.videos.find(
+          v => v.id === video.videoId
+        )?.thumbnailUrl;
+
+        if (thumbnailUrl) {
+          thumbnailAnalyses[video.videoId] =
+            await analyzeThumbnail(thumbnailUrl, visionApiKey);
+          console.log(`THUMBNAIL analyzed: ${video.title.slice(0, 30)}`);
+        } else {
+          thumbnailAnalyses[video.videoId] = {
+            labels: [],
+            dominantColors: [],
+            text: [],
+            missing: true
+          };
+          console.log(`THUMBNAIL absent: ${video.title.slice(0, 30)}`);
+        }
+      }
+    }
+
+    let thumbnailsPromptSection = 'ANALYSE DES MINIATURES : non disponible';
+    if (Object.keys(thumbnailAnalyses).length > 0) {
+      const analysesLines = promptVideos
+        .filter((v) => thumbnailAnalyses[v.videoId])
+        .map((v) => {
+          const t = thumbnailAnalyses[v.videoId];
+          if (t.missing) {
+            return `- "${v.title}" : MINIATURE ABSENTE — pas de miniature personnalisée`;
+          }
+          const hasText = t.text && t.text.length > 0;
+          const hasLabels = t.labels && t.labels.length > 0;
+          return `- "${v.title}" :
+  ${hasLabels ? `Éléments visuels : ${t.labels.join(', ')}` : 'Éléments visuels : non détectés'}
+  ${hasText ? `Texte visible : ${t.text[0]}` : 'Texte visible : aucun'}
+  Couleurs dominantes : ${(t.dominantColors || []).join(', ') || 'non détectées'}`;
+        });
+      thumbnailsPromptSection = `ANALYSE DES MINIATURES (meilleures vidéos) :\n${analysesLines.join('\n')}`;
+    }
 
     const userPrompt = `Analyse cette chaîne YouTube.
 
@@ -322,12 +381,19 @@ ${promptVideos
   .join("\n")}
 
 TENDANCES DE LA NICHE "${userNiche}" :
-${nicheTrends.length > 0
-  ? nicheTrends
-      .slice(0, 10)
-      .map((trend, index) => `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`)
-      .join("\n")
-  : "Aucune tendance trouvée pour cette niche"}`;
+${
+  nicheTrends.length > 0
+    ? nicheTrends
+        .slice(0, 10)
+        .map(
+          (trend, index) =>
+            `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`,
+        )
+        .join("\n")
+    : "Aucune tendance trouvée pour cette niche"
+}
+
+${thumbnailsPromptSection}`;
 
     console.log("--- USER PROMPT ---", userPrompt);
 
@@ -393,6 +459,7 @@ RÈGLES ABSOLUES :
 11. Si une vidéo outlier est listée dans VIDÉO OUTLIER DÉTECTÉE, tu dois OBLIGATOIREMENT la mentionner dans statusExplanation en expliquant qu'elle représente X% des vues totales mais qu'elle est hors-niche. C'est l'insight le plus important à communiquer.
 12. Tu dois commenter la régularité de publication dans engagementContext ou statusExplanation. Si la dernière publication date de plus de 30 jours, c'est un signal négatif à mentionner explicitement. Si l'intervalle moyen dépasse 14 jours, mentionne que la fréquence est insuffisante pour la croissance.
 13. Tu dois analyser les TENDANCES DE LA NICHE fournies et les mentionner dans recommendation.proof si elles sont pertinentes pour étayer ta recommandation. Si aucune tendance n'est fournie, ignore cette règle.
+14. Si ANALYSE DES MINIATURES est disponible, utilise ces informations pour enrichir recommendation.proof. Si une vidéo performante a du texte visible et des couleurs vives dans sa miniature, mentionne-le comme facteur de succès. Si une vidéo a une MINIATURE ABSENTE, mentionne explicitement que l'absence de miniature personnalisée est probablement l'une des causes de ses mauvaises performances — c'est un facteur clé de clics sur YouTube. Ne mentionne les miniatures que si les données sont disponibles.
     `,
       prompt: userPrompt,
       output: {

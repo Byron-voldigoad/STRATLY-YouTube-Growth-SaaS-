@@ -218,12 +218,12 @@ export function getKeyRetentionPoints(
 
 export async function fetchNicheTrends(
   niche: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<Array<{ title: string; views: number; channelTitle: string }>> {
   try {
     const query = encodeURIComponent(niche);
     const publishedAfter = new Date(
-      Date.now() - 30 * 24 * 60 * 60 * 1000
+      Date.now() - 30 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
     const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&order=viewCount&publishedAfter=${publishedAfter}&maxResults=5&key=${apiKey}`;
@@ -236,19 +236,82 @@ export async function fetchNicheTrends(
     const videoIds = searchData.items
       .map((item: any) => item.id?.videoId)
       .filter(Boolean)
-      .join(',');
+      .join(",");
 
     const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${apiKey}`;
     const statsRes = await fetch(statsUrl);
     const statsData = await statsRes.json();
 
     return (statsData.items || []).map((item: any) => ({
-      title: item.snippet?.title || '',
-      views: parseInt(item.statistics?.viewCount || '0', 10),
-      channelTitle: item.snippet?.channelTitle || ''
+      title: item.snippet?.title || "",
+      views: parseInt(item.statistics?.viewCount || "0", 10),
+      channelTitle: item.snippet?.channelTitle || "",
     }));
   } catch (error) {
-    console.error('fetchNicheTrends error:', error);
+    console.error("fetchNicheTrends error:", error);
     return [];
+  }
+}
+
+export async function analyzeThumbnail(
+  thumbnailUrl: string,
+  apiKey: string,
+): Promise<{
+  labels: string[];
+  dominantColors: string[];
+  text: string[];
+}> {
+  try {
+    const response = await fetch(
+      `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requests: [
+            {
+              image: { source: { imageUri: thumbnailUrl } },
+              features: [
+                { type: "LABEL_DETECTION", maxResults: 5 },
+                { type: "IMAGE_PROPERTIES" },
+                { type: "TEXT_DETECTION", maxResults: 3 },
+              ],
+            },
+          ],
+        }),
+      },
+    );
+
+    const data = await response.json();
+    const result = data.responses?.[0];
+
+    const labels = (result?.labelAnnotations || [])
+      .map((l: any) => l.description)
+      .filter(Boolean);
+
+    const colors = (
+      result?.imagePropertiesAnnotation?.dominantColors?.colors || []
+    )
+      .slice(0, 3)
+      .map((c: any) => {
+        const r = Math.round(c.color?.red || 0);
+        const g = Math.round(c.color?.green || 0);
+        const b = Math.round(c.color?.blue || 0);
+        return `rgb(${r},${g},${b})`;
+      });
+
+    const texts = (result?.textAnnotations || [])
+      .slice(0, 3)
+      .map((t: any) => t.description)
+      .filter(Boolean);
+
+    return {
+      labels,
+      dominantColors: colors,
+      text: texts,
+    };
+  } catch (error) {
+    console.error("analyzeThumbnail error:", error);
+    return { labels: [], dominantColors: [], text: [] };
   }
 }
