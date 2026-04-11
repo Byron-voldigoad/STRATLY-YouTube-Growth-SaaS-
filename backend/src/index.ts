@@ -16,6 +16,19 @@ import {
   fetchNicheTrends,
   analyzeThumbnail,
 } from "./youtubeAnalytics.js";
+import {
+  generateNextDecision,
+  evaluateDecision,
+  acceptDecision,
+  handleResistance,
+  getDecisionHistory,
+  calculateStrategicTensionScore,
+  getChannelMode,
+  checkRebootEligibility,
+  generateTitleSuggestions,
+  generateThumbnailBrief,
+  linkVideoToDecision,
+} from "./decisionEngine.js";
 console.log("--- BACKEND STARTING ---");
 
 // Initialiser Genkit avec Groq (via plugin OpenAI)
@@ -33,6 +46,19 @@ const ai = genkit({
             supports: {
               multiturn: true,
               media: false,
+              tools: false,
+              systemRole: true,
+            },
+          },
+          configSchema: z.any(),
+        },
+        {
+          name: "llama-3.2-11b-vision-preview",
+          info: {
+            label: "Llama 3.2 11B Vision",
+            supports: {
+              multiturn: true,
+              media: true,
               tools: false,
               systemRole: true,
             },
@@ -275,7 +301,7 @@ export const analyzeChannelFlow = ai.defineFlow(
 
         if (thumbnailUrl) {
           thumbnailAnalyses[video.videoId] =
-            await analyzeThumbnail(thumbnailUrl, visionApiKey);
+            await analyzeThumbnail({ imageUri: thumbnailUrl }, visionApiKey);
           console.log(`THUMBNAIL analyzed: ${video.title.slice(0, 30)}`);
         } else {
           thumbnailAnalyses[video.videoId] = {
@@ -322,76 +348,72 @@ STATISTIQUES GLOBALES :
 - Intervalle moyen entre publications : ${channelStats.avgDaysBetweenPublications ?? "inconnu"} jours
 
 VIDÉO OUTLIER DÉTECTÉE :
-${
-  filteredVideos.length < processedVideos.length
-    ? processedVideos
-        .filter((v) => v.isOutlier)
-        .map(
-          (v) =>
-            `- "${v.title}" | ${v.viewCount} vues | ${v.engagementRate.toFixed(2)}% engagement | HORS NICHE`,
-        )
-        .join("\n")
-    : "Aucune"
-}
+${filteredVideos.length < processedVideos.length
+        ? processedVideos
+          .filter((v) => v.isOutlier)
+          .map(
+            (v) =>
+              `- "${v.title}" | ${v.viewCount} vues | ${v.engagementRate.toFixed(2)}% engagement | HORS NICHE`,
+          )
+          .join("\n")
+        : "Aucune"
+      }
 
 MEILLEURES VIDÉOS (par taux d'engagement) :
-${
-  channelStats.bestVideoIds
-    .map((id) => promptVideos.find((v) => v.videoId === id))
-    .filter(Boolean)
-    .slice(0, 3)
-    .map(
-      (v) =>
-        `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
-    )
-    .join("\n") || "Données insuffisantes"
-}
+${channelStats.bestVideoIds
+        .map((id) => promptVideos.find((v) => v.videoId === id))
+        .filter(Boolean)
+        .slice(0, 3)
+        .map(
+          (v) =>
+            `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
+        )
+        .join("\n") || "Données insuffisantes"
+      }
 
 PIRES VIDÉOS (par taux d'engagement) :
-${
-  channelStats.worstVideoIds
-    .map((id) => promptVideos.find((v) => v.videoId === id))
-    .filter(Boolean)
-    .slice(0, 3)
-    .map(
-      (v) =>
-        `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
-    )
-    .join("\n") || "Données insuffisantes"
-}
+${channelStats.worstVideoIds
+        .map((id) => promptVideos.find((v) => v.videoId === id))
+        .filter(Boolean)
+        .slice(0, 3)
+        .map(
+          (v) =>
+            `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
+        )
+        .join("\n") || "Données insuffisantes"
+      }
 
 TOUTES LES VIDÉOS ANALYSÉES :
 ${promptVideos
-  .map((v) => {
-    const analytics = analyticsData[v.videoId];
-    const retention = retentionMap[v.videoId];
+        .map((v) => {
+          const analytics = analyticsData[v.videoId];
+          const retention = retentionMap[v.videoId];
 
-    const ctrInfo = analytics
-      ? ` | Avg Duration: ${analytics.avgDuration.toFixed(1)}s`
-      : "";
-    const retentionInfo = retention?.at30s
-      ? ` | Rétention 30s: ${(retention.at30s * 100).toFixed(0)}%`
-      : "";
-    const dropInfo = retention?.dropPoint
-      ? ` | Décrochage à: ${(retention.dropPoint * 100).toFixed(0)}% de la vidéo`
-      : "";
+          const ctrInfo = analytics
+            ? ` | Avg Duration: ${analytics.avgDuration.toFixed(1)}s`
+            : "";
+          const retentionInfo = retention?.at30s
+            ? ` | Rétention 30s: ${(retention.at30s * 100).toFixed(0)}%`
+            : "";
+          const dropInfo = retention?.dropPoint
+            ? ` | Décrochage à: ${(retention.dropPoint * 100).toFixed(0)}% de la vidéo`
+            : "";
 
-    return `- "${v.title}" | ${v.contentType} | ${v.engagementRate.toFixed(2)}% engagement | ${v.viewCount} vues | ${v.viewsPerDay.toFixed(0)} vues/jour${ctrInfo}${retentionInfo}${dropInfo}`;
-  })
-  .join("\n")}
+          return `- "${v.title}" | ${v.contentType} | ${v.engagementRate.toFixed(2)}% engagement | ${v.viewCount} vues | ${v.viewsPerDay.toFixed(0)} vues/jour${ctrInfo}${retentionInfo}${dropInfo}`;
+        })
+        .join("\n")}
 
 TENDANCES DE LA NICHE "${userNiche}" :
-${
-  nicheTrends.length > 0
-    ? nicheTrends
-        .slice(0, 10)
-        .map(
-          (trend, index) =>
-            `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`,
-        )
-        .join("\n")
-    : "Aucune tendance trouvée pour cette niche"
-}
+${nicheTrends.length > 0
+        ? nicheTrends
+          .slice(0, 10)
+          .map(
+            (trend, index) =>
+              `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`,
+          )
+          .join("\n")
+        : "Aucune tendance trouvée pour cette niche"
+      }
 
 ${thumbnailsPromptSection}`;
 
@@ -509,7 +531,7 @@ RÈGLES ABSOLUES :
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
 
-    await supabase.from("ai_analyses").upsert(
+    const { error: upsertError } = await supabase.from("ai_analyses").upsert(
       {
         user_id: input.userId,
         channel_id: input.channelId,
@@ -519,6 +541,10 @@ RÈGLES ABSOLUES :
       },
       { onConflict: "user_id, channel_id, analysis_type" },
     );
+    if (upsertError) {
+      console.error("UPSERT ERROR in analyzeChannel:", upsertError);
+      throw new Error(`Failed to save analysis to DB: ${upsertError.message}`);
+    }
 
     return validatedResult;
   },
@@ -558,7 +584,7 @@ export const generateIdeasFlow = ai.defineFlow(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
-    await supabase.from("ai_analyses").upsert(
+    const { error: ideasError } = await supabase.from("ai_analyses").upsert(
       {
         user_id: input.userId,
         channel_id: input.channelId,
@@ -568,6 +594,7 @@ export const generateIdeasFlow = ai.defineFlow(
       },
       { onConflict: "user_id, channel_id, analysis_type" },
     );
+    if (ideasError) console.error("UPSERT ERROR in generateIdeas:", ideasError);
 
     return ideas;
   },
@@ -737,7 +764,7 @@ export const detectNichesFlow = ai.defineFlow(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
-    await supabase.from("user_niches").upsert(
+    const { error: nicheError } = await supabase.from("user_niches").upsert(
       {
         user_id: input.userId,
         channel_id: input.channelId,
@@ -748,6 +775,7 @@ export const detectNichesFlow = ai.defineFlow(
       },
       { onConflict: "user_id, channel_id" },
     );
+    if (nicheError) console.error("UPSERT ERROR in detectNiches:", nicheError);
 
     return output;
   },
@@ -756,7 +784,7 @@ export const detectNichesFlow = ai.defineFlow(
 // --- SERVER ---
 const app = express();
 app.use(cors({ origin: ["http://localhost:4200"], credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: "15mb" }));
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] INCOMING:`, req.method, req.path);
   next();
@@ -766,7 +794,210 @@ app.post("/analyzeChannel", expressHandler(analyzeChannelFlow));
 app.post("/generateIdeas", expressHandler(generateIdeasFlow));
 app.post("/importYouTube", expressHandler(importYouTubeFlow));
 app.post("/detectNiches", expressHandler(detectNichesFlow));
+app.get("/analyses/latest", async (req, res) => {
+  try {
+    const { userId, channelId, type } = req.query as { userId: string; channelId: string; type?: string };
+    if (!userId || !channelId) {
+      return res.status(400).json({ error: "userId et channelId requis" });
+    }
+    const analysisType = type || "channel";
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data, error } = await supabase
+      .from("ai_analyses")
+      .select("analysis_text, updated_at")
+      .eq("user_id", userId)
+      .eq("channel_id", channelId)
+      .eq("analysis_type", analysisType)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      return res.json({ success: true, result: null });
+    }
+
+    res.json({ success: true, result: JSON.parse(data.analysis_text), updatedAt: data.updated_at });
+  } catch (error: any) {
+    console.error("[NERRA] Fetch latest analysis error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur récupération analyse" });
+  }
+});
+
 app.get("/health", (req, res) => res.json({ status: "ok" }));
+
+// ─── NERRA Decision Engine Endpoints ────────────────────────────────
+
+// Génère la prochaine décision
+app.post("/decisions/next", async (req, res) => {
+  try {
+    const { userId, channelId, auditInsights, userContext } = req.body;
+    if (!userId || !channelId) {
+      return res.status(400).json({ error: "userId et channelId requis" });
+    }
+    const decision = await generateNextDecision(ai, userId, channelId, auditInsights, userContext);
+    res.json({ success: true, decision });
+  } catch (error: any) {
+    console.error("[NERRA] Generate decision error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur génération décision" });
+  }
+});
+
+// Évalue une décision après publication
+app.post("/decisions/:id/evaluate", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { resultValue } = req.body;
+    if (resultValue === undefined) {
+      return res.status(400).json({ error: "resultValue requis" });
+    }
+    const result = await evaluateDecision(id, resultValue);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Evaluate decision error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur évaluation" });
+  }
+});
+
+// Accepte une décision
+app.post("/decisions/:id/accept", async (req, res) => {
+  try {
+    await acceptDecision(req.params.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("[NERRA] Accept decision error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur acceptation" });
+  }
+});
+
+// Refuse une décision (gestion de la résistance)
+app.post("/decisions/:id/reject", async (req, res) => {
+  try {
+    const result = await handleResistance(req.params.id);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Reject decision error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur refus" });
+  }
+});
+
+// Historique des décisions
+app.get("/decisions/history", async (req, res) => {
+  try {
+    const { userId, channelId } = req.query as { userId: string; channelId: string };
+    if (!userId || !channelId) {
+      return res.status(400).json({ error: "userId et channelId requis" });
+    }
+    const history = await getDecisionHistory(userId, channelId);
+    res.json({ success: true, history });
+  } catch (error: any) {
+    console.error("[NERRA] History error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur historique" });
+  }
+});
+
+// Score de tension stratégique
+app.get("/decisions/tension-score", async (req, res) => {
+  try {
+    const { userId, channelId } = req.query as { userId: string; channelId: string };
+    if (!userId || !channelId) {
+      return res.status(400).json({ error: "userId et channelId requis" });
+    }
+    const tension = await calculateStrategicTensionScore(userId, channelId);
+    res.json({ success: true, ...tension });
+  } catch (error: any) {
+    console.error("[NERRA] Tension score error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur tension score" });
+  }
+});
+
+// Mode actuel (ASSISTED / PILOT)
+app.get("/decisions/mode", async (req, res) => {
+  try {
+    const { userId, channelId } = req.query as { userId: string; channelId: string };
+    if (!userId || !channelId) {
+      return res.status(400).json({ error: "userId et channelId requis" });
+    }
+    const modeInfo = await getChannelMode(userId, channelId);
+    const reboot = await checkRebootEligibility(userId, channelId);
+    res.json({ success: true, ...modeInfo, reboot });
+  } catch (error: any) {
+    console.error("[NERRA] Mode error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur mode" });
+  }
+});
+
+// Génère les suggestions de titres pour une décision acceptée
+app.post("/decisions/:id/titles", async (req, res) => {
+  try {
+    const { userContext } = req.body;
+    const result = await generateTitleSuggestions(ai, req.params.id, userContext);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Title suggestions error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur génération titres" });
+  }
+});
+
+// Évalue un titre personnalisé proposé par l'utilisateur
+app.post("/decisions/:id/evaluate-title", async (req, res) => {
+  try {
+    const { title, userContext } = req.body;
+    if (!title) {
+      return res.status(400).json({ error: "Titre requis" });
+    }
+    const result = await evaluateCustomTitle(ai, req.params.id, title, userContext);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Title evaluation FATAL error:", error);
+    res.status(500).json({ error: error?.message || "Erreur évaluation du titre" });
+  }
+});
+
+// Génère un brief miniature pour une décision acceptée
+app.post("/decisions/:id/thumbnail-brief", async (req, res) => {
+  try {
+    const result = await generateThumbnailBrief(ai, req.params.id);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Thumbnail brief error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur brief miniature" });
+  }
+});
+
+import { evaluateCustomTitle, evaluateThumbnailBase64 } from "./decisionEngine.js";
+
+// Évalue une miniature uploadée en base64
+app.post("/decisions/:id/evaluate-thumbnail", async (req, res) => {
+  try {
+    const { base64Image } = req.body;
+    if (!base64Image) {
+      return res.status(400).json({ error: "base64Image requis" });
+    }
+    const result = await evaluateThumbnailBase64(ai, req.params.id, base64Image);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Thumbnail evaluation FATAL error:", error);
+    res.status(500).json({ error: error?.message || "Erreur évaluation de la miniature" });
+  }
+});
+
+// Lie une vidéo YouTube à une décision et lance l'évaluation auto
+app.post("/decisions/:id/link-video", async (req, res) => {
+  try {
+    const { videoId, videoTitle } = req.body;
+    if (!videoId) {
+      return res.status(400).json({ error: "videoId requis" });
+    }
+    const result = await linkVideoToDecision(req.params.id, videoId, videoTitle);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Link video error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur liaison vidéo" });
+  }
+});
 
 app.post("/auth/youtube/callback", async (req, res) => {
   try {

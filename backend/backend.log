@@ -1,0 +1,7 @@
+
+> backend@1.0.0 dev
+> tsx watch src/index.ts
+
+--- SCRIPT STARTING ---
+--- BACKEND STARTING ---
+🚀 Server started on http://localhost:3400

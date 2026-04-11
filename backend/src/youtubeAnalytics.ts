@@ -254,7 +254,7 @@ export async function fetchNicheTrends(
 }
 
 export async function analyzeThumbnail(
-  thumbnailUrl: string,
+  imagePayload: { imageUri?: string; base64Content?: string },
   apiKey: string,
 ): Promise<{
   labels: string[];
@@ -262,6 +262,10 @@ export async function analyzeThumbnail(
   text: string[];
 }> {
   try {
+    const imageObject = imagePayload.base64Content
+      ? { content: imagePayload.base64Content.includes(',') ? imagePayload.base64Content.split(',')[1] : imagePayload.base64Content }
+      : { source: { imageUri: imagePayload.imageUri } };
+
     const response = await fetch(
       `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
       {
@@ -270,7 +274,7 @@ export async function analyzeThumbnail(
         body: JSON.stringify({
           requests: [
             {
-              image: { source: { imageUri: thumbnailUrl } },
+              image: imageObject,
               features: [
                 { type: "LABEL_DETECTION", maxResults: 5 },
                 { type: "IMAGE_PROPERTIES" },
@@ -283,7 +287,17 @@ export async function analyzeThumbnail(
     );
 
     const data = await response.json();
+    
+    if (data.error) {
+      console.error("[Vision API] Global error:", data.error.message);
+      throw new Error(`Vision API: ${data.error.message}`);
+    }
+
     const result = data.responses?.[0];
+    if (result?.error) {
+      console.error("[Vision API] Response error:", result.error.message);
+      throw new Error(`Vision API Response: ${result.error.message}`);
+    }
 
     const labels = (result?.labelAnnotations || [])
       .map((l: any) => l.description)
@@ -310,8 +324,8 @@ export async function analyzeThumbnail(
       dominantColors: colors,
       text: texts,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("analyzeThumbnail error:", error);
-    return { labels: [], dominantColors: [], text: [] };
+    throw new Error(`Erreur analyse visuelle : ${error?.message || "Erreur inconnue"}`);
   }
 }

@@ -36,6 +36,8 @@ export interface ChannelStats {
   topContentType: ContentType;
   bestVideoIds: string[];
   worstVideoIds: string[];
+  lastPublishedDaysAgo: number | null;
+  avgDaysBetweenPublications: number | null;
 }
 
 export interface ProcessedData {
@@ -120,6 +122,8 @@ export function processVideos(videos: RawVideo[]): ProcessedData {
         topContentType: "general",
         bestVideoIds: [],
         worstVideoIds: [],
+        lastPublishedDaysAgo: null,
+        avgDaysBetweenPublications: null,
       },
     };
   }
@@ -182,6 +186,33 @@ export function processVideos(videos: RawVideo[]): ProcessedData {
       v.contentType !== topContentType && v.viewCount >= viewThreshold;
   }
 
+  const sortedByDate = [...enriched]
+    .filter((v) => v.publishedAt)
+    .sort(
+      (a, b) =>
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+
+  const lastPublishedDaysAgo =
+    sortedByDate.length > 0
+      ? Math.floor(
+          (Date.now() - new Date(sortedByDate[0].publishedAt).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : null;
+
+  let avgDaysBetweenPublications: number | null = null;
+  if (sortedByDate.length >= 2) {
+    const intervals = sortedByDate.slice(0, -1).map((v, i) => {
+      const a = new Date(sortedByDate[i].publishedAt).getTime();
+      const b = new Date(sortedByDate[i + 1].publishedAt).getTime();
+      return (a - b) / (1000 * 60 * 60 * 24);
+    });
+    avgDaysBetweenPublications = Math.round(
+      intervals.reduce((sum, d) => sum + d, 0) / intervals.length,
+    );
+  }
+
   return {
     videos: enriched,
     channelStats: {
@@ -189,6 +220,8 @@ export function processVideos(videos: RawVideo[]): ProcessedData {
       topContentType,
       bestVideoIds,
       worstVideoIds,
+      lastPublishedDaysAgo,
+      avgDaysBetweenPublications,
     },
   };
 }
