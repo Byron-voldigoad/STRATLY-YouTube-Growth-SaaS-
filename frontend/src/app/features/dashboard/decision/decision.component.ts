@@ -566,12 +566,35 @@ import {
                         </div>
 
                         <!-- Inspiration / Why -->
-                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
                           <div class="flex items-center gap-2 mb-1">
                             <ng-icon name="lucideSparkles" class="w-3 h-3 text-slate-500"></ng-icon>
                             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pourquoi ce brief ?</span>
                           </div>
                           <p class="text-xs text-slate-600 italic">{{ thumbnailBrief.inspiration }}</p>
+
+                          <!-- Vidéos de référence avec miniatures -->
+                          @if (thumbnailBrief.referencedVideos && thumbnailBrief.referencedVideos.length > 0) {
+                            <div class="pt-3 border-t border-slate-200">
+                              <p class="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2">Miniatures de référence</p>
+                              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                @for (refVideo of thumbnailBrief.referencedVideos; track refVideo.title) {
+                                  <div class="group rounded-xl overflow-hidden border border-slate-200 bg-white hover:shadow-md hover:border-amber-300 transition-all">
+                                    <div class="aspect-video bg-slate-100 overflow-hidden relative">
+                                      <img [src]="refVideo.thumbnailUrl" [alt]="refVideo.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                      <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
+                                        <span class="text-[9px] font-bold text-white/90">{{ refVideo.engagement }} eng.</span>
+                                      </div>
+                                    </div>
+                                    <div class="p-2">
+                                      <p class="text-[10px] font-bold text-slate-800 leading-tight line-clamp-2">{{ refVideo.title }}</p>
+                                      <p class="text-[9px] text-slate-400 mt-0.5">{{ refVideo.views | number:'1.0-0' }} vues</p>
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                            </div>
+                          }
                         </div>
 
                         <div class="flex gap-3">
@@ -956,6 +979,7 @@ export class DecisionComponent implements OnInit {
     composition: string;
     inspiration: string;
     generationPrompt: string;
+    referencedVideos: { title: string; thumbnailUrl: string; views: number; engagement: string }[];
   } | null = null;
 
   uploadedThumbnailBase64: string | null = null;

@@ -922,6 +922,7 @@ export async function generateThumbnailBrief(
   composition: string;
   inspiration: string;
   generationPrompt: string;
+  referencedVideos: { title: string; thumbnailUrl: string; views: number; engagement: string }[];
 }> {
   const supabase = getSupabase();
 
@@ -949,27 +950,48 @@ export async function generateThumbnailBrief(
       const engB = ((b.likes || 0) + (b.comments || 0)) / Math.max(b.views, 1);
       return engB - engA;
     })
-    .slice(0, 3);
+    .slice(0, 5);
 
   const BriefOutputSchema = z.object({
     visualElements: z.array(z.string()).describe("3-4 éléments visuels clés à inclure"),
     colorPalette: z.array(z.string()).describe("3 couleurs dominantes recommandées (noms en français)"),
     textOverlay: z.string().describe("Texte court à mettre sur la miniature, ou 'Aucun' si non recommandé"),
     composition: z.string().describe("Description de la composition visuelle recommandée"),
-    inspiration: z.string().describe("Pourquoi ce brief fonctionne, basé sur les données de la chaîne"),
-    generationPrompt: z.string().describe("Un prompt en anglais détaillé pour générer cette image avec Midjourney ou DALL-E, ex: 'A highly contrasted anime thumbnail featuring...'"),
+    inspiration: z.string().describe("Pourquoi ce brief fonctionne, basé sur les données de la chaîne. IMPORTANT : cite les vidéos par leur titre EXACT tel que fourni dans 'MEILLEURES VIDÉOS'. Ne modifie PAS les titres."),
+    generationPrompt: z.string().describe("Un prompt en anglais détaillé pour générer cette image avec Midjourney ou DALL-E. Le prompt DOIT inclure les dimensions YouTube standard : 1280x720 pixels, ratio 16:9, orientation paysage (landscape). Le prompt doit correspondre au STYLE et à l'AMBIANCE réelle du contenu, PAS à une interprétation littérale du titre."),
   });
+
+  // Détecter la niche implicite à partir des titres des vidéos
+  const allVideoTitles = (videos || []).map((v: any) => v.video_title).join(", ");
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, un expert en miniatures YouTube à fort CTR.
-Tu crées des briefs créatifs structurés pour des miniatures.
+    system: `Tu es NERRA, une directrice artistique spécialisée en miniatures YouTube à fort CTR.
 
-RÈGLES :
-1. Sois CONCRET et ACTIONNABLE (pas de vague "utilisez des couleurs vives")
-2. Base-toi sur ce qui fonctionne dans la niche de la chaîne
+ÉTAPE PRÉALABLE OBLIGATOIRE — COMPRENDRE LE CONTENU :
+Avant de créer le moindre brief, tu DOIS effectuer une analyse en 3 temps :
+
+1. IDENTIFIER LA NICHE de la chaîne en analysant l'ensemble des titres de ses vidéos (AMV, gaming, vlogs, tutos, cuisine, etc.)
+2. COMPRENDRE LE CONTENU RÉEL de la vidéo à illustrer :
+   - Si le titre fait référence à une CHANSON (ex: "Animals" de Maroon 5, "Enemy" d'Imagine Dragons, "Thunder" de Gabry Ponte) → Rappelle-toi DE QUOI PARLE cette chanson. Ses paroles, son ambiance, son message émotionnel. Base ton brief sur ÇA.
+   - Si le titre fait référence à un ANIME, un FILM ou une SÉRIE → Rappelle-toi l'univers, les personnages, le ton de cette œuvre.
+   - Si le titre est descriptif → Comprends le sujet concret.
+3. DÉFINIR L'AMBIANCE VISUELLE qui traduit fidèlement le contenu identifié à l'étape 2.
+
+EXEMPLE DE RAISONNEMENT CORRECT :
+- "Animals" de Maroon 5 → Les paroles parlent d'obsession, de désir, de chasse ("Baby I'm preying on you tonight, hunt you down eat you alive"). L'ambiance est SOMBRE, INTENSE, PRÉDATRICE → Brief : personnage au regard obsédant, éclairage rouge/noir, tension visuelle.
+- "Enemy" d'Imagine Dragons → Les paroles parlent de conflit intérieur, de trahison, de combat ("Oh the misery, everybody wants to be my enemy"). L'ambiance est COMBATIVE, SOMBRE, PUISSANTE → Brief : personnage en posture de défi, contrastes violents, énergie explosive.
+- "Thunder" de Gabry Ponte → Son électronique puissant, énergie de club, rythme intense → Brief : effets lumineux électriques, couleurs néon, dynamisme.
+
+RÈGLES DE BRIEF :
+1. Le brief doit refléter le VRAI contenu de la vidéo, pas une interprétation superficielle du titre
+2. Sois CONCRET et ACTIONNABLE (pas de vague "utilisez des couleurs vives")
 3. Le brief doit être réalisable avec Canva ou Photoshop
-4. RENVOIE UNIQUEMENT DU JSON VALIDE`,
+4. Privilégie la LISIBILITÉ MOBILE : peu d'éléments, un point focal clair, un contraste fort
+5. Un VISAGE avec une émotion forte vaut 100x plus qu'une scène chargée de détails
+6. Le prompt de génération IA doit produire un résultat cohérent avec la niche ET le contenu réel
+7. Dans le champ 'inspiration', cite les vidéos de référence par leur TITRE EXACT — ne modifie pas les titres
+8. RENVOIE UNIQUEMENT DU JSON VALIDE`,
     prompt: `Crée un brief miniature pour cette vidéo.
 
 DÉCISION :
@@ -977,17 +999,39 @@ DÉCISION :
 - Type d'expérience : ${decision.experiment_type}
 ${decision.video_title ? `- Titre choisi : "${decision.video_title}"` : ""}
 
-MEILLEURES VIDÉOS DE LA CHAÎNE :
-${topVideos.map((v: any) => `- "${v.video_title}" (${v.views} vues)`).join("\n")}
+TOUS LES TITRES DE LA CHAÎNE (pour identifier la niche) :
+${allVideoTitles}
 
-Propose un brief concret et détaillé pour la miniature.`,
+MEILLEURES VIDÉOS DE LA CHAÎNE (par engagement) :
+${topVideos.map((v: any) => {
+  const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
+  return `- "${v.video_title}" (${v.views} vues, ${eng}% engagement)`;
+}).join("\n")}
+
+INSTRUCTIONS (SUIS CET ORDRE) :
+1. Identifie la NICHE de la chaîne à partir de tous les titres
+2. Si le titre de la vidéo fait référence à une chanson, un anime ou une œuvre connue : rappelle-toi ses PAROLES, son THÈME et son AMBIANCE RÉELLE
+3. Crée le brief en t'appuyant sur cette compréhension réelle du contenu
+4. Le prompt IA doit produire une image fidèle au thème RÉEL, pas au sens littéral du titre
+5. Dans 'inspiration', cite les vidéos de référence par leurs TITRES EXACTS`,
     output: { format: "json", schema: BriefOutputSchema },
     config: { temperature: 0.5 },
   });
 
   if (!output) throw new Error("Échec de la génération du brief miniature");
 
-  return output;
+  // Construire la liste des vidéos de référence avec leurs miniatures
+  const referencedVideos = topVideos.map((v: any) => {
+    const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
+    return {
+      title: v.video_title,
+      thumbnailUrl: v.thumbnail_url || "",
+      views: v.views,
+      engagement: `${eng}%`,
+    };
+  }).filter((v: any) => v.thumbnailUrl); // Ne garder que celles avec une miniature
+
+  return { ...output, referencedVideos };
 }
 
 import { analyzeThumbnail } from "./youtubeAnalytics.js";

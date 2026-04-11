@@ -142,6 +142,7 @@ export class DecisionService {
     composition: string;
     inspiration: string;
     generationPrompt: string;
+    referencedVideos: { title: string; thumbnailUrl: string; views: number; engagement: string }[];
   }> {
     const response = await lastValueFrom(
       this.http.post<{
@@ -152,6 +153,7 @@ export class DecisionService {
         composition: string;
         inspiration: string;
         generationPrompt: string;
+        referencedVideos: { title: string; thumbnailUrl: string; views: number; engagement: string }[];
       }>(`${this.apiUrl}/decisions/${decisionId}/thumbnail-brief`, {}),
     );
     return {
@@ -161,6 +163,7 @@ export class DecisionService {
       composition: response.composition,
       inspiration: response.inspiration,
       generationPrompt: response.generationPrompt,
+      referencedVideos: response.referencedVideos || [],
     };
   }
 
