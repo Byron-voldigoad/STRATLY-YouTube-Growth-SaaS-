@@ -663,6 +663,7 @@ RÈGLES ABSOLUES :
 4. Chaque décision doit avoir une hypothèse claire et mesurable.
 5. Tu utilises les métriques standardisées : watch_time_30s, views_7days, engagement_rate, ctr, avg_views.
 6. RENVOIE UNIQUEMENT DU JSON VALIDE. Aucun texte avant ou après.
+7. ⚠️ RÈGLE ANTI-HALLUCINATION : Si les vidéos récentes sont de format 'clip' (Shorts), TU AS L'INTERDICTION ABSOLUE de proposer "TYPE_MINIATURE" ou de mentionner le mot "miniature". Les Shorts n'ont pas de miniatures. Concentre-toi sur "TYPE_HOOK" ou "TYPE_FORMAT".
 
 RÈGLE CRITIQUE — CITATIONS OBLIGATOIRES (NON NÉGOCIABLE) :
 Dans le champ "ai_reasoning", tu DOIS OBLIGATOIREMENT :
@@ -756,6 +757,194 @@ ${userContext?.hasVideoInProgress ? "- Adapte la décision à la vidéo en cours
   return inserted as Decision;
 }
 
+// ─── Post-Acceptance: Concept Workshop ──────────────────────────────
+
+/**
+ * Génère 3 suggestions de concepts/idées de vidéos pour une décision acceptée.
+ * Se base sur l'hypothèse de la décision et les tendances YouTube si pertinentes.
+ */
+export async function generateVideoConcepts(
+  ai: ReturnType<typeof genkit>,
+  decisionId: string,
+  userNotes?: string
+): Promise<{ concepts: string[]; reasoning: string }> {
+  const supabase = getSupabase();
+
+  // Récupérer la décision
+  const { data: decision, error } = await supabase
+    .from("decisions")
+    .select("*")
+    .eq("id", decisionId)
+    .single();
+
+  if (error || !decision) throw new Error("Décision introuvable");
+
+  const ConceptOutputSchema = z.object({
+    concepts: z.array(z.string()).length(3).describe("3 idées précises de vidéos (ex: 'Top 10 des armes les plus sous-estimées dans le jeu X')"),
+    reasoning: z.string().describe("Pourquoi ces idées résonneront avec l'audience et respectent l'expérience"),
+  });
+
+  const { output } = await ai.generate({
+    model: "openai/llama-3.3-70b-versatile",
+    system: `Tu es NERRA, un producteur stratégique YouTube.
+Tu génères EXACTEMENT 3 concepts/sujets de vidéos clairs, innovants et réalisables.
+
+RÈGLES :
+1. Chaque concept doit décrire concrètement ce que sera la vidéo.
+2. Varie les angles (un concept niche, un concept très grand public, un concept interactif/polémique).
+3. Adapte exactement l'idée au 'Format' décrit dans la décision (ex: si c'est un clip/Short, propose des concepts hyper rapides/visuels).
+4. Respecte précisément les notes de l'utilisateur s'il y en a.
+5. Sois très spécifique. Ne propose pas 'Une vidéo sur l'anime', mais 'Une vidéo classant les 5 méchants les plus effrayants des animes de 2024'.
+6. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+    prompt: `Génère 3 idées/concepts de vidéos.
+
+DÉCISION STRATÉGIQUE ACCEPTÉE :
+- Hypothèse : "${decision.hypothesis}"
+- Type d'expérience : ${decision.experiment_type}
+
+NOTES DE L'UTILISATEUR :
+${userNotes ? `- "${userNotes}"` : "Aucune note spécifique."}
+
+Propose 3 concepts qui maximisent les chances de valider cette hypothèse.`,
+    output: { format: "json", schema: ConceptOutputSchema },
+    config: { temperature: 0.8 },
+  });
+
+  if (!output) throw new Error("Échec de la génération de concepts");
+
+  return { concepts: output.concepts, reasoning: output.reasoning };
+}
+
+/**
+ * Évalue un concept/idée de vidéo personnalisé proposé par l'utilisateur.
+ * Retourne un score et un feedback.
+ */
+export async function evaluateVideoConcept(
+  ai: ReturnType<typeof genkit>,
+  decisionId: string,
+  concept: string,
+): Promise<{ score: number; feedback: string }> {
+  const supabase = getSupabase();
+
+  const { data: decision, error } = await supabase
+    .from("decisions")
+    .select("*")
+    .eq("id", decisionId)
+    .single();
+
+  if (error || !decision) throw new Error("Décision introuvable");
+
+  const EvalSchema = z.object({
+    score: z.number().min(1).max(10).describe("Note de 1 à 10"),
+    feedback: z.string().describe("Feedback constructif en 2-3 phrases max"),
+  });
+
+  const { output } = await ai.generate({
+    model: "openai/llama-3.3-70b-versatile",
+    system: `Tu es NERRA, un producteur stratégique YouTube.
+On te soumet une idée de vidéo. Tu dois l'évaluer en fonction de la décision stratégique en cours.
+
+RÈGLES :
+1. Note de 1 à 10 (10 = idée parfaitement alignée avec la stratégie).
+2. Feedback en 2-3 phrases : dis ce qui est bien, ce qui manque, et comment améliorer.
+3. Sois direct et constructif, pas complaisant.
+4. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
+5. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+    prompt: `Évalue cette idée de vidéo :
+
+IDÉE PROPOSÉE : "${concept}"
+
+DÉCISION STRATÉGIQUE EN COURS :
+- Hypothèse : "${decision.hypothesis}"
+- Type : ${decision.experiment_type}
+- Variable : ${decision.variable}
+
+L'idée est-elle alignée avec cette stratégie ? Est-elle suffisamment spécifique et réalisable ?`,
+    output: { format: "json", schema: EvalSchema },
+    config: { temperature: 0.3 },
+  });
+
+  if (!output) throw new Error("Échec de l'évaluation");
+  return { score: output.score, feedback: output.feedback };
+}
+
+// ─── Post-Acceptance: Brainstorm Workshop ───────────────────────────
+
+/**
+ * Développe un concept de vidéo avec l'utilisateur.
+ * Génère un brief structuré : scènes, style, durée, musique, accroche.
+ */
+export async function brainstormConcept(
+  ai: ReturnType<typeof genkit>,
+  decisionId: string,
+  concept: string,
+  userNotes?: string,
+): Promise<{
+  scenes: string[];
+  style: string;
+  duration: string;
+  musicDirection: string;
+  hookSuggestion: string;
+  refinedConcept: string;
+}> {
+  const supabase = getSupabase();
+
+  const { data: decision, error } = await supabase
+    .from("decisions")
+    .select("*")
+    .eq("id", decisionId)
+    .single();
+
+  if (error || !decision) throw new Error("Décision introuvable");
+
+  const BrainstormSchema = z.object({
+    scenes: z.array(z.string()).min(3).max(5).describe("3 à 5 moments/scènes clés de la vidéo, dans l'ordre chronologique"),
+    style: z.string().describe("Style de montage recommandé (ex: 'Montage rapide avec transitions flash', 'Slow motion dramatique')"),
+    duration: z.string().describe("Durée recommandée (ex: '30 secondes', '1 minute')"),
+    musicDirection: z.string().describe("Direction musicale (ex: 'Trap épique avec drop au moment du combat')"),
+    hookSuggestion: z.string().describe("Comment démarrer la vidéo pour capter l'attention dans les 3 premières secondes"),
+    refinedConcept: z.string().describe("Le concept reformulé et enrichi en une phrase claire"),
+  });
+
+  const { output } = await ai.generate({
+    model: "openai/llama-3.3-70b-versatile",
+    system: `Tu es NERRA, un directeur créatif YouTube spécialisé en contenu anime/gaming.
+Tu aides un créateur à développer son idée de vidéo en détail avant de passer à la production.
+
+RÈGLES :
+1. Décompose l'idée en scènes/moments précis (3 à 5 scènes max).
+2. Chaque scène doit être très concrète et visuelle (ex: "Ralenti sur le coup de poing de Jinwoo avec un flash blanc + texte 'ARISE'").
+3. Adapte la durée au format (un Short = 15-60s, un clip standard = 1-3 min).
+4. La direction musicale doit être précise, pas "une musique épique" mais "un beat trap sombre qui monte en tension, drop au moment X".
+5. Le hook (accroche) doit capter l'attention en 1-3 secondes.
+6. Si l'utilisateur a fourni des notes, intègre-les IMPÉRATIVEMENT dans ton développement.
+7. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+    prompt: `Développe cette idée de vidéo en détail.
+
+CONCEPT : "${concept}"
+
+DÉCISION STRATÉGIQUE :
+- Hypothèse : "${decision.hypothesis}"
+- Type : ${decision.experiment_type}
+
+${userNotes ? `NOTES DE L'UTILISATEUR (À INTÉGRER OBLIGATOIREMENT) :\n"${userNotes}"` : "Aucune note supplémentaire."}
+
+Propose un plan de production détaillé et concret.`,
+    output: { format: "json", schema: BrainstormSchema },
+    config: { temperature: 0.7 },
+  });
+
+  if (!output) throw new Error("Échec du brainstorm");
+  return {
+    scenes: output.scenes,
+    style: output.style,
+    duration: output.duration,
+    musicDirection: output.musicDirection,
+    hookSuggestion: output.hookSuggestion,
+    refinedConcept: output.refinedConcept,
+  };
+}
+
 // ─── Post-Acceptance: Title Workshop ────────────────────────────────
 
 /**
@@ -778,23 +967,11 @@ export async function generateTitleSuggestions(
 
   if (error || !decision) throw new Error("Décision introuvable");
 
-  // Récupérer les vidéos de la chaîne pour contexte
-  const { data: videos } = await supabase
-    .from("video_analytics")
-    .select("video_title, views, likes, comments")
-    .eq("user_id", decision.user_id)
-    .eq("channel_id", decision.channel_id)
-    .order("published_at", { ascending: false })
-    .limit(15);
-
-  const topVideos = (videos || [])
-    .filter((v: any) => v.views > 0)
-    .sort((a: any, b: any) => {
-      const engA = ((a.likes || 0) + (a.comments || 0)) / Math.max(a.views, 1);
-      const engB = ((b.likes || 0) + (b.comments || 0)) / Math.max(b.views, 1);
-      return engB - engA;
-    })
-    .slice(0, 5);
+  // Récupérer le BENCHMARK GLOBAL YouTube sur ce sujet plutôt que l'historique de la chaîne
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) throw new Error("YOUTUBE_API_KEY non configurée");
+  const searchQuery = userContext?.topic || decision.video_title || decision.hypothesis;
+  const benchmarkVideos = await fetchNicheTrends(searchQuery, apiKey);
 
   const TitleOutputSchema = z.object({
     titles: z.array(z.string()).length(3).describe("3 titres pour la vidéo"),
@@ -807,11 +984,12 @@ export async function generateTitleSuggestions(
 Tu génères EXACTEMENT 3 propositions de titres pour une vidéo YouTube.
 
 RÈGLES :
-1. Chaque titre doit être accrocheur, court (< 60 caractères) et optimisé SEO
-2. Varie les styles : un émotionnel, un descriptif, un clickbait maîtrisé
-3. Base-toi sur les titres performants de la chaîne
-4. Intègre impérativement le contexte spécifique fourni par l'utilisateur
-5. RENVOIE UNIQUEMENT DU JSON VALIDE`,
+1. Chaque titre doit être accrocheur, court (< 60 caractères) et optimisé pour le CTR.
+2. Varie les styles : un émotionnel, un descriptif, un clickbait maîtrisé.
+3. Analyse attentivement la structure et les "Click Triggers" du BENCHMARK YOUTUBE fourni, ce sont les vidéos les plus performantes globalement sur ce sujet précis.
+4. TU DOIS IMPÉRATIVEMENT CITER LES TITRES EXACTS du benchmark dans ton champ 'reasoning' pour justifier pourquoi tes propositions fonctionneront (ex: "J'ai utilisé la structure de la vidéo X qui a fait 1M vues...").
+5. Intègre impérativement le contexte spécifique fourni par l'utilisateur.
+6. RENVOIE UNIQUEMENT DU JSON VALIDE`,
     prompt: `Génère 3 titres pour cette vidéo.
 
 DÉCISION ACCEPTÉE :
@@ -824,13 +1002,13 @@ CONTEXTE UTILISATEUR (TRÈS IMPORTANT) :
 ${userContext?.topic ? `- Sujet de la vidéo : "${userContext.topic}"` : "- Sujet non précisé"}
 ${userContext?.notes ? `- Notes supplémentaires : "${userContext.notes}"` : ""}
 
-MEILLEURES VIDÉOS DE LA CHAÎNE (par engagement) :
-${topVideos.map((v: any) => {
+BENCHMARK YOUTUBE (Vidéos globales les plus performantes sur ce sujet) :
+${benchmarkVideos.map((v: any) => {
   const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-  return `- "${v.video_title}" (${eng}% engagement, ${v.views} vues)`;
+  return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
 }).join("\n")}
 
-Génère 3 titres qui appliquent l'expérience décidée tout en s'inspirant des titres performants et en respectant le contexte utilisateur.`,
+Génère 3 titres qui appliquent l'expérience décidée tout en s'inspirant fortement de la structure des titres du BENCHMARK et en respectant le contexte utilisateur.`,
     output: { format: "json", schema: TitleOutputSchema },
     config: { temperature: 0.7 },
   });
@@ -859,13 +1037,11 @@ export async function evaluateCustomTitle(
 
   if (error || !decision) throw new Error("Décision introuvable");
 
-  // Trouver les meilleures vidéos pour inspirer l'évaluation du titre
-  const { data: topVideos } = await supabase
-    .from("video_analytics")
-    .select("video_title, views, click_through_rate")
-    .eq("channel_id", decision.channel_id)
-    .order("views", { ascending: false })
-    .limit(5);
+  // Trouver les meilleures vidéos mondiales pour évaluer la concurrence
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) throw new Error("YOUTUBE_API_KEY non configurée");
+  const searchQuery = userContext?.topic || decision.video_title || decision.hypothesis;
+  const benchmarkVideos = await fetchNicheTrends(searchQuery, apiKey);
 
   const EvalOutputSchema = z.object({
     score: z.number().describe("Score sur 10 de la pertinence du titre"),
@@ -880,7 +1056,7 @@ Ne sois pas simplement "gentille", sois stratégique. On n'est pas là pour fair
 RÈGLES D'AUDIT :
 1. ANALYSE DU POINT FOCAL : Le titre doit immédiatement capturer l'intérêt. S'il est trop générique (ex: "My AMV"), c'est une erreur mortelle. Dis-le.
 2. ALIGNEMENT STRATÉGIQUE : Le titre doit refléter parfaitement le SUJET et l'HYPOTHÈSE de l'expérience. Si l'utilisateur s'éloigne de son objectif, recadre-le.
-3. ADN DE LA CHAÎNE : Compare le titre aux succès historiques. S'il ne dépasse pas la qualité des meilleures vidéos passées, il n'est pas assez bon pour un "Reboot".
+3. BENCHMARK GLOBAL : Compare le titre à ce qui fonctionne ACTUELLEMENT sur YouTube dans cette niche. TU DOIS IMPÉRATIVEMENT CITER des titres exacts du benchmark pour appuyer ton argumentaire (ex: "La vidéo 'X' a fait 800k vues en utilisant cette structure...").
 4. PSYCHOLOGIE : Cherche le "Click Trigger" (curiosité, émotion, urgence). S'il manque, le score doit être sévère mais le conseil doit être précis.
 5. TON : Direct, pro, exigeant mais orienté résultats. 
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
@@ -894,10 +1070,10 @@ CONTEXTE DE LA VIDÉO (TRÈS IMPORTANT) :
 ${userContext?.topic ? `- Sujet de la vidéo : "${userContext.topic}"` : "- Sujet non précisé"}
 ${userContext?.notes ? `- Notes : "${userContext.notes}"` : ""}
 
-HISTORIQUE DES VIDÉOS LES PLUS PERFORMANTES DE LA CHAÎNE :
-${topVideos?.map(v => `- "${v.video_title}"`).join("\n") || "- Pas de données historiques"}
+BENCHMARK YOUTUBE (Vidéos globales les plus performantes sur ce sujet) :
+${benchmarkVideos.map((v: any) => `- "${v.title}" (${v.views} vues)`).join("\n") || "- Pas de données"}
 
-Évalue ce titre en lui donnant une note sur 10. Assure-toi qu'il correspond bien au contexte de la vidéo. Donne un conseil pour l'optimiser si nécessaire en fonction de CE QUI MARCHE DÉJÀ sur sa chaîne (cf: historique).`,
+Évalue ce titre en lui donnant une note sur 10. Assure-toi qu'il correspond bien au contexte de la vidéo. Donne un conseil pour l'optimiser si nécessaire en s'inspirant de CE QUI MARCHE GLOBALEMENT SUR YOUTUBE (cf: Benchmark).`,
     output: { format: "json", schema: EvalOutputSchema },
     config: { temperature: 0.5 },
   });
@@ -915,6 +1091,7 @@ ${topVideos?.map(v => `- "${v.video_title}"`).join("\n") || "- Pas de données h
 export async function generateThumbnailBrief(
   ai: ReturnType<typeof genkit>,
   decisionId: string,
+  passedVideoTitle?: string
 ): Promise<{
   visualElements: string[];
   colorPalette: string[];
@@ -934,35 +1111,32 @@ export async function generateThumbnailBrief(
 
   if (error || !decision) throw new Error("Décision introuvable");
 
-  // Récupérer les miniatures des meilleures vidéos
+  // Récupérer les vidéos de la chaîne pour identifier sa niche globale
   const { data: videos } = await supabase
     .from("video_analytics")
-    .select("video_title, views, likes, comments, thumbnail_url")
+    .select("video_title")
     .eq("user_id", decision.user_id)
     .eq("channel_id", decision.channel_id)
-    .order("published_at", { ascending: false })
     .limit(10);
 
-  const topVideos = (videos || [])
-    .filter((v: any) => v.views > 0)
-    .sort((a: any, b: any) => {
-      const engA = ((a.likes || 0) + (a.comments || 0)) / Math.max(a.views, 1);
-      const engB = ((b.likes || 0) + (b.comments || 0)) / Math.max(b.views, 1);
-      return engB - engA;
-    })
-    .slice(0, 5);
+  const allVideoTitles = (videos || []).map((v: any) => v.video_title).join(", ");
+
+  // Récupérer le TOP 5 GLOBAL YouTube sur ce sujet pour l'inspiration
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) throw new Error("YOUTUBE_API_KEY non configurée");
+  
+  const searchQuery = passedVideoTitle || decision.video_title || decision.hypothesis;
+  const videoTitleContext = passedVideoTitle || decision.video_title;
+  const benchmarkVideos = await fetchNicheTrends(searchQuery, apiKey);
 
   const BriefOutputSchema = z.object({
     visualElements: z.array(z.string()).describe("3-4 éléments visuels clés à inclure"),
     colorPalette: z.array(z.string()).describe("3 couleurs dominantes recommandées (noms en français)"),
-    textOverlay: z.string().describe("Texte court à mettre sur la miniature, ou 'Aucun' si non recommandé"),
+    textOverlay: z.string().describe("Texte court à mettre sur la miniature, ou 'Aucun' si non recommandé. Analyse le BENCHMARK YOUTUBE pour décider (ex: nom de la musique, nom de l'anime, ou courte phrase d'accroche)."),
     composition: z.string().describe("Description de la composition visuelle recommandée"),
-    inspiration: z.string().describe("Pourquoi ce brief fonctionne, basé sur les données de la chaîne. IMPORTANT : cite les vidéos par leur titre EXACT tel que fourni dans 'MEILLEURES VIDÉOS'. Ne modifie PAS les titres."),
-    generationPrompt: z.string().describe("Un prompt en anglais détaillé pour générer cette image avec Midjourney ou DALL-E. Le prompt DOIT inclure les dimensions YouTube standard : 1280x720 pixels, ratio 16:9, orientation paysage (landscape). Le prompt doit correspondre au STYLE et à l'AMBIANCE réelle du contenu, PAS à une interprétation littérale du titre."),
+    inspiration: z.string().describe("Pourquoi ce brief fonctionne, basé sur le BENCHMARK YOUTUBE. IMPORTANT : cite les vidéos par leur titre EXACT. Ne modifie PAS les titres."),
+    generationPrompt: z.string().describe("Un prompt en anglais détaillé pour générer cette image avec Midjourney ou DALL-E. Le prompt DOIT inclure les dimensions YouTube standard : 1280x720 pixels, ratio 16:9, orientation paysage (landscape). Si un texte est recommandé dans 'textOverlay', demande EXPLICITEMENT de l'intégrer à l'image (ex: with the text 'YOUR TEXT' written in bold typography). Le prompt doit correspondre au STYLE et à l'AMBIANCE réelle du contenu, PAS à une interprétation littérale du titre."),
   });
-
-  // Détecter la niche implicite à partir des titres des vidéos
-  const allVideoTitles = (videos || []).map((v: any) => v.video_title).join(", ");
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
@@ -989,43 +1163,45 @@ RÈGLES DE BRIEF :
 3. Le brief doit être réalisable avec Canva ou Photoshop
 4. Privilégie la LISIBILITÉ MOBILE : peu d'éléments, un point focal clair, un contraste fort
 5. Un VISAGE avec une émotion forte vaut 100x plus qu'une scène chargée de détails
-6. Le prompt de génération IA doit produire un résultat cohérent avec la niche ET le contenu réel
-7. Dans le champ 'inspiration', cite les vidéos de référence par leur TITRE EXACT — ne modifie pas les titres
-8. RENVOIE UNIQUEMENT DU JSON VALIDE`,
+6. Le prompt de génération IA doit produire un résultat cohérent avec la niche ET le contenu réel. N'oublie pas d'y inclure l'instruction d'écrire le texte (si tu as recommandé un textOverlay).
+7. Le texte sur la miniature (textOverlay) DOIT s'inspirer de ce que font les MEILLEURES VIDÉOS CONCURRENTES (Benchmark YOUTUBE) listées ci-dessous. Ne mets pas un mot au hasard, observe les codes de ces vidéos.
+8. Dans le champ 'inspiration', cite les vidéos concurrentes par leur TITRE EXACT.
+9. RENVOIE UNIQUEMENT DU JSON VALIDE`,
     prompt: `Crée un brief miniature pour cette vidéo.
 
 DÉCISION :
 - Hypothèse : "${decision.hypothesis}"
 - Type d'expérience : ${decision.experiment_type}
-${decision.video_title ? `- Titre choisi : "${decision.video_title}"` : ""}
+${videoTitleContext ? `- Titre choisi : "${videoTitleContext}"` : ""}
 
-TOUS LES TITRES DE LA CHAÎNE (pour identifier la niche) :
+TOUS LES TITRES DE LA CHAÎNE (pour identifier la niche générale) :
 ${allVideoTitles}
 
-MEILLEURES VIDÉOS DE LA CHAÎNE (par engagement) :
-${topVideos.map((v: any) => {
+BENCHMARK YOUTUBE (Meilleures vidéos globales pour ce sujet) :
+${benchmarkVideos.map((v: any) => {
   const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-  return `- "${v.video_title}" (${v.views} vues, ${eng}% engagement)`;
+  return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
 }).join("\n")}
 
 INSTRUCTIONS (SUIS CET ORDRE) :
 1. Identifie la NICHE de la chaîne à partir de tous les titres
 2. Si le titre de la vidéo fait référence à une chanson, un anime ou une œuvre connue : rappelle-toi ses PAROLES, son THÈME et son AMBIANCE RÉELLE
-3. Crée le brief en t'appuyant sur cette compréhension réelle du contenu
-4. Le prompt IA doit produire une image fidèle au thème RÉEL, pas au sens littéral du titre
-5. Dans 'inspiration', cite les vidéos de référence par leurs TITRES EXACTS`,
+3. Identifie le STYLE DE TEXTE (textOverlay) le plus performant en analysant le BENCHMARK YOUTUBE (ex: titre de l'œuvre, titre de la musique, ou aucun texte)
+4. Crée le brief en t'appuyant sur cette compréhension réelle du contenu
+5. Le prompt IA doit produire une image fidèle au thème RÉEL, pas au sens littéral du titre
+6. Dans 'inspiration', cite les vidéos de référence du benchmark par leurs TITRES EXACTS`,
     output: { format: "json", schema: BriefOutputSchema },
     config: { temperature: 0.5 },
   });
 
   if (!output) throw new Error("Échec de la génération du brief miniature");
 
-  // Construire la liste des vidéos de référence avec leurs miniatures
-  const referencedVideos = topVideos.map((v: any) => {
+  // Construire la liste des vidéos de référence avec leurs miniatures depuis le benchmark
+  const referencedVideos = benchmarkVideos.map((v: any) => {
     const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
     return {
-      title: v.video_title,
-      thumbnailUrl: v.thumbnail_url || "",
+      title: v.title,
+      thumbnailUrl: v.thumbnailUrl || "",
       views: v.views,
       engagement: `${eng}%`,
     };
@@ -1034,7 +1210,7 @@ INSTRUCTIONS (SUIS CET ORDRE) :
   return { ...output, referencedVideos };
 }
 
-import { analyzeThumbnail } from "./youtubeAnalytics.js";
+import { analyzeThumbnail, fetchNicheTrends } from "./youtubeAnalytics.js";
 
 /**
  * Analyse une miniature (uploadée en base64) via Vision API puis Llama pour évaluer son alignement

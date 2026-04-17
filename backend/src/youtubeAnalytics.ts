@@ -31,6 +31,7 @@ function getDateRange90Days(): { startDate: string; endDate: string } {
 export async function fetchVideoMetricsBatch(
   videoIds: string[],
   accessToken: string,
+  channelId?: string,
 ): Promise<Record<string, VideoMetricsInfo>> {
   if (!videoIds || videoIds.length === 0) {
     return {};
@@ -38,8 +39,9 @@ export async function fetchVideoMetricsBatch(
 
   const { startDate, endDate } = getDateRange90Days();
   const filters = `video==${videoIds.join(",")}`;
+  const targetChannel = channelId ? `channel==${channelId}` : "channel==MINE";
   const params = new URLSearchParams({
-    ids: "channel==MINE",
+    ids: targetChannel,
     startDate,
     endDate,
     metrics: "views,estimatedMinutesWatched,averageViewDuration",
@@ -103,6 +105,7 @@ export async function fetchVideoMetricsBatch(
 export async function fetchRetentionCurve(
   videoId: string,
   accessToken: string,
+  channelId?: string,
 ): Promise<RetentionPoint[]> {
   if (!videoId) {
     return [];
@@ -110,8 +113,9 @@ export async function fetchRetentionCurve(
 
   const { startDate, endDate } = getDateRange90Days();
   const filters = `video==${videoId};audienceType==ORGANIC`;
+  const targetChannel = channelId ? `channel==${channelId}` : "channel==MINE";
   const params = new URLSearchParams({
-    ids: "channel==MINE",
+    ids: targetChannel,
     startDate,
     endDate,
     metrics: "audienceWatchRatio",
@@ -219,14 +223,16 @@ export function getKeyRetentionPoints(
 export async function fetchNicheTrends(
   niche: string,
   apiKey: string,
-): Promise<Array<{ title: string; views: number; channelTitle: string }>> {
+): Promise<Array<{ title: string; views: number; channelTitle: string; thumbnailUrl: string; likes: number; comments: number }>> {
   try {
-    const query = encodeURIComponent(niche);
+    // Exclude shorts natively via YouTube search operators
+    const query = encodeURIComponent(`${niche} -shorts`);
     const publishedAfter = new Date(
-      Date.now() - 30 * 24 * 60 * 60 * 1000,
+      Date.now() - 365 * 24 * 60 * 60 * 1000, // Look back 1 year
     ).toISOString();
-
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&order=viewCount&publishedAfter=${publishedAfter}&maxResults=5&key=${apiKey}`;
+    
+    // Fetch 15 results to have a pool for filtering good thumbnails
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&order=relevance&publishedAfter=${publishedAfter}&maxResults=15&key=${apiKey}`;
 
     const searchRes = await fetch(searchUrl);
     const searchData = await searchRes.json();
@@ -238,15 +244,36 @@ export async function fetchNicheTrends(
       .filter(Boolean)
       .join(",");
 
+    if (!videoIds) return [];
+
     const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${apiKey}`;
     const statsRes = await fetch(statsUrl);
     const statsData = await statsRes.json();
 
-    return (statsData.items || []).map((item: any) => ({
-      title: item.snippet?.title || "",
-      views: parseInt(item.statistics?.viewCount || "0", 10),
-      channelTitle: item.snippet?.channelTitle || "",
-    }));
+    const verifiedVideos = (statsData.items || [])
+      .filter((item: any) => {
+        const title = (item.snippet?.title || "").toLowerCase();
+        return !title.includes("#shorts") && !title.includes("tiktok");
+      })
+      .map((item: any) => ({
+        title: item.snippet?.title || "",
+        views: parseInt(item.statistics?.viewCount || "0", 10),
+        channelTitle: item.snippet?.channelTitle || "",
+        thumbnailUrl: item.snippet?.thumbnails?.maxres?.url || item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
+        likes: parseInt(item.statistics?.likeCount || "0", 10),
+        comments: parseInt(item.statistics?.commentCount || "0", 10),
+        hasMaxRes: !!item.snippet?.thumbnails?.maxres
+      }))
+      .sort((a: any, b: any) => {
+        // Prioritize videos that explicitly uploaded a custom MaxRes thumbnail (usually a sign of work on the thumbnail)
+        if (a.hasMaxRes && !b.hasMaxRes) return -1;
+        if (!a.hasMaxRes && b.hasMaxRes) return 1;
+        // Then sort by most viewed
+        return b.views - a.views;
+      })
+      .slice(0, 3);
+
+    return verifiedVideos;
   } catch (error) {
     console.error("fetchNicheTrends error:", error);
     return [];

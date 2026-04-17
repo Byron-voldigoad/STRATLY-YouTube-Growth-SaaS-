@@ -114,6 +114,73 @@ export class DecisionService {
   }
 
   /**
+   * Génère 3 concepts/idées de vidéos pour une décision acceptée
+   */
+  async generateConcepts(
+    decisionId: string,
+    userNotes?: string,
+  ): Promise<{ concepts: string[]; reasoning: string }> {
+    const response = await lastValueFrom(
+      this.http.post<{ success: boolean; concepts: string[]; reasoning: string }>(
+        `${this.apiUrl}/decisions/${decisionId}/concepts`,
+        { userNotes },
+      ),
+    );
+    return { concepts: response.concepts, reasoning: response.reasoning };
+  }
+
+  /**
+   * Évalue un concept personnalisé proposé par l'utilisateur
+   */
+  async evaluateConcept(
+    decisionId: string,
+    concept: string,
+  ): Promise<{ score: number; feedback: string }> {
+    const response = await lastValueFrom(
+      this.http.post<{ success: boolean; score: number; feedback: string }>(
+        `${this.apiUrl}/decisions/${decisionId}/evaluate-concept`,
+        { concept },
+      ),
+    );
+    return { score: response.score, feedback: response.feedback };
+  }
+  /**
+   * Brainstorm : développe un concept de vidéo en détail
+   */
+  async brainstormConcept(
+    decisionId: string,
+    concept: string,
+    userNotes?: string,
+  ): Promise<{
+    scenes: string[];
+    style: string;
+    duration: string;
+    musicDirection: string;
+    hookSuggestion: string;
+    refinedConcept: string;
+  }> {
+    const response = await lastValueFrom(
+      this.http.post<{
+        success: boolean;
+        scenes: string[];
+        style: string;
+        duration: string;
+        musicDirection: string;
+        hookSuggestion: string;
+        refinedConcept: string;
+      }>(`${this.apiUrl}/decisions/${decisionId}/brainstorm`, { concept, userNotes }),
+    );
+    return {
+      scenes: response.scenes,
+      style: response.style,
+      duration: response.duration,
+      musicDirection: response.musicDirection,
+      hookSuggestion: response.hookSuggestion,
+      refinedConcept: response.refinedConcept,
+    };
+  }
+
+  /**
    * Demande l'évaluation d'un titre personnalisé
    */
   async evaluateTitle(
@@ -135,6 +202,7 @@ export class DecisionService {
    */
   async getThumbnailBrief(
     decisionId: string,
+    videoTitle?: string
   ): Promise<{
     visualElements: string[];
     colorPalette: string[];
@@ -154,7 +222,7 @@ export class DecisionService {
         inspiration: string;
         generationPrompt: string;
         referencedVideos: { title: string; thumbnailUrl: string; views: number; engagement: string }[];
-      }>(`${this.apiUrl}/decisions/${decisionId}/thumbnail-brief`, {}),
+      }>(`${this.apiUrl}/decisions/${decisionId}/thumbnail-brief`, { videoTitle }),
     );
     return {
       visualElements: response.visualElements,

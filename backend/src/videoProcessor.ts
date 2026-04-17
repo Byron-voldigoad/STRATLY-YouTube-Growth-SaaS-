@@ -85,8 +85,10 @@ function detectContentType(title: string): ContentType {
     return "vlog";
 
   // Format court / clip (Shorts, Reels, Edit)
-  if (/\bedit\b|\bclip\b|\bshort\b|\bmix\b|\bmixte\b/.test(lower))
+  const hashtagCount = (title.match(/#/g) || []).length;
+  if (/edit|clip|short|mix|tiktok|reel|webtoon/.test(lower) || hashtagCount >= 3) {
     return "clip";
+  }
 
   // Contenu de marque / série nommée
   // (titre contient un nom propre récurrent

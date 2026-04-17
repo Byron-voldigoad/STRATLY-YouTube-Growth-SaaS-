@@ -35,8 +35,7 @@ export class YouTubeService {
       response_type: 'code',
       scope: this.SCOPES.join(' '),
       access_type: 'offline',
-      prompt: 'consent',
-      include_granted_scopes: 'true',
+      prompt: 'select_account consent',
       state: JSON.stringify({ userId: user.id }),
     });
 
@@ -61,13 +60,18 @@ export class YouTubeService {
   /**
    * Déclenche l'importation des données YouTube via le flow Genkit
    */
-  async importData(): Promise<any> {
+  async importData(channelId?: string): Promise<any> {
     const user = await this.supabase.getUser();
     if (!user) throw new Error('Utilisateur non authentifié');
 
+    const dataPayload: any = { userId: user.id };
+    if (channelId) {
+      dataPayload.channelId = channelId;
+    }
+
     return firstValueFrom(
       this.http.post(`${environment.genkitApiUrl}/importYouTube`, {
-        data: { userId: user.id },
+        data: dataPayload,
       }),
     );
   }
@@ -79,10 +83,14 @@ export class YouTubeService {
     const user = await this.supabase.getUser();
     if (!user) return null;
 
+    const profile = await this.supabase.getProfile();
+    if (!profile?.youtube_channel_id) return null;
+
     const { data, error } = await this.supabase.client
       .from('channel_analytics')
       .select('*')
       .eq('user_id', user.id)
+      .eq('channel_id', profile.youtube_channel_id)
       .order('date', { ascending: true })
       .limit(30);
 
@@ -97,10 +105,14 @@ export class YouTubeService {
     const user = await this.supabase.getUser();
     if (!user) return null;
 
+    const profile = await this.supabase.getProfile();
+    if (!profile?.youtube_channel_id) return null;
+
     const { data, error } = await this.supabase.client
       .from('video_analytics')
       .select('*')
       .eq('user_id', user.id)
+      .eq('channel_id', profile.youtube_channel_id)
       .order('published_at', { ascending: false })
       .limit(50);
 

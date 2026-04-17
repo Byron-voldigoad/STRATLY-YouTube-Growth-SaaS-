@@ -26,6 +26,9 @@ import {
   getChannelMode,
   checkRebootEligibility,
   generateTitleSuggestions,
+  generateVideoConcepts,
+  evaluateVideoConcept,
+  brainstormConcept,
   generateThumbnailBrief,
   linkVideoToDecision,
 } from "./decisionEngine.js";
@@ -255,12 +258,12 @@ export const analyzeChannelFlow = ai.defineFlow(
     if (accessToken) {
       const videoIds = filteredVideos.map((v) => v.videoId);
 
-      analyticsData = await fetchVideoMetricsBatch(videoIds, accessToken);
+      analyticsData = await fetchVideoMetricsBatch(videoIds, accessToken, input.channelId);
 
       const top5Ids = channelStats.bestVideoIds.slice(0, 5);
 
       for (const videoId of top5Ids) {
-        const curve = await fetchRetentionCurve(videoId, accessToken);
+        const curve = await fetchRetentionCurve(videoId, accessToken, input.channelId);
         if (curve.length > 0) {
           retentionMap[videoId] = getKeyRetentionPoints(curve);
         }
@@ -300,9 +303,19 @@ export const analyzeChannelFlow = ai.defineFlow(
         )?.thumbnailUrl;
 
         if (thumbnailUrl) {
-          thumbnailAnalyses[video.videoId] =
-            await analyzeThumbnail({ imageUri: thumbnailUrl }, visionApiKey);
-          console.log(`THUMBNAIL analyzed: ${video.title.slice(0, 30)}`);
+          try {
+            thumbnailAnalyses[video.videoId] =
+              await analyzeThumbnail({ imageUri: thumbnailUrl }, visionApiKey);
+            console.log(`THUMBNAIL analyzed: ${video.title.slice(0, 30)}`);
+          } catch (e: any) {
+            console.warn(`THUMBNAIL analysis omitted for ${video.videoId}: ${e.message}`);
+            thumbnailAnalyses[video.videoId] = {
+              labels: [],
+              dominantColors: [],
+              text: [],
+              missing: true
+            };
+          }
         } else {
           thumbnailAnalyses[video.videoId] = {
             labels: [],
@@ -320,6 +333,8 @@ export const analyzeChannelFlow = ai.defineFlow(
       const analysesLines = promptVideos
         .filter((v) => thumbnailAnalyses[v.videoId])
         .map((v) => {
+          if (v.contentType === 'clip') return null;
+
           const t = thumbnailAnalyses[v.videoId];
           if (t.missing) {
             return `- "${v.title}" : MINIATURE ABSENTE — pas de miniature personnalisée`;
@@ -330,8 +345,14 @@ export const analyzeChannelFlow = ai.defineFlow(
   ${hasLabels ? `Éléments visuels : ${t.labels.join(', ')}` : 'Éléments visuels : non détectés'}
   ${hasText ? `Texte visible : ${t.text[0]}` : 'Texte visible : aucun'}
   Couleurs dominantes : ${(t.dominantColors || []).join(', ') || 'non détectées'}`;
-        });
-      thumbnailsPromptSection = `ANALYSE DES MINIATURES (meilleures vidéos) :\n${analysesLines.join('\n')}`;
+        })
+        .filter(Boolean);
+        
+      if (analysesLines.length > 0) {
+        thumbnailsPromptSection = `ANALYSE DES MINIATURES (meilleures vidéos) :\n${analysesLines.join('\n')}`;
+      } else {
+        thumbnailsPromptSection = `ANALYSE DES MINIATURES : ignorée (format court)`;
+      }
     }
 
     const userPrompt = `Analyse cette chaîne YouTube.
@@ -433,6 +454,8 @@ RÈGLES ABSOLUES :
    qui répond à : QUOI faire, 
    dans quel FORMAT, et POURQUOI maintenant.
    
+   ⚠️ RÈGLE ANTI-HALLUCINATION : Si le "Format dominant" est "clip" (Shorts), TU AS L'INTERDICTION ABSOLUE D'UTILISER LE MOT "MINIATURE" OU "THUMBNAIL" dans toute ta réponse (action, proof, nextStep, statusExplanation). Les Shorts n'ont pas de miniatures. Parle plutôt d'améliorer l'accroche (hook) ou le montage rythmé.
+   
    Exemples de mauvaises recommandations :
    - 'Créer plus de contenu similaire' ❌
    - 'Améliorer le taux d engagement' ❌
@@ -481,7 +504,8 @@ RÈGLES ABSOLUES :
 11. Si une vidéo outlier est listée dans VIDÉO OUTLIER DÉTECTÉE, tu dois OBLIGATOIREMENT la mentionner dans statusExplanation en expliquant qu'elle représente X% des vues totales mais qu'elle est hors-niche. C'est l'insight le plus important à communiquer.
 12. Tu dois commenter la régularité de publication dans engagementContext ou statusExplanation. Si la dernière publication date de plus de 30 jours, c'est un signal négatif à mentionner explicitement. Si l'intervalle moyen dépasse 14 jours, mentionne que la fréquence est insuffisante pour la croissance.
 13. Tu dois analyser les TENDANCES DE LA NICHE fournies et les mentionner dans recommendation.proof si elles sont pertinentes pour étayer ta recommandation. Si aucune tendance n'est fournie, ignore cette règle.
-14. Si ANALYSE DES MINIATURES est disponible, utilise ces informations pour enrichir recommendation.proof. Si une vidéo performante a du texte visible et des couleurs vives dans sa miniature, mentionne-le comme facteur de succès. Si une vidéo a une MINIATURE ABSENTE, mentionne explicitement que l'absence de miniature personnalisée est probablement l'une des causes de ses mauvaises performances — c'est un facteur clé de clics sur YouTube. Ne mentionne les miniatures que si les données sont disponibles.
+14. Si ANALYSE DES MINIATURES est disponible, utilise ces informations pour enrichir recommendation.proof. Si une vidéo performante a du texte visible et des couleurs vives dans sa miniature, mentionne-le comme facteur de succès. Si une vidéo a une MINIATURE ABSENTE, mentionne explicitement que l'absence de miniature personnalisée est probablement l'une des causes de ses mauvaises performances, SAUF si la vidéo est identifiée comme un format court, 'clip', ou Short (ex: titre contenant #shorts, mots-clés liés aux jeux mobiles/édits) car les Shorts n'ont PAS de miniature personnalisée sur YouTube. Ne recommande JAMAIS de miniature pour un Short.
+15. RÈGLE ABSOLUE POUR LES SHORTS : Toute vidéo dont le 'Format' (contentType) est noté comme 'clip' est UN SHORT. Pour ces vidéos 'clip', TU NE DOIS JAMAIS MENTIONNER L'ABSENCE DE MINIATURE, NI DANS 'À éviter', NI DANS 'Pourquoi', NI DANS 'Stratégie Recommandée'. C'est interdit, car ça donne de mauvais conseils à l'utilisateur.
     `,
       prompt: userPrompt,
       output: {
@@ -604,7 +628,7 @@ export const generateIdeasFlow = ai.defineFlow(
 export const importYouTubeFlow = ai.defineFlow(
   {
     name: "importYouTube",
-    inputSchema: z.object({ userId: z.string() }),
+    inputSchema: z.object({ userId: z.string(), channelId: z.string().optional() }),
     outputSchema: z.any(),
   },
   async (input) => {
@@ -630,20 +654,51 @@ export const importYouTubeFlow = ai.defineFlow(
     });
     const youtube = google.youtube({ version: "v3", auth: oauth2Client });
 
-    const channelRes = await youtube.channels.list({
-      mine: true,
-      part: ["snippet", "statistics"],
-    });
+    let channelRes;
+    if (input.channelId) {
+      // Forçage manuel de la chaîne
+      channelRes = await youtube.channels.list({
+        id: [input.channelId],
+        part: ["snippet", "statistics"],
+      });
+    } else {
+      channelRes = await youtube.channels.list({
+        mine: true,
+        part: ["snippet", "statistics"],
+      });
+    }
+
     const channel = channelRes.data.items?.[0];
     if (!channel) throw new Error("Chaîne introuvable");
 
-    const videoRes = await youtube.search.list({
-      forMine: true,
-      type: ["video"],
-      part: ["snippet"],
-      maxResults: 50,
-      order: "date",
-    });
+    if (input.channelId) {
+      // Update profile with the manual channel info so it becomes the default
+      await supabase.from("profiles").update({ 
+        youtube_channel_id: input.channelId,
+        youtube_channel_title: channel.snippet?.title || "Chaîne Forcée",
+        youtube_channel_thumbnail: channel.snippet?.thumbnails?.high?.url || channel.snippet?.thumbnails?.default?.url || ""
+      }).eq("id", input.userId);
+    }
+
+    let videoRes;
+    if (input.channelId) {
+      videoRes = await youtube.search.list({
+        channelId: input.channelId,
+        type: ["video"],
+        part: ["snippet"],
+        maxResults: 50,
+        order: "date",
+      });
+    } else {
+      videoRes = await youtube.search.list({
+        forMine: true,
+        type: ["video"],
+        part: ["snippet"],
+        maxResults: 50,
+        order: "date",
+      });
+    }
+
     const videoIds = (videoRes.data.items || [])
       .map((v) => v.id?.videoId)
       .filter(Boolean) as string[];
@@ -941,6 +996,48 @@ app.post("/decisions/:id/titles", async (req, res) => {
   }
 });
 
+// Génère les suggestions de concepts pour une décision acceptée
+app.post("/decisions/:id/concepts", async (req, res) => {
+  try {
+    const { userNotes } = req.body;
+    const result = await generateVideoConcepts(ai, req.params.id, userNotes);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Concept suggestions error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur génération concepts" });
+  }
+});
+
+// Évalue un concept personnalisé proposé par l'utilisateur
+app.post("/decisions/:id/evaluate-concept", async (req, res) => {
+  try {
+    const { concept } = req.body;
+    if (!concept) {
+      return res.status(400).json({ error: "concept requis" });
+    }
+    const result = await evaluateVideoConcept(ai, req.params.id, concept);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Concept evaluation error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur évaluation concept" });
+  }
+});
+
+// Brainstorm : développe un concept avec l'utilisateur
+app.post("/decisions/:id/brainstorm", async (req, res) => {
+  try {
+    const { concept, userNotes } = req.body;
+    if (!concept) {
+      return res.status(400).json({ error: "concept requis" });
+    }
+    const result = await brainstormConcept(ai, req.params.id, concept, userNotes);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[NERRA] Brainstorm error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur brainstorm" });
+  }
+});
+
 // Évalue un titre personnalisé proposé par l'utilisateur
 app.post("/decisions/:id/evaluate-title", async (req, res) => {
   try {
@@ -959,7 +1056,8 @@ app.post("/decisions/:id/evaluate-title", async (req, res) => {
 // Génère un brief miniature pour une décision acceptée
 app.post("/decisions/:id/thumbnail-brief", async (req, res) => {
   try {
-    const result = await generateThumbnailBrief(ai, req.params.id);
+    const { videoTitle } = req.body;
+    const result = await generateThumbnailBrief(ai, req.params.id, videoTitle);
     res.json({ success: true, ...result });
   } catch (error: any) {
     console.error("[NERRA] Thumbnail brief error:", error?.message);
@@ -999,6 +1097,7 @@ app.post("/decisions/:id/link-video", async (req, res) => {
   }
 });
 
+// Récupère les chaînes disponibles pour un compte déjà connecté
 app.post("/auth/youtube/callback", async (req, res) => {
   try {
     console.log("--- ENTERING OAUTH CALLBACK ROUTE ---", req.body);
@@ -1066,6 +1165,7 @@ app.post("/auth/youtube/callback", async (req, res) => {
       youtube_access_token: tokens.access_token,
       youtube_channel_id: channel.id,
       youtube_channel_title: channel.snippet?.title,
+      youtube_channel_thumbnail: channel.snippet?.thumbnails?.high?.url || channel.snippet?.thumbnails?.default?.url,
       updated_at: new Date().toISOString(),
     };
 

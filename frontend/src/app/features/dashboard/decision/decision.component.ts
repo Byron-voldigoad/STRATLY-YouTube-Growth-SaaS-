@@ -344,7 +344,7 @@ import {
 
                 <!-- Step Progress Bar -->
                 <div class="flex items-center gap-2">
-                  @for (step of [1, 2, 3]; track step) {
+                  @for (step of [1, 2, 3, 4, 5]; track step) {
                     <div class="flex-1 h-2 rounded-full transition-all duration-500"
                       [ngClass]="{
                         'bg-indigo-500': workshopStep >= step,
@@ -352,15 +352,232 @@ import {
                       }"
                     ></div>
                   }
-                  <span class="text-xs font-bold text-slate-400 ml-2">{{ workshopStep }}/3</span>
+                  <span class="text-xs font-bold text-slate-400 ml-2">{{ workshopStep }}/5</span>
                 </div>
 
-                <!-- ═══ STEP 1: Atelier Titre ═══ -->
+                <!-- ═══ STEP 1: Idéation — Concept de vidéo ═══ -->
                 @if (workshopStep === 1) {
+                  <div class="p-6 rounded-2xl bg-white border-2 border-violet-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div class="flex items-center gap-3 mb-5">
+                      <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                        <span class="text-lg font-black text-violet-600">1</span>
+                      </div>
+                      <div>
+                        <h4 class="font-black text-slate-900">Trouver le concept</h4>
+                        <p class="text-sm text-slate-500">Nerra propose 3 idées de vidéos basées sur votre stratégie</p>
+                      </div>
+                    </div>
+
+                    @if (isLoadingWorkshop) {
+                      <div class="flex items-center justify-center py-8">
+                        <ng-icon name="lucideLoader2" class="w-6 h-6 text-violet-400 animate-spin"></ng-icon>
+                        <span class="ml-3 text-sm text-slate-500 font-medium">Nerra génère des concepts...</span>
+                      </div>
+                    } @else if (conceptSuggestions.length > 0) {
+                      <div class="space-y-3 mb-4">
+                        @for (concept of conceptSuggestions; track concept; let i = $index) {
+                          <button
+                            (click)="selectedConcept = concept; customConcept = concept"
+                            class="w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-sm"
+                            [ngClass]="selectedConcept === concept
+                              ? 'border-violet-400 bg-violet-50/50 shadow-sm'
+                              : 'border-slate-200 hover:border-violet-200'"
+                          >
+                            <div class="flex items-start gap-3">
+                              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 mt-0.5"
+                                [ngClass]="selectedConcept === concept ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'"
+                              >{{ i + 1 }}</div>
+                              <span class="text-sm font-bold text-slate-900">{{ concept }}</span>
+                            </div>
+                          </button>
+                        }
+                      </div>
+
+                      @if (conceptReasoning) {
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 mb-4">
+                          <p class="text-xs text-slate-500 italic">{{ conceptReasoning }}</p>
+                        </div>
+                      }
+
+                      <div class="space-y-3">
+                        <div>
+                          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ou décrivez votre propre idée</label>
+                          <textarea
+                            [(ngModel)]="customConcept"
+                            placeholder="Ex: Un edit Solo Leveling avec la scène du double dungeon où Jin Woo affronte Igris..."
+                            rows="3"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 resize-none"
+                          ></textarea>
+                        </div>
+                        <div class="flex gap-3">
+                          <button
+                            (click)="loadConceptSuggestions()"
+                            [disabled]="isLoadingWorkshop || isEvaluatingConcept"
+                            class="px-4 py-2.5 rounded-xl text-xs font-bold border-2 border-slate-200 text-slate-600 hover:border-violet-200 hover:bg-violet-50 transition-all disabled:opacity-50"
+                          >
+                            Régénérer
+                          </button>
+                          @if (!conceptSuggestions.includes(customConcept)) {
+                            <button
+                              (click)="evaluateConcept()"
+                              [disabled]="!customConcept || isEvaluatingConcept"
+                              class="flex-1 px-6 py-2.5 rounded-xl text-sm font-black border-2 border-violet-600 text-violet-600 hover:bg-violet-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                              @if (isEvaluatingConcept) {
+                                <ng-icon name="lucideLoader2" class="w-4 h-4 animate-spin"></ng-icon>
+                              }
+                              L'avis de Nerra
+                            </button>
+                          } @else {
+                            <button
+                              (click)="confirmConcept()"
+                              [disabled]="!customConcept"
+                              class="flex-1 px-6 py-2.5 rounded-xl text-sm font-black bg-slate-900 text-white hover:bg-violet-600 transition-all shadow-lg disabled:opacity-50"
+                            >
+                              Valider cette idée →
+                            </button>
+                          }
+                        </div>
+
+                        <!-- Évaluation du concept -->
+                        @if (conceptEvaluation) {
+                          <div class="p-4 rounded-xl border-2 animate-in fade-in slide-in-from-top-2 duration-300"
+                            [ngClass]="conceptEvaluation.score >= 7 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'"
+                          >
+                            <div class="flex items-center justify-between mb-2">
+                              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Avis de Nerra</span>
+                              <span class="text-lg font-black"
+                                [ngClass]="conceptEvaluation.score >= 7 ? 'text-emerald-600' : 'text-amber-600'"
+                              >{{ conceptEvaluation.score }}/10</span>
+                            </div>
+                            <p class="text-sm font-medium text-slate-700 mb-3">{{ conceptEvaluation.feedback }}</p>
+                            <button
+                              (click)="confirmConcept()"
+                              class="w-full py-2 rounded-xl text-sm font-black text-white shadow-sm transition-all"
+                              [ngClass]="conceptEvaluation.score >= 7 ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800'"
+                            >
+                              Valider cette idée →
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <button
+                        (click)="loadConceptSuggestions()"
+                        [disabled]="isLoadingWorkshop"
+                        class="w-full py-4 rounded-xl font-bold text-sm bg-violet-50 text-violet-600 border-2 border-violet-100 hover:bg-violet-100 transition-all"
+                      >
+                        Générer des idées de vidéos
+                      </button>
+                    }
+                  </div>
+                }
+
+                <!-- ═══ STEP 2: Brainstorm ═══ -->
+                @else if (workshopStep === 2) {
+                  <div class="p-6 rounded-2xl bg-white border-2 border-sky-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div class="flex items-center gap-3 mb-5">
+                      <div class="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+                        <span class="text-lg font-black text-sky-600">2</span>
+                      </div>
+                      <div>
+                        <h4 class="font-black text-slate-900">Développer l'idée</h4>
+                        <p class="text-sm text-slate-500">Nerra détaille votre concept en scènes, style et accroche</p>
+                      </div>
+                    </div>
+
+                    @if (isLoadingWorkshop) {
+                      <div class="flex items-center justify-center py-8">
+                        <ng-icon name="lucideLoader2" class="w-6 h-6 text-sky-400 animate-spin"></ng-icon>
+                        <span class="ml-3 text-sm text-slate-500 font-medium">Nerra brainstorm en cours...</span>
+                      </div>
+                    } @else if (brainstormData) {
+                      <div class="space-y-4">
+
+                        <!-- Concept raffiné -->
+                        <div class="p-4 rounded-xl bg-sky-50/50 border border-sky-100">
+                          <p class="text-[10px] font-bold text-sky-500 uppercase tracking-wider mb-2">Concept raffiné</p>
+                          <p class="text-sm font-bold text-slate-900">{{ brainstormData.refinedConcept }}</p>
+                        </div>
+
+                        <!-- Accroche -->
+                        <div class="p-4 rounded-xl bg-rose-50/50 border border-rose-100">
+                          <p class="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-2">🎬 Hook (3 premières secondes)</p>
+                          <p class="text-sm font-bold text-slate-900">{{ brainstormData.hookSuggestion }}</p>
+                        </div>
+
+                        <!-- Scènes -->
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Scènes / Moments clés</p>
+                          <div class="space-y-2">
+                            @for (scene of brainstormData.scenes; track scene; let i = $index) {
+                              <div class="flex items-start gap-3 p-2.5 rounded-lg bg-white border border-slate-100">
+                                <span class="w-6 h-6 rounded-md bg-sky-100 text-sky-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">{{ i + 1 }}</span>
+                                <p class="text-sm text-slate-700">{{ scene }}</p>
+                              </div>
+                            }
+                          </div>
+                        </div>
+
+                        <!-- Style + Durée + Musique -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">⏱ Durée</p>
+                            <p class="text-sm font-bold text-slate-900">{{ brainstormData.duration }}</p>
+                          </div>
+                          <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">✂️ Montage</p>
+                            <p class="text-sm font-bold text-slate-900">{{ brainstormData.style }}</p>
+                          </div>
+                          <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">🎵 Musique</p>
+                            <p class="text-sm font-bold text-slate-900">{{ brainstormData.musicDirection }}</p>
+                          </div>
+                        </div>
+
+                        <!-- Notes utilisateur -->
+                        <div>
+                          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Vos ajustements (optionnel)</label>
+                          <textarea
+                            [(ngModel)]="brainstormNotes"
+                            placeholder="Ex: Je préfère utiliser la scène du combat contre l'ombre d'Igris à la place..."
+                            rows="3"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 resize-none"
+                          ></textarea>
+                        </div>
+
+                        <div class="flex gap-3">
+                          <button
+                            (click)="workshopStep = 1"
+                            class="px-4 py-2.5 rounded-xl text-xs font-bold border-2 border-slate-200 text-slate-600 hover:border-slate-300 transition-all"
+                          >
+                            Retour
+                          </button>
+                          <button
+                            (click)="reloadBrainstorm()"
+                            [disabled]="isLoadingWorkshop"
+                            class="px-4 py-2.5 rounded-xl text-xs font-bold border-2 border-sky-200 text-sky-600 hover:bg-sky-50 transition-all disabled:opacity-50"
+                          >
+                            Raffiner avec Nerra
+                          </button>
+                          <button
+                            (click)="confirmBrainstorm()"
+                            class="flex-1 px-6 py-2.5 rounded-xl text-sm font-black bg-slate-900 text-white hover:bg-sky-600 transition-all shadow-lg"
+                          >
+                            Passer aux titres →
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- ═══ STEP 3: Atelier Titre ═══ -->
+                @else if (workshopStep === 3) {
                   <div class="p-6 rounded-2xl bg-white border-2 border-indigo-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div class="flex items-center gap-3 mb-5">
                       <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                        <span class="text-lg font-black text-indigo-600">1</span>
+                        <span class="text-lg font-black text-indigo-600">3</span>
                       </div>
                       <div>
                         <h4 class="font-black text-slate-900">Choisir le titre</h4>
@@ -410,6 +627,12 @@ import {
                           />
                         </div>
                         <div class="flex gap-3">
+                          <button
+                            (click)="workshopStep = 2"
+                            class="px-4 py-2.5 rounded-xl text-xs font-bold border-2 border-slate-200 text-slate-600 hover:border-slate-300 transition-all"
+                          >
+                            Retour
+                          </button>
                           <button
                             (click)="loadTitleSuggestions()"
                             [disabled]="isLoadingWorkshop || isEvaluatingTitle"
@@ -474,12 +697,12 @@ import {
                   </div>
                 }
 
-                <!-- ═══ STEP 2: Brief Miniature ═══ -->
-                @else if (workshopStep === 2) {
+                <!-- ═══ STEP 4: Brief Miniature ═══ -->
+                @else if (workshopStep === 4) {
                   <div class="p-6 rounded-2xl bg-white border-2 border-amber-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div class="flex items-center gap-3 mb-5">
                       <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                        <span class="text-lg font-black text-amber-600">2</span>
+                        <span class="text-lg font-black text-amber-600">4</span>
                       </div>
                       <div>
                         <h4 class="font-black text-slate-900">Brief miniature</h4>
@@ -599,13 +822,13 @@ import {
 
                         <div class="flex gap-3">
                           <button
-                            (click)="workshopStep = 1"
+                            (click)="workshopStep = 3"
                             class="px-4 py-3 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all"
                           >
                             Retour
                           </button>
                           <button
-                            (click)="workshopStep = 3; discoverVideos()"
+                            (click)="workshopStep = 5; discoverVideos()"
                             class="flex-1 py-3 rounded-xl text-sm font-black bg-slate-900 text-white hover:bg-indigo-600 transition-all shadow-lg"
                           >
                             Continuer →
@@ -616,12 +839,12 @@ import {
                   </div>
                 }
 
-                <!-- ═══ STEP 3: Lier la vidéo YouTube ═══ -->
-                @else if (workshopStep === 3) {
+                <!-- ═══ STEP 5: Lier la vidéo YouTube ═══ -->
+                @else if (workshopStep === 5) {
                   <div class="p-6 rounded-2xl bg-white border-2 border-emerald-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div class="flex items-center gap-3 mb-5">
                       <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                        <span class="text-lg font-black text-emerald-600">3</span>
+                        <span class="text-lg font-black text-emerald-600">5</span>
                       </div>
                       <div>
                         <h4 class="font-black text-slate-900">Lier votre vidéo</h4>
@@ -704,7 +927,7 @@ import {
 
                       <div class="flex gap-3 mt-4">
                         <button
-                          (click)="workshopStep = 2"
+                          (click)="workshopStep = 4"
                           class="px-4 py-3 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all"
                         >
                           Retour
@@ -972,6 +1195,25 @@ export class DecisionComponent implements OnInit {
   titleEvaluation: { score: number; feedback: string } | null = null;
   isEvaluatingTitle = false;
 
+  // Concept workshop (idéation)
+  conceptSuggestions: string[] = [];
+  conceptReasoning = '';
+  selectedConcept = '';
+  customConcept = '';
+  conceptEvaluation: { score: number; feedback: string } | null = null;
+  isEvaluatingConcept = false;
+
+  // Brainstorm workshop
+  brainstormData: {
+    scenes: string[];
+    style: string;
+    duration: string;
+    musicDirection: string;
+    hookSuggestion: string;
+    refinedConcept: string;
+  } | null = null;
+  brainstormNotes = '';
+
   thumbnailBrief: {
     visualElements: string[];
     colorPalette: string[];
@@ -1148,7 +1390,14 @@ export class DecisionComponent implements OnInit {
       this.evaluationValue = null;
 
       // Reset workshop state
-      this.workshopStep = 1;
+      this.workshopStep = this.userCtx.hasVideoInProgress ? 3 : 1;
+      this.conceptSuggestions = [];
+      this.conceptReasoning = '';
+      this.selectedConcept = '';
+      this.customConcept = '';
+      this.conceptEvaluation = null;
+      this.brainstormData = null;
+      this.brainstormNotes = '';
       this.titleSuggestions = [];
       this.titleReasoning = '';
       this.selectedTitle = '';
@@ -1167,8 +1416,11 @@ export class DecisionComponent implements OnInit {
         }
       }
 
-      // Auto-trigger title suggestions
-      this.loadTitleSuggestions();
+      if (this.workshopStep === 1) {
+        this.loadConceptSuggestions();
+      } else {
+        this.loadTitleSuggestions();
+      }
     } catch (err) {
       console.error('[NERRA] Accept error:', err);
     } finally {
@@ -1280,15 +1532,97 @@ export class DecisionComponent implements OnInit {
     // Reset workshop if viewing a different accepted decision
     if (decision.accepted_at && decision.verdict === 'PENDING') {
       this.workshopStep = 1;
+      this.conceptSuggestions = [];
       this.titleSuggestions = [];
       this.thumbnailBrief = null;
       this.videoUrl = '';
       this.linkMessage = '';
-      this.loadTitleSuggestions();
+      this.loadConceptSuggestions();
     }
   }
 
   // ─── Workshop Methods ─────────────────────────────────────
+
+  async loadConceptSuggestions() {
+    if (!this.currentDecision) return;
+
+    this.isLoadingWorkshop = true;
+    try {
+      const result = await this.decisionService.generateConcepts(
+        this.currentDecision.id,
+        this.userCtx.additionalNotes || undefined,
+      );
+      this.conceptSuggestions = result.concepts;
+      this.conceptReasoning = result.reasoning;
+      // Pre-select first concept
+      if (result.concepts.length > 0) {
+        this.selectedConcept = result.concepts[0];
+        this.customConcept = result.concepts[0];
+      }
+    } catch (err) {
+      console.error('[NERRA] Concept suggestions error:', err);
+    } finally {
+      this.isLoadingWorkshop = false;
+    }
+  }
+
+  confirmConcept() {
+    // Transfer the selected concept into the user context topic
+    this.userCtx.videoInProgressTopic = this.customConcept;
+    this.conceptEvaluation = null;
+    // Move to brainstorm step
+    this.workshopStep = 2;
+    this.loadBrainstorm();
+  }
+
+  async loadBrainstorm() {
+    if (!this.currentDecision) return;
+
+    this.isLoadingWorkshop = true;
+    this.brainstormData = null;
+    try {
+      this.brainstormData = await this.decisionService.brainstormConcept(
+        this.currentDecision.id,
+        this.customConcept,
+        this.brainstormNotes || undefined,
+      );
+    } catch (err) {
+      console.error('[NERRA] Brainstorm error:', err);
+    } finally {
+      this.isLoadingWorkshop = false;
+    }
+  }
+
+  reloadBrainstorm() {
+    this.loadBrainstorm();
+  }
+
+  confirmBrainstorm() {
+    // Enrich the topic with the refined concept for title generation
+    if (this.brainstormData?.refinedConcept) {
+      this.userCtx.videoInProgressTopic = this.brainstormData.refinedConcept;
+    }
+    this.workshopStep = 3;
+    this.loadTitleSuggestions();
+  }
+
+  async evaluateConcept() {
+    if (!this.currentDecision || !this.customConcept) return;
+
+    this.isEvaluatingConcept = true;
+    this.conceptEvaluation = null;
+
+    try {
+      this.conceptEvaluation = await this.decisionService.evaluateConcept(
+        this.currentDecision.id,
+        this.customConcept,
+      );
+    } catch (err) {
+      console.error('[NERRA] Concept evaluation error:', err);
+    } finally {
+      this.isEvaluatingConcept = false;
+    }
+  }
 
   async loadTitleSuggestions() {
     if (!this.currentDecision) return;
@@ -1338,12 +1672,13 @@ export class DecisionComponent implements OnInit {
     // Sauvegarder le titre choisi dans la décision
     this.currentDecision.video_title = this.customTitle;
 
-    // Passer à l'étape 2 et charger le brief miniature
-    this.workshopStep = 2;
+    // Passer à l'étape 4 et charger le brief miniature
+    this.workshopStep = 4;
     this.isLoadingWorkshop = true;
     try {
       this.thumbnailBrief = await this.decisionService.getThumbnailBrief(
         this.currentDecision.id,
+        this.customTitle
       );
     } catch (err) {
       console.error('[NERRA] Thumbnail brief error:', err);
