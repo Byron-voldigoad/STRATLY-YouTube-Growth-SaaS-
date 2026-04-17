@@ -375,19 +375,22 @@ import {
                       </div>
                     } @else if (conceptSuggestions.length > 0) {
                       <div class="space-y-3 mb-4">
-                        @for (concept of conceptSuggestions; track concept; let i = $index) {
+                        @for (concept of conceptSuggestions; track concept.idea; let i = $index) {
                           <button
-                            (click)="selectedConcept = concept; customConcept = concept"
+                            (click)="selectedConcept = concept.idea; customConcept = concept.idea"
                             class="w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-sm"
-                            [ngClass]="selectedConcept === concept
+                            [ngClass]="selectedConcept === concept.idea
                               ? 'border-violet-400 bg-violet-50/50 shadow-sm'
                               : 'border-slate-200 hover:border-violet-200'"
                           >
                             <div class="flex items-start gap-3">
                               <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 mt-0.5"
-                                [ngClass]="selectedConcept === concept ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'"
+                                [ngClass]="selectedConcept === concept.idea ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'"
                               >{{ i + 1 }}</div>
-                              <span class="text-sm font-bold text-slate-900">{{ concept }}</span>
+                              <div class="flex-1 min-w-0">
+                                <span class="text-sm font-bold text-slate-900 block">{{ concept.idea }}</span>
+                                <span class="text-xs text-violet-500 mt-1 block">📊 {{ concept.marketInsight }}</span>
+                              </div>
                             </div>
                           </button>
                         }
@@ -417,7 +420,7 @@ import {
                           >
                             Régénérer
                           </button>
-                          @if (!conceptSuggestions.includes(customConcept)) {
+                          @if (!isConceptFromSuggestions(customConcept)) {
                             <button
                               (click)="evaluateConcept()"
                               [disabled]="!customConcept || isEvaluatingConcept"
@@ -530,10 +533,99 @@ import {
                             <p class="text-sm font-bold text-slate-900">{{ brainstormData.style }}</p>
                           </div>
                           <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">🎵 Musique</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">🎵 Direction musicale</p>
                             <p class="text-sm font-bold text-slate-900">{{ brainstormData.musicDirection }}</p>
                           </div>
                         </div>
+
+                        <!-- Suggestions musicales -->
+                        @if (brainstormData.musicSuggestions && brainstormData.musicSuggestions.length > 0) {
+                          <div class="p-4 rounded-xl bg-purple-50/50 border border-purple-100">
+                            <p class="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-3">🎧 Sons recommandés par Nerra</p>
+                            <div class="space-y-2">
+                              @for (song of brainstormData.musicSuggestions; track song.name; let i = $index) {
+                                <div class="flex items-start gap-3 p-2.5 rounded-lg bg-white border border-purple-100">
+                                  <span class="w-6 h-6 rounded-md bg-purple-100 text-purple-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">{{ i + 1 }}</span>
+                                  <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-slate-900">{{ song.name }}</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">{{ song.reason }}</p>
+                                  </div>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        <!-- Vidéos ressources (rushes) -->
+                        @if (brainstormData.resourceVideos && brainstormData.resourceVideos.length > 0) {
+                          <div class="p-4 rounded-xl bg-sky-50/50 border border-sky-100">
+                            <p class="text-[10px] font-bold text-sky-500 uppercase tracking-wider mb-3">🎬 Vidéos sources (rushes / matériel)</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              @for (video of brainstormData.resourceVideos; track video.url) {
+                                <a [href]="video.url" target="_blank" rel="noopener noreferrer"
+                                  class="group block rounded-xl border border-sky-100 overflow-hidden hover:shadow-md transition-all bg-white"
+                                >
+                                  @if (video.thumbnailUrl) {
+                                    <img [src]="video.thumbnailUrl" [alt]="video.title" class="w-full aspect-video object-cover group-hover:scale-105 transition-transform" />
+                                  }
+                                  <div class="p-2">
+                                    <p class="text-xs font-bold text-slate-900 line-clamp-2">{{ video.title }}</p>
+                                  </div>
+                                </a>
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        <!-- Tutoriels (vidéos YouTube réelles) -->
+                        @if (brainstormData.tutorialVideos && brainstormData.tutorialVideos.length > 0) {
+                          <div class="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                            <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-3">🎓 Tutoriels recommandés</p>
+                            <div class="grid grid-cols-2 gap-3">
+                              @for (tut of brainstormData.tutorialVideos; track tut.url) {
+                                <a [href]="tut.url" target="_blank" rel="noopener noreferrer"
+                                  class="group block rounded-xl border border-emerald-100 overflow-hidden hover:shadow-md transition-all bg-white"
+                                >
+                                  @if (tut.thumbnailUrl) {
+                                    <img [src]="tut.thumbnailUrl" [alt]="tut.title" class="w-full aspect-video object-cover group-hover:scale-105 transition-transform" />
+                                  }
+                                  <div class="p-2">
+                                    <p class="text-xs font-bold text-slate-900 line-clamp-2">{{ tut.title }}</p>
+                                  </div>
+                                </a>
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        <!-- Évaluation des notes utilisateur (affiché lors du raffinement) -->
+                        @if (brainstormData.notesEvaluation) {
+                          <div class="p-4 rounded-xl border-2 transition-all"
+                            [ngClass]="{
+                              'bg-emerald-50/50 border-emerald-200': brainstormData.notesEvaluation.score >= 7,
+                              'bg-amber-50/50 border-amber-200': brainstormData.notesEvaluation.score >= 4 && brainstormData.notesEvaluation.score < 7,
+                              'bg-rose-50/50 border-rose-200': brainstormData.notesEvaluation.score < 4
+                            }"
+                          >
+                            <div class="flex items-center gap-3 mb-2">
+                              <p class="text-[10px] font-bold uppercase tracking-wider"
+                                [ngClass]="{
+                                  'text-emerald-500': brainstormData.notesEvaluation.score >= 7,
+                                  'text-amber-500': brainstormData.notesEvaluation.score >= 4 && brainstormData.notesEvaluation.score < 7,
+                                  'text-rose-500': brainstormData.notesEvaluation.score < 4
+                                }"
+                              >Avis de Nerra sur vos suggestions</p>
+                              <span class="ml-auto text-lg font-black"
+                                [ngClass]="{
+                                  'text-emerald-600': brainstormData.notesEvaluation.score >= 7,
+                                  'text-amber-600': brainstormData.notesEvaluation.score >= 4 && brainstormData.notesEvaluation.score < 7,
+                                  'text-rose-600': brainstormData.notesEvaluation.score < 4
+                                }"
+                              >{{ brainstormData.notesEvaluation.score }}/10</span>
+                            </div>
+                            <p class="text-sm text-slate-700">{{ brainstormData.notesEvaluation.feedback }}</p>
+                          </div>
+                        }
 
                         <!-- Notes utilisateur -->
                         <div>
@@ -1196,7 +1288,7 @@ export class DecisionComponent implements OnInit {
   isEvaluatingTitle = false;
 
   // Concept workshop (idéation)
-  conceptSuggestions: string[] = [];
+  conceptSuggestions: { idea: string; marketInsight: string }[] = [];
   conceptReasoning = '';
   selectedConcept = '';
   customConcept = '';
@@ -1209,8 +1301,12 @@ export class DecisionComponent implements OnInit {
     style: string;
     duration: string;
     musicDirection: string;
+    musicSuggestions: { name: string; reason: string }[];
     hookSuggestion: string;
     refinedConcept: string;
+    resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[];
+    tutorialVideos: { title: string; url: string; thumbnailUrl: string }[];
+    notesEvaluation: { score: number; feedback: string } | null;
   } | null = null;
   brainstormNotes = '';
 
@@ -1543,6 +1639,10 @@ export class DecisionComponent implements OnInit {
 
   // ─── Workshop Methods ─────────────────────────────────────
 
+  isConceptFromSuggestions(concept: string): boolean {
+    return this.conceptSuggestions.some(c => c.idea === concept);
+  }
+
   async loadConceptSuggestions() {
     if (!this.currentDecision) return;
 
@@ -1556,8 +1656,8 @@ export class DecisionComponent implements OnInit {
       this.conceptReasoning = result.reasoning;
       // Pre-select first concept
       if (result.concepts.length > 0) {
-        this.selectedConcept = result.concepts[0];
-        this.customConcept = result.concepts[0];
+        this.selectedConcept = result.concepts[0].idea;
+        this.customConcept = result.concepts[0].idea;
       }
     } catch (err) {
       console.error('[NERRA] Concept suggestions error:', err);

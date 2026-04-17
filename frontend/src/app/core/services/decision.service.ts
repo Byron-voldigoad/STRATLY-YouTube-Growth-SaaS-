@@ -119,9 +119,9 @@ export class DecisionService {
   async generateConcepts(
     decisionId: string,
     userNotes?: string,
-  ): Promise<{ concepts: string[]; reasoning: string }> {
+  ): Promise<{ concepts: { idea: string; marketInsight: string }[]; reasoning: string }> {
     const response = await lastValueFrom(
-      this.http.post<{ success: boolean; concepts: string[]; reasoning: string }>(
+      this.http.post<{ success: boolean; concepts: { idea: string; marketInsight: string }[]; reasoning: string }>(
         `${this.apiUrl}/decisions/${decisionId}/concepts`,
         { userNotes },
       ),
@@ -156,27 +156,27 @@ export class DecisionService {
     style: string;
     duration: string;
     musicDirection: string;
+    musicSuggestions: { name: string; reason: string }[];
     hookSuggestion: string;
     refinedConcept: string;
+    resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[];
+    tutorialVideos: { title: string; url: string; thumbnailUrl: string }[];
+    notesEvaluation: { score: number; feedback: string } | null;
   }> {
     const response = await lastValueFrom(
-      this.http.post<{
-        success: boolean;
-        scenes: string[];
-        style: string;
-        duration: string;
-        musicDirection: string;
-        hookSuggestion: string;
-        refinedConcept: string;
-      }>(`${this.apiUrl}/decisions/${decisionId}/brainstorm`, { concept, userNotes }),
+      this.http.post<any>(`${this.apiUrl}/decisions/${decisionId}/brainstorm`, { concept, userNotes }),
     );
     return {
       scenes: response.scenes,
       style: response.style,
       duration: response.duration,
       musicDirection: response.musicDirection,
+      musicSuggestions: response.musicSuggestions || [],
       hookSuggestion: response.hookSuggestion,
       refinedConcept: response.refinedConcept,
+      resourceVideos: response.resourceVideos || [],
+      tutorialVideos: response.tutorialVideos || [],
+      notesEvaluation: response.notesEvaluation || null,
     };
   }
 

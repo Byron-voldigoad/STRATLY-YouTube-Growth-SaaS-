@@ -761,16 +761,15 @@ ${userContext?.hasVideoInProgress ? "- Adapte la décision à la vidéo en cours
 
 /**
  * Génère 3 suggestions de concepts/idées de vidéos pour une décision acceptée.
- * Se base sur l'hypothèse de la décision et les tendances YouTube si pertinentes.
+ * Utilise les tendances YouTube pour identifier les opportunités haute demande / faible concurrence.
  */
 export async function generateVideoConcepts(
   ai: ReturnType<typeof genkit>,
   decisionId: string,
   userNotes?: string
-): Promise<{ concepts: string[]; reasoning: string }> {
+): Promise<{ concepts: { idea: string; marketInsight: string }[]; reasoning: string }> {
   const supabase = getSupabase();
 
-  // Récupérer la décision
   const { data: decision, error } = await supabase
     .from("decisions")
     .select("*")
@@ -779,33 +778,52 @@ export async function generateVideoConcepts(
 
   if (error || !decision) throw new Error("Décision introuvable");
 
+  // Récupérer les tendances YouTube pour identifier les opportunités
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  let trendData: any[] = [];
+  if (apiKey) {
+    const searchQuery = userNotes || decision.hypothesis;
+    trendData = await fetchNicheTrends(searchQuery, apiKey);
+  }
+
   const ConceptOutputSchema = z.object({
-    concepts: z.array(z.string()).length(3).describe("3 idées précises de vidéos (ex: 'Top 10 des armes les plus sous-estimées dans le jeu X')"),
-    reasoning: z.string().describe("Pourquoi ces idées résonneront avec l'audience et respectent l'expérience"),
+    concepts: z.array(z.object({
+      idea: z.string().describe("L'idée de vidéo concrète et spécifique"),
+      marketInsight: z.string().describe("Pourquoi c'est une opportunité : demande VS concurrence. Ex: 'Ce sujet a 50k+ recherches/mois mais seulement 3 vidéos de qualité existantes'"),
+    })).length(3),
+    reasoning: z.string().describe("Raisonnement global sur les opportunités de la niche"),
   });
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
     system: `Tu es NERRA, un producteur stratégique YouTube.
-Tu génères EXACTEMENT 3 concepts/sujets de vidéos clairs, innovants et réalisables.
+Tu génères EXACTEMENT 3 concepts de vidéos en te basant sur les DONNÉES DE TENDANCES YouTube fournies.
 
 RÈGLES :
-1. Chaque concept doit décrire concrètement ce que sera la vidéo.
-2. Varie les angles (un concept niche, un concept très grand public, un concept interactif/polémique).
-3. Adapte exactement l'idée au 'Format' décrit dans la décision (ex: si c'est un clip/Short, propose des concepts hyper rapides/visuels).
-4. Respecte précisément les notes de l'utilisateur s'il y en a.
-5. Sois très spécifique. Ne propose pas 'Une vidéo sur l'anime', mais 'Une vidéo classant les 5 méchants les plus effrayants des animes de 2024'.
+1. Chaque concept doit cibler une opportunité : forte demande + peu de concurrence de qualité.
+2. Analyse les tendances fournies : quels sujets marchent ? Quels angles sont saturés ? Quels sous-sujets sont sous-exploités ?
+3. Pour chaque concept, fournis un 'marketInsight' expliquant POURQUOI c'est une opportunité (ex: "Les vidéos sur X font 500k+ vues mais aucune ne couvre l'angle Y").
+4. Adapte le format au type de décision (clip/Short = concepts visuels rapides, vidéo longue = contenu dense).
+5. Sois ULTRA spécifique. Pas "Une vidéo sur l'anime" mais "Un edit de 30s comparant la puissance de Jinwoo saison 1 vs saison 2".
 6. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
-    prompt: `Génère 3 idées/concepts de vidéos.
+    prompt: `Génère 3 idées de vidéos en exploitant les tendances marché.
 
-DÉCISION STRATÉGIQUE ACCEPTÉE :
+DÉCISION STRATÉGIQUE :
 - Hypothèse : "${decision.hypothesis}"
-- Type d'expérience : ${decision.experiment_type}
+- Type : ${decision.experiment_type}
 
-NOTES DE L'UTILISATEUR :
-${userNotes ? `- "${userNotes}"` : "Aucune note spécifique."}
+${userNotes ? `NOTES UTILISATEUR : "${userNotes}"` : ""}
 
-Propose 3 concepts qui maximisent les chances de valider cette hypothèse.`,
+TENDANCES YOUTUBE (vidéos les plus performantes de la niche) :
+${trendData.length > 0
+  ? trendData.map((v: any) => {
+    const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
+    return `- "${v.title}" (${v.views.toLocaleString()} vues, ${eng}% engagement, chaîne: ${v.channelTitle})`;
+  }).join("\n")
+  : "Données non disponibles — base tes propositions sur ta connaissance du marché."
+}
+
+Propose 3 concepts qui exploitent des TROUS dans le marché : sujets recherchés mais mal couverts.`,
     output: { format: "json", schema: ConceptOutputSchema },
     config: { temperature: 0.8 },
   });
@@ -817,7 +835,7 @@ Propose 3 concepts qui maximisent les chances de valider cette hypothèse.`,
 
 /**
  * Évalue un concept/idée de vidéo personnalisé proposé par l'utilisateur.
- * Retourne un score et un feedback.
+ * Compare l'idée aux tendances YouTube pour valider le potentiel marché.
  */
 export async function evaluateVideoConcept(
   ai: ReturnType<typeof genkit>,
@@ -834,32 +852,53 @@ export async function evaluateVideoConcept(
 
   if (error || !decision) throw new Error("Décision introuvable");
 
+  // Récupérer les tendances pour comparer l'idée au marché
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  let trendData: any[] = [];
+  if (apiKey) {
+    // Utiliser l'hypothèse (plus large) comme query pour obtenir des tendances pertinentes
+    const trendQuery = decision.hypothesis || concept;
+    trendData = await fetchNicheTrends(trendQuery, apiKey);
+  }
+
   const EvalSchema = z.object({
     score: z.number().min(1).max(10).describe("Note de 1 à 10"),
-    feedback: z.string().describe("Feedback constructif en 2-3 phrases max"),
+    feedback: z.string().describe("Feedback constructif en 2-3 phrases max, incluant l'analyse marché"),
   });
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
     system: `Tu es NERRA, un producteur stratégique YouTube.
-On te soumet une idée de vidéo. Tu dois l'évaluer en fonction de la décision stratégique en cours.
+On te soumet une idée de vidéo. Tu dois l'évaluer en fonction de la stratégie ET des données de marché.
 
 RÈGLES :
-1. Note de 1 à 10 (10 = idée parfaitement alignée avec la stratégie).
-2. Feedback en 2-3 phrases : dis ce qui est bien, ce qui manque, et comment améliorer.
-3. Sois direct et constructif, pas complaisant.
+1. Note de 1 à 10 (10 = idée avec fort potentiel marché et alignée avec la stratégie).
+2. Dans ton feedback, mentionne OBLIGATOIREMENT :
+   - Si le sujet est demandé (vues des vidéos similaires dans les tendances)
+   - Si le sujet est saturé ou peu couvert
+   - Ce qui manque pour maximiser les chances
+3. Sois direct et constructif.
 4. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
 5. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: `Évalue cette idée de vidéo :
 
 IDÉE PROPOSÉE : "${concept}"
 
-DÉCISION STRATÉGIQUE EN COURS :
+DÉCISION STRATÉGIQUE :
 - Hypothèse : "${decision.hypothesis}"
 - Type : ${decision.experiment_type}
 - Variable : ${decision.variable}
 
-L'idée est-elle alignée avec cette stratégie ? Est-elle suffisamment spécifique et réalisable ?`,
+TENDANCES YOUTUBE (marché actuel sur ce sujet) :
+${trendData.length > 0
+  ? trendData.map((v: any) => {
+    const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
+    return `- "${v.title}" (${v.views.toLocaleString()} vues, ${eng}% eng.)`;
+  }).join("\n")
+  : "Données de tendances non disponibles."
+}
+
+L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stratégie ?`,
     output: { format: "json", schema: EvalSchema },
     config: { temperature: 0.3 },
   });
@@ -872,7 +911,8 @@ L'idée est-elle alignée avec cette stratégie ? Est-elle suffisamment spécifi
 
 /**
  * Développe un concept de vidéo avec l'utilisateur.
- * Génère un brief structuré : scènes, style, durée, musique, accroche.
+ * Génère un brief structuré avec intelligence musicale, ressources réelles YouTube,
+ * et évaluation des notes utilisateur lors du raffinement.
  */
 export async function brainstormConcept(
   ai: ReturnType<typeof genkit>,
@@ -884,8 +924,12 @@ export async function brainstormConcept(
   style: string;
   duration: string;
   musicDirection: string;
+  musicSuggestions: { name: string; reason: string }[];
   hookSuggestion: string;
   refinedConcept: string;
+  resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[];
+  tutorialVideos: { title: string; url: string; thumbnailUrl: string }[];
+  notesEvaluation: { score: number; feedback: string } | null;
 }> {
   const supabase = getSupabase();
 
@@ -897,28 +941,62 @@ export async function brainstormConcept(
 
   if (error || !decision) throw new Error("Décision introuvable");
 
-  const BrainstormSchema = z.object({
-    scenes: z.array(z.string()).min(3).max(5).describe("3 à 5 moments/scènes clés de la vidéo, dans l'ordre chronologique"),
-    style: z.string().describe("Style de montage recommandé (ex: 'Montage rapide avec transitions flash', 'Slow motion dramatique')"),
-    duration: z.string().describe("Durée recommandée (ex: '30 secondes', '1 minute')"),
-    musicDirection: z.string().describe("Direction musicale (ex: 'Trap épique avec drop au moment du combat')"),
-    hookSuggestion: z.string().describe("Comment démarrer la vidéo pour capter l'attention dans les 3 premières secondes"),
-    refinedConcept: z.string().describe("Le concept reformulé et enrichi en une phrase claire"),
-  });
+  // Schema de base
+  const baseFields: Record<string, any> = {
+    scenes: z.array(z.string()).min(3).max(5).describe(
+      "3 à 5 scènes. CHAQUE scène DOIT référencer un ÉPISODE ou MOMENT PRÉCIS (ex: 'Ép.10 S2 — Cha Hae-in tranche la tête de la Reine Fourmi, ralenti + flash'). INTERDICTION d'écrire 'montage de scènes d'action' sans préciser LESQUELLES."
+    ),
+    style: z.string().describe("Style de montage recommandé"),
+    duration: z.string().describe("Durée recommandée"),
+    musicDirection: z.string().describe("Analyse du genre musical : identifier le sous-genre exact et le mood"),
+    musicSuggestions: z.array(z.object({
+      name: z.string().describe("Nom EXACT du son (artiste - titre)"),
+      reason: z.string().describe("Pourquoi ce son colle au montage — mentionne un moment précis du montage"),
+    })).min(2).max(3).describe("2-3 sons du MÊME GENRE/SOUS-GENRE que celui mentionné par l'utilisateur"),
+    hookSuggestion: z.string().describe("Comment capter l'attention dans les 3 premières secondes — un moment PRÉCIS de l'oeuvre"),
+    refinedConcept: z.string().describe("Le concept reformulé et enrichi en une phrase"),
+    searchQueries: z.array(z.string()).length(3).describe(
+      "3 requêtes YouTube pour trouver du MATÉRIEL SOURCE (pas de concurrents). Ex: 'Solo Leveling S2 EP10 Cha Hae-in fight scene'"
+    ),
+    tutorialQueries: z.array(z.string()).length(2).describe(
+      "2 requêtes YouTube pour trouver des TUTORIELS utiles. Ex: 'AMV editing tutorial after effects', 'anime edit smooth transitions'"
+    ),
+  };
+
+  // Ajouter l'évaluation des notes si l'utilisateur en a fourni
+  if (userNotes) {
+    baseFields.notesEvaluation = z.object({
+      score: z.number().min(1).max(10).describe("Note /10 sur la pertinence des suggestions de l'utilisateur"),
+      feedback: z.string().describe("Avis en 2-3 phrases : ce qui est pertinent, ce qui peut être amélioré"),
+    }).describe("Évaluation des notes/suggestions de l'utilisateur");
+  }
+
+  const BrainstormSchema = z.object(baseFields);
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, un directeur créatif YouTube spécialisé en contenu anime/gaming.
-Tu aides un créateur à développer son idée de vidéo en détail avant de passer à la production.
+    system: `Tu es NERRA, un directeur créatif YouTube et music supervisor expert.
 
-RÈGLES :
-1. Décompose l'idée en scènes/moments précis (3 à 5 scènes max).
-2. Chaque scène doit être très concrète et visuelle (ex: "Ralenti sur le coup de poing de Jinwoo avec un flash blanc + texte 'ARISE'").
-3. Adapte la durée au format (un Short = 15-60s, un clip standard = 1-3 min).
-4. La direction musicale doit être précise, pas "une musique épique" mais "un beat trap sombre qui monte en tension, drop au moment X".
-5. Le hook (accroche) doit capter l'attention en 1-3 secondes.
-6. Si l'utilisateur a fourni des notes, intègre-les IMPÉRATIVEMENT dans ton développement.
-7. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+RÈGLES SCÈNES (CRUCIAL) :
+1. Chaque scène DOIT référencer un ÉPISODE ou MOMENT PRÉCIS (ex: "Épisode 10 S2, combat contre Beru"). JAMAIS de descriptions vagues comme "montage de scènes d'action".
+2. Inclus les timestamps (ex: 0-5s, 5-15s).
+
+RÈGLES MUSIQUE (CRUCIAL — INTERDICTION DE CHANGER DE GENRE) :
+3. Si l'utilisateur mentionne un son, IDENTIFIE le genre/sous-genre EXACT (ex: "Batidao = brazilian phonk/funk carioca").
+4. Tes suggestions DOIVENT être du MÊME genre/sous-genre. INTERDIT de proposer du rock, orchestral ou EDM si l'utilisateur veut du phonk/funk.
+   Ex: "Batidao" → propose "Loucura Letal", "MC GW - Montagem Coral", "DJ FKM - Automotivo" etc.
+5. Pour chaque son, explique à quel moment PRÉCIS du montage il colle.
+
+RÈGLES RESSOURCES :
+6. Génère 3 requêtes YouTube pour MATÉRIEL SOURCE et 2 pour TUTORIELS techniques.
+7. NE GÉNÈRE AUCUNE URL toi-même. Uniquement des REQUÊTES DE RECHERCHE.
+
+${userNotes ? `RÈGLES ÉVALUATION DES NOTES :
+8. L'utilisateur a fourni des suggestions. ÉVALUE-les avec une note /10 et un feedback.
+9. Dis ce qui est pertinent et ce qui peut être amélioré.
+10. INTÈGRE ses suggestions dans le plan raffiné.` : ""}
+
+RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: `Développe cette idée de vidéo en détail.
 
 CONCEPT : "${concept}"
@@ -927,21 +1005,88 @@ DÉCISION STRATÉGIQUE :
 - Hypothèse : "${decision.hypothesis}"
 - Type : ${decision.experiment_type}
 
-${userNotes ? `NOTES DE L'UTILISATEUR (À INTÉGRER OBLIGATOIREMENT) :\n"${userNotes}"` : "Aucune note supplémentaire."}
+${userNotes ? `NOTES/SUGGESTIONS DE L'UTILISATEUR (À ÉVALUER ET INTÉGRER) :\n"${userNotes}"` : "Aucune note."}
 
-Propose un plan de production détaillé et concret.`,
+Plan de production avec scènes précises et suggestions musicales du MÊME GENRE.`,
     output: { format: "json", schema: BrainstormSchema },
     config: { temperature: 0.7 },
   });
 
   if (!output) throw new Error("Échec du brainstorm");
+
+  // Rechercher les vidéos sources et tutoriels sur YouTube
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  let resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[] = [];
+  let tutorialVideos: { title: string; url: string; thumbnailUrl: string }[] = [];
+
+  if (apiKey) {
+    // Vidéos sources (rushes)
+    if (output.searchQueries?.length > 0) {
+      try {
+        const allResults: any[] = [];
+        for (const query of output.searchQueries.slice(0, 3)) {
+          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=3&key=${apiKey}`;
+          const res = await fetch(searchUrl);
+          const data = await res.json();
+          if (data.items) {
+            allResults.push(...data.items.map((item: any) => ({
+              title: item.snippet?.title || "",
+              url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
+              thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
+              why: query,
+            })));
+          }
+        }
+        const seen = new Set<string>();
+        resourceVideos = allResults.filter((v) => {
+          if (seen.has(v.url)) return false;
+          seen.add(v.url);
+          return true;
+        }).slice(0, 6);
+      } catch (err) {
+        console.error("[NERRA] Resource video search error:", err);
+      }
+    }
+
+    // Tutoriels
+    if ((output as any).tutorialQueries?.length > 0) {
+      try {
+        const tutResults: any[] = [];
+        for (const query of (output as any).tutorialQueries.slice(0, 2)) {
+          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=2&key=${apiKey}`;
+          const res = await fetch(searchUrl);
+          const data = await res.json();
+          if (data.items) {
+            tutResults.push(...data.items.map((item: any) => ({
+              title: item.snippet?.title || "",
+              url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
+              thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
+            })));
+          }
+        }
+        const seen = new Set<string>();
+        tutorialVideos = tutResults.filter((v) => {
+          if (seen.has(v.url)) return false;
+          seen.add(v.url);
+          return true;
+        }).slice(0, 4);
+      } catch (err) {
+        console.error("[NERRA] Tutorial search error:", err);
+      }
+    }
+  }
+
   return {
     scenes: output.scenes,
     style: output.style,
     duration: output.duration,
     musicDirection: output.musicDirection,
+    musicSuggestions: output.musicSuggestions || [],
     hookSuggestion: output.hookSuggestion,
     refinedConcept: output.refinedConcept,
+    resourceVideos,
+    tutorialVideos,
+    notesEvaluation: (output as any).notesEvaluation || null,
   };
 }
 
