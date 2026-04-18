@@ -40,7 +40,12 @@ export class LoginComponent {
 
     try {
       await this.supabase.signInWithEmail(this.email, this.password);
-      this.router.navigate(['/dashboard']);
+      const profile = await this.supabase.getProfile();
+      if (!profile?.youtube_channel_id) {
+        this.router.navigate(['/onboarding']);
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
     } catch (error: any) {
       this.errorMessage = error?.message || 'Erreur de connexion.';
     } finally {

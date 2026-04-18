@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
+import { onboardingGuard } from './core/guards/onboarding.guard';
 
 export const routes: Routes = [
     {
@@ -22,15 +23,24 @@ export const routes: Routes = [
         loadComponent: () => import('./features/auth/callback/callback.component').then(m => m.CallbackComponent),
     },
     {
+        path: 'onboarding',
+        loadComponent: () => import('./features/onboarding/onboarding.component').then(m => m.OnboardingComponent),
+        canActivate: [authGuard],
+    },
+    {
+        path: 'dashboard/connect/callback',
+        loadComponent: () => import('./features/dashboard/connect/callback/callback.component').then(m => m.CallbackComponent)
+    },
+    {
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/layout/dashboard-layout/dashboard-layout.component').then(m => m.DashboardLayoutComponent),
         canActivate: [authGuard],
         children: [
             { path: '', loadComponent: () => import('./features/dashboard/overview/overview.component').then(m => m.OverviewComponent) },
-            { path: 'decision', loadComponent: () => import('./features/dashboard/decision/decision.component').then(m => m.DecisionComponent) },
+            { path: 'decision', loadComponent: () => import('./features/dashboard/decision/decision.component').then(m => m.DecisionComponent), canActivate: [onboardingGuard] },
             { path: 'ai-insights', loadComponent: () => import('./features/dashboard/ai-insights/ai-insights.component').then(m => m.AiInsightsComponent) },
             { path: 'connect', loadComponent: () => import('./features/dashboard/connect/connect.component').then(m => m.ConnectComponent) },
-            { path: 'connect/callback', loadComponent: () => import('./features/dashboard/connect/callback/callback.component').then(m => m.CallbackComponent) },
+            { path: 'niche-detector', loadComponent: () => import('./shared/components/niche-detector/niche-detector.component').then(m => m.NicheDetectorComponent) },
         ],
     },
     { path: '**', redirectTo: '' },

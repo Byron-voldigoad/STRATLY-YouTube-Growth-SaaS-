@@ -14,36 +14,40 @@ import { lucideLoader2, lucideAlertCircle, lucideCheckCircle } from '@ng-icons/l
         provideIcons({ lucideLoader2, lucideAlertCircle, lucideCheckCircle })
     ],
     template: `
-    <div class="flex items-center justify-center min-h-[60vh]">
-      <section hlmCard class="w-full max-w-md border-border/50 shadow-lg">
-        <div hlmCardHeader class="text-center">
-          <h3 hlmCardTitle class="text-xl font-bold">Connexion YouTube</h3>
-          <p hlmCardDescription>Finalisation de la connexion à votre chaîne</p>
-        </div>
+    <div class="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-heading">
+      <div class="w-full max-w-sm mx-auto text-center animate-in fade-in zoom-in duration-500">
+        @if (status === 'loading') {
+          <div class="relative w-20 h-20 mx-auto mb-6">
+            <div class="absolute inset-0 border-4 border-slate-100 rounded-2xl"></div>
+            <div class="absolute inset-0 border-4 border-indigo-600 rounded-2xl border-t-transparent animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span class="text-indigo-600 text-xl font-black">N</span>
+            </div>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900 mb-2">Authentification...</h3>
+          <p class="text-sm text-slate-500">Sécurisation de la connexion avec Google</p>
+        }
         
-        <div hlmCardContent class="flex flex-col items-center py-6">
-          @if (status === 'loading') {
-            <ng-icon name="lucideLoader2" class="size-12 text-blue-600 animate-spin mb-4"></ng-icon>
-            <p class="text-muted-foreground animate-pulse">Échange des codes avec Google...</p>
-          }
-          
-          @if (status === 'success') {
-            <ng-icon name="lucideCheckCircle" class="size-12 text-green-500 mb-4"></ng-icon>
-            <p class="font-medium text-slate-900 mb-2">Connexion réussie !</p>
-            <p class="text-sm text-muted-foreground text-center">Votre chaîne est maintenant connectée. Redirection vers le dashboard...</p>
-          }
-          
-          @if (status === 'error') {
-            <ng-icon name="lucideAlertCircle" class="size-12 text-red-500 mb-4"></ng-icon>
-            <p class="font-medium text-slate-900 mb-2">Échec de la connexion</p>
-            <p class="text-sm text-red-500 text-center mb-6">{{ errorMessage }}</p>
-            <button class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
-                    (click)="retry()">
-              Nouvelle tentative
-            </button>
-          }
-        </div>
-      </section>
+        @if (status === 'success') {
+          <div class="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <ng-icon name="lucideCheckCircle" class="w-10 h-10 text-emerald-600"></ng-icon>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900 mb-2">Canal sécurisé</h3>
+          <p class="text-sm text-slate-500">Redirection vers l'analyse...</p>
+        }
+        
+        @if (status === 'error') {
+          <div class="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <ng-icon name="lucideAlertCircle" class="w-10 h-10 text-rose-600"></ng-icon>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900 mb-2">Échec de connexion</h3>
+          <p class="text-sm text-rose-600 mb-6">{{ errorMessage }}</p>
+          <button class="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg"
+                  (click)="retry()">
+            Réessayer
+          </button>
+        }
+      </div>
     </div>
   `
 })
@@ -81,12 +85,12 @@ export class CallbackComponent implements OnInit {
             await this.youtubeService.handleCallback(code);
             this.status = 'success';
 
-            // Rediriger après un court délai
+            // Rediriger après un court délai vers la fin du tunnel
+            // Le guard onboardingGuard interceptera automatiquement et redirigera
+            // vers /dashboard/ai-insights si l'audit n'est pas encore fait.
             setTimeout(() => {
-                this.router.navigate(['/dashboard'], {
-                    queryParams: { success: 'youtube_connected' }
-                });
-            }, 2000);
+                this.router.navigate(['/dashboard/decision']);
+            }, 1000);
         } catch (err: any) {
             console.error('YouTube Callback Error:', err);
             this.status = 'error';

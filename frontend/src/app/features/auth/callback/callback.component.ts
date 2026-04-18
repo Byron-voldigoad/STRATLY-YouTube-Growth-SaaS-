@@ -38,13 +38,23 @@ export class CallbackComponent implements OnInit {
       // On attend juste que la session soit établie
       const session = await this.supabase.getSession();
       if (session) {
-        this.router.navigate(['/dashboard']);
+        const profile = await this.supabase.getProfile();
+        if (!profile?.youtube_channel_id) {
+          this.router.navigate(['/onboarding']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       } else {
         // Attendre un peu que Supabase récupère la session depuis l'URL
         setTimeout(async () => {
           const retrySession = await this.supabase.getSession();
           if (retrySession) {
-            this.router.navigate(['/dashboard']);
+            const profile = await this.supabase.getProfile();
+            if (!profile?.youtube_channel_id) {
+              this.router.navigate(['/onboarding']);
+            } else {
+              this.router.navigate(['/dashboard']);
+            }
           } else {
             this.error = 'Session non trouvée. Veuillez réessayer.';
           }

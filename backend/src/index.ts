@@ -444,10 +444,19 @@ ${thumbnailsPromptSection}`;
       model: "openai/llama-3.3-70b-versatile",
       system: `Tu es un analyste YouTube expert. 
 Tu reçois des données réelles et calculées d'une chaîne.
+Si la chaîne contient 0 vidéo, considère-la comme une "Nouvelle Chaîne" et oriente ta recommandation vers le lancement (choix de niche, premier concept).
 
 RÈGLES ABSOLUES :
-1. Tu assignes un statut à la chaîne dans channelStatus selon ces critères stricts : 'inactive' si lastPublishedDaysAgo > 90, 'en_déclin' si trend est baisse ET lastPublishedDaysAgo > 30, 'en_croissance' si avgEngagement > 5% ET lastPublishedDaysAgo < 30, 'stable' dans tous les autres cas. statusExplanation explique en une phrase pourquoi ce statut en citant les chiffres réels.
+1. Tu assignes un statut à la chaîne dans channelStatus selon ces critères stricts : 
+   - Si 0 vidéo : 'stable' (avec statusExplanation précisant que c'est une nouvelle chaîne).
+   - 'inactive' si lastPublishedDaysAgo > 90.
+   - 'en_déclin' si trend est baisse ET lastPublishedDaysAgo > 30.
+   - 'en_croissance' si avgEngagement > 5% ET lastPublishedDaysAgo < 30.
+   - 'stable' dans tous les autres cas. 
+   statusExplanation explique en une phrase pourquoi ce statut en citant les chiffres réels ou l'absence de vidéos.
 2. Tu donnes UNE SEULE recommandation 
+   - Si 0 vidéo : Propose un angle de lancement basé sur la niche.
+   - Sinon : Basée sur la data.
    dans recommendation.action.
    Cette recommandation doit être 
    une instruction concrète et spécifique

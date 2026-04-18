@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import {
   GenkitService,
   VideoData,
@@ -67,6 +67,21 @@ import {
           </div>
 
           <div hlmCardContent class="flex-1 p-8">
+            @if (showGenerateDecisionPrompt) {
+              <div class="mb-8 p-6 rounded-2xl bg-indigo-50 border border-indigo-200 text-center animate-in fade-in slide-in-from-top-4">
+                <h4 class="text-lg font-bold text-indigo-900 mb-2">Votre audit est prêt.</h4>
+                <p class="text-indigo-700 mb-6">Générez votre première décision pour commencer.</p>
+                <button
+                  (click)="goToDecision()"
+                  [disabled]="!analysisResult && !isAnalyzing"
+                  class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-lg disabled:cursor-not-allowed"
+                >
+                  <ng-icon name="lucideSparkles" class="w-4 h-4 mr-2 inline"></ng-icon>
+                  Générer ma décision
+                </button>
+              </div>
+            }
+
             @if (isAnalyzing) {
               <div
                 class="flex flex-col items-center justify-center h-full py-12"
@@ -81,6 +96,22 @@ import {
                 <p class="text-sm text-muted-foreground mt-2">
                   Cela peut prendre jusqu'à 20 secondes.
                 </p>
+              </div>
+            } @else if (isGenesisFeatureUnavailable) {
+              <div class="flex flex-col items-center justify-center h-full text-center py-12 animate-in fade-in zoom-in duration-500">
+                <div class="size-20 rounded-2xl bg-amber-50 flex items-center justify-center mb-6 shadow-inner rotate-3">
+                  <ng-icon name="lucideAlertCircle" class="size-10 text-amber-500"></ng-icon>
+                </div>
+                <h4 class="text-xl font-black text-slate-900 mb-2">
+                  Aucune vidéo détectée
+                </h4>
+                <p class="text-slate-500 max-w-sm mb-8 font-medium">
+                  Nerra a besoin d'au moins une vidéo pour analyser votre stratégie. 
+                  La fonctionnalité <span class="text-indigo-600 font-bold">Genesis</span> pour les lancements de chaînes est en cours de développement.
+                </p>
+                <div class="px-4 py-2 bg-slate-100 rounded-full text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Coming Soon • MVP v2
+                </div>
               </div>
             } @else if (analysisResult) {
               <div
@@ -336,6 +367,8 @@ export class AiInsightsComponent implements OnInit {
   isAnalyzing = false;
   isGenerating = false;
   showNextStep = false;
+  showGenerateDecisionPrompt = false;
+  isGenesisFeatureUnavailable = false;
 
   analysisResult: ChannelAnalysis | null = null;
   ideas: string[] = [];
@@ -346,9 +379,15 @@ export class AiInsightsComponent implements OnInit {
     private youtube: YouTubeService,
     private supabase: SupabaseService,
     private router: Router,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['action'] === 'generate_decision') {
+        this.showGenerateDecisionPrompt = true;
+      }
+    });
     this.loadStoredAnalyses();
   }
 
@@ -379,7 +418,11 @@ export class AiInsightsComponent implements OnInit {
           console.log('Analysis result successfully loaded from backend.');
         } else {
           this.analysisResult = null;
+          this.runAnalysis(true); // Auto-trigger pour le premier cycle
         }
+      } else {
+        this.analysisResult = null;
+        this.runAnalysis(true); // Auto-trigger pour les nouveaux utilisateurs sans historique
       }
 
       // 2. Récupérer les idées
@@ -406,12 +449,27 @@ export class AiInsightsComponent implements OnInit {
     }
   }
 
-  async runAnalysis() {
+  async runAnalysis(forceSync = false) {
     this.isAnalyzing = true;
     try {
       const profile = await this.supabase.getProfile();
+      
+      if (forceSync) {
+         try {
+             await this.youtube.importData();
+         } catch(e) {
+             console.warn("Erreur silencieuse lors de l'import forcé:", e);
+         }
+      }
+
       const stats = await this.youtube.getChannelAnalytics();
       const videos = await this.youtube.getVideoAnalytics();
+
+      if (!videos || videos.length === 0) {
+        this.isGenesisFeatureUnavailable = true;
+        this.isAnalyzing = false;
+        return;
+      }
 
       if (videos && videos.length > 0) {
         const sorted = [...videos].sort((a, b) =>
@@ -427,29 +485,22 @@ export class AiInsightsComponent implements OnInit {
           this.lastVideoDaysAgo);
       }
 
-      if (
-        !profile ||
-        !profile.youtube_channel_id ||
-        !stats ||
-        stats.length === 0 ||
-        !videos ||
-        videos.length === 0
-      ) {
-        alert(
-          "Pas assez de données pour l'analyse. Synchronisez votre chaîne d'abord.",
-        );
+      if (!profile || !profile.youtube_channel_id) {
+        alert("Chaîne YouTube non connectée.");
         return;
       }
 
-      const latestStats = stats[stats.length - 1];
+      // On prépare les données même si elles sont vides (pour les nouveaux créateurs)
+      const latestStats = (stats && stats.length > 0) ? stats[stats.length - 1] : { subscribers: 0, total_views: 0, total_videos: 0 };
+      
       const channelStats: ChannelStats = {
-        subscriberCount: latestStats.subscribers,
-        viewCount: latestStats.total_views,
-        videoCount: latestStats.total_videos,
+        subscriberCount: latestStats.subscribers || 0,
+        viewCount: latestStats.total_views || 0,
+        videoCount: latestStats.total_videos || 0,
         channelTitle: profile.youtube_channel_title || 'Votre Chaîne',
       };
 
-      const videoData: VideoData[] = videos.map((v: any) => ({
+      const videoData: VideoData[] = (videos || []).map((v: any) => ({
         id: v.video_id,
         title: v.video_title,
         views: v.views || 0,
