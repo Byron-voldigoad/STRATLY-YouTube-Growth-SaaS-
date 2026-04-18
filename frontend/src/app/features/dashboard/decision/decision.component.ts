@@ -744,13 +744,23 @@ import {
                               L'avis de Nerra
                             </button>
                           } @else {
-                            <button
-                              (click)="confirmTitle()"
-                              [disabled]="!customTitle || isEvaluatingTitle"
-                              class="flex-1 px-6 py-2.5 rounded-xl text-sm font-black bg-slate-900 text-white hover:bg-indigo-600 transition-all shadow-lg disabled:opacity-50"
-                            >
-                              Valider ce titre →
-                            </button>
+                            <div class="flex-1 flex gap-2">
+                              <button
+                                (click)="confirmTitle()"
+                                [disabled]="!customTitle || isEvaluatingTitle"
+                                class="flex-1 px-4 py-2.5 rounded-xl text-sm font-black bg-slate-900 text-white hover:bg-indigo-600 transition-all shadow-lg disabled:opacity-50"
+                              >
+                                Valider →
+                              </button>
+                              <button
+                                (click)="confirmTitleSkipThumbnail()"
+                                [disabled]="!customTitle || isEvaluatingTitle"
+                                title="Passer directement à l'étape finale (pour Shorts, TikTok, Edits sans miniature)"
+                                class="flex-none px-4 py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-all disabled:opacity-50"
+                              >
+                                ⏭️ Sans Miniature
+                              </button>
+                            </div>
                           }
                         </div>
 
@@ -767,13 +777,23 @@ import {
                             </div>
                             <p class="text-sm font-medium text-slate-700 mb-3">{{ titleEvaluation.feedback }}</p>
                             <!-- Bouton pour valider quand même après évaluation -->
-                            <button
-                              (click)="confirmTitle()"
-                              class="w-full py-2 rounded-xl text-sm font-black text-white shadow-sm transition-all"
-                              [ngClass]="titleEvaluation.score >= 7 ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800'"
-                            >
-                              Valider ce titre →
-                            </button>
+                            <div class="flex gap-2">
+                              <button
+                                (click)="confirmTitle()"
+                                class="flex-1 py-2 rounded-xl text-sm font-black text-white shadow-sm transition-all"
+                                [ngClass]="titleEvaluation.score >= 7 ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800'"
+                              >
+                                Valider →
+                              </button>
+                              <button
+                                (click)="confirmTitleSkipThumbnail()"
+                                title="Passer directement à l'étape finale (pour Shorts, TikTok, Edits sans miniature)"
+                                class="flex-none px-4 py-2 rounded-xl text-sm font-bold border-2 bg-white shadow-sm transition-all text-slate-500 hover:text-slate-700"
+                                [ngClass]="titleEvaluation.score >= 7 ? 'border-emerald-200 hover:border-emerald-300' : 'border-amber-200 hover:border-amber-300'"
+                              >
+                                ⏭️ Sans Miniature
+                              </button>
+                            </div>
                           </div>
                         }
                       </div>
@@ -1785,6 +1805,13 @@ export class DecisionComponent implements OnInit {
     } finally {
       this.isLoadingWorkshop = false;
     }
+  }
+
+  async confirmTitleSkipThumbnail() {
+    if (!this.currentDecision || !this.customTitle) return;
+    this.currentDecision.video_title = this.customTitle;
+    this.workshopStep = 5;
+    this.discoverVideos();
   }
 
   async onThumbnailSelected(event: any) {

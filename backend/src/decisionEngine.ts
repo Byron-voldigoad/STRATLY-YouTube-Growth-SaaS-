@@ -776,7 +776,10 @@ export async function generateVideoConcepts(
     .eq("id", decisionId)
     .single();
 
-  if (error || !decision) throw new Error("Décision introuvable");
+  if (error || !decision) {
+    console.error("[NERRA] generateVideoConcepts DB Error:", { decisionId, error });
+    throw new Error("Décision introuvable");
+  }
 
   // Récupérer les tendances YouTube pour identifier les opportunités
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -850,7 +853,10 @@ export async function evaluateVideoConcept(
     .eq("id", decisionId)
     .single();
 
-  if (error || !decision) throw new Error("Décision introuvable");
+  if (error || !decision) {
+    console.error("[NERRA] evaluateVideoConcept DB Error:", { decisionId, error });
+    throw new Error("Décision introuvable");
+  }
 
   // Récupérer les tendances pour comparer l'idée au marché
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -939,12 +945,14 @@ export async function brainstormConcept(
     .eq("id", decisionId)
     .single();
 
-  if (error || !decision) throw new Error("Décision introuvable");
+  if (error || !decision) {
+    console.error("[NERRA] brainstormConcept DB Error:", { decisionId, error });
+    throw new Error("Décision introuvable");
+  }
 
-  // Schema de base
   const baseFields: Record<string, any> = {
     scenes: z.array(z.string()).min(3).max(5).describe(
-      "3 à 5 scènes. CHAQUE scène DOIT référencer un ÉPISODE ou MOMENT PRÉCIS (ex: 'Ép.10 S2 — Cha Hae-in tranche la tête de la Reine Fourmi, ralenti + flash'). INTERDICTION d'écrire 'montage de scènes d'action' sans préciser LESQUELLES."
+      "3 à 5 scènes. CHAQUE scène DOIT référencer un MOMENT PRÉCIS ou un ÉLÉMENT RÉEL du sujet (ex: 'À la minute 3:12 du jeu', 'Lors de la démonstration du produit', 'Passage sur le concept X'). ATTENTION: N'INVENTE AUCUN FAUX DÉTAIL."
     ),
     style: z.string().describe("Style de montage recommandé"),
     duration: z.string().describe("Durée recommandée"),
@@ -953,13 +961,13 @@ export async function brainstormConcept(
       name: z.string().describe("Nom EXACT du son (artiste - titre)"),
       reason: z.string().describe("Pourquoi ce son colle au montage — mentionne un moment précis du montage"),
     })).min(2).max(3).describe("2-3 sons du MÊME GENRE/SOUS-GENRE que celui mentionné par l'utilisateur"),
-    hookSuggestion: z.string().describe("Comment capter l'attention dans les 3 premières secondes — un moment PRÉCIS de l'oeuvre"),
+    hookSuggestion: z.string().describe("Comment capter l'attention dans les 3 premières secondes — un moment PRÉCIS de la vidéo"),
     refinedConcept: z.string().describe("Le concept reformulé et enrichi en une phrase"),
     searchQueries: z.array(z.string()).length(3).describe(
-      "3 requêtes YouTube pour trouver du MATÉRIEL SOURCE (pas de concurrents). Ex: 'Solo Leveling S2 EP10 Cha Hae-in fight scene'"
+      "3 requêtes YouTube pour trouver du MATÉRIEL SOURCE lié au concept (pas de concurrents). Ex: '[Nom du jeu/sujet] raw footage', '[Sujet spécifique] b-roll without copyright'"
     ),
     tutorialQueries: z.array(z.string()).length(2).describe(
-      "2 requêtes YouTube pour trouver des TUTORIELS utiles. Ex: 'AMV editing tutorial after effects', 'anime edit smooth transitions'"
+      "2 requêtes YouTube pour trouver des TUTORIELS utiles pour réaliser ce montage précis. Ex: 'premiere pro fast pacing tutorial', 'how to edit gaming funny moments'"
     ),
   };
 
@@ -975,20 +983,20 @@ export async function brainstormConcept(
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, un directeur créatif YouTube et music supervisor expert.
+    system: `Tu es NERRA, un directeur créatif YouTube et music supervisor expert. Tu opères dans N'IMPORTE QUELLE NICHE (gaming, finance, vlog, anime, tech, etc.). Adapte-toi au contexte du concept.
 
-RÈGLES SCÈNES (CRUCIAL) :
-1. Chaque scène DOIT référencer un ÉPISODE ou MOMENT PRÉCIS (ex: "Épisode 10 S2, combat contre Beru"). JAMAIS de descriptions vagues comme "montage de scènes d'action".
-2. Inclus les timestamps (ex: 0-5s, 5-15s).
+RÈGLES SCÈNES (ANTI-HALLUCINATIONS) :
+1. N'INVENTE ABSOLUMENT PAS de faux faits, éléments ou passages qui n'existent pas dans le sujet abordé.
+2. Vérifie tes faits. Si c'est un jeu, un film ou un sujet précis, référence des éléments qui s'y trouvent RÉELLEMENT. 
+3. Inclus des timestamps estimatifs (ex: 0-5s, 5-15s) et détaille Visuellement la scène sans mentir sur le contenu.
 
 RÈGLES MUSIQUE (CRUCIAL — INTERDICTION DE CHANGER DE GENRE) :
-3. Si l'utilisateur mentionne un son, IDENTIFIE le genre/sous-genre EXACT (ex: "Batidao = brazilian phonk/funk carioca").
-4. Tes suggestions DOIVENT être du MÊME genre/sous-genre. INTERDIT de proposer du rock, orchestral ou EDM si l'utilisateur veut du phonk/funk.
-   Ex: "Batidao" → propose "Loucura Letal", "MC GW - Montagem Coral", "DJ FKM - Automotivo" etc.
+3. Si l'utilisateur mentionne un style ou un son, IDENTIFIE le genre/sous-genre EXACT.
+4. Tes suggestions DOIVENT être du MÊME genre/sous-genre. INTERDIT de proposer de la musique épique si l'utilisateur veut de la lo-fi, etc.
 5. Pour chaque son, explique à quel moment PRÉCIS du montage il colle.
 
 RÈGLES RESSOURCES :
-6. Génère 3 requêtes YouTube pour MATÉRIEL SOURCE et 2 pour TUTORIELS techniques.
+6. Génère 3 requêtes YouTube pour MATÉRIEL SOURCE (rushes, b-roll, footage brut de la thématique) et 2 pour TUTORIELS techniques.
 7. NE GÉNÈRE AUCUNE URL toi-même. Uniquement des REQUÊTES DE RECHERCHE.
 
 ${userNotes ? `RÈGLES ÉVALUATION DES NOTES :
