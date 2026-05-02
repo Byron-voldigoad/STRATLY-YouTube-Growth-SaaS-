@@ -154,7 +154,7 @@ export class OverviewComponent implements OnInit {
           day: '2-digit',
           month: 'short',
         }),
-        value: Math.round(s.views || 0),
+        value: Math.round(s.total_views || 0),
       }))
       .slice(-7);
   }
@@ -169,8 +169,8 @@ export class OverviewComponent implements OnInit {
     let subsTrend = 0;
     if (stats.length >= 2) {
       const previous = stats[stats.length - 2];
-      viewsTrend = previous?.views
-        ? Math.round(((latest.views - previous.views) / previous.views) * 100)
+      viewsTrend = previous?.total_views
+        ? Math.round(((latest.total_views - previous.total_views) / previous.total_views) * 100)
         : 0;
       subsTrend = previous?.subscribers
         ? Math.round(
@@ -248,5 +248,17 @@ export class OverviewComponent implements OnInit {
       emerald: 'bg-emerald-100 text-emerald-600',
     };
     return map[color] || map['indigo'];
+  }
+
+  get hasEnoughViewsData(): boolean {
+    if (!this.viewsData || this.viewsData.length < 2) return false;
+    return this.viewsData.some(d => d.value > 0);
+  }
+
+  get hasEnoughSubsData(): boolean {
+    if (!this.subscribersSeries || this.subscribersSeries.length === 0) return false;
+    const data = this.subscribersSeries[0].series;
+    if (!data || data.length < 2) return false;
+    return true;
   }
 }

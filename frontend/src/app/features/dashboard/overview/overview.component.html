@@ -150,16 +150,23 @@
           <p class="text-sm font-medium text-slate-400 mt-0.5">Croissance historique de votre communauté</p>
         </div>
         <div class="flex-1 w-full -ml-2 -mb-2">
-          <ngx-charts-area-chart
-            [results]="subscribersSeries"
-            [scheme]="colorScheme"
-            [xAxis]="true"
-            [yAxis]="true"
-            [legend]="false"
-            [curve]="curve"
-            [animations]="true"
-            [gradient]="true">
-          </ngx-charts-area-chart>
+          @if (hasEnoughSubsData) {
+            <ngx-charts-area-chart
+              [results]="subscribersSeries"
+              [scheme]="colorScheme"
+              [xAxis]="true"
+              [yAxis]="true"
+              [legend]="false"
+              [curve]="curve"
+              [animations]="true"
+              [gradient]="true">
+            </ngx-charts-area-chart>
+          } @else {
+            <div class="h-full w-full flex flex-col items-center justify-center text-center px-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+              <ng-icon name="lucideTrendingUp" class="text-3xl text-slate-300 mb-3"></ng-icon>
+              <p class="text-sm font-medium text-slate-500 max-w-xs">Pas encore assez de données — le graphique apparaîtra après plusieurs synchronisations</p>
+            </div>
+          }
         </div>
       </div>
 
@@ -170,17 +177,24 @@
           <p class="text-sm font-medium text-slate-400 mt-0.5">Activité quotidienne agrégée</p>
         </div>
         <div class="flex-1 w-full -ml-2 -mb-2">
-          <ngx-charts-bar-vertical
-            [results]="viewsData"
-            [scheme]="colorSchemeViews"
-            [xAxis]="true"
-            [yAxis]="true"
-            [legend]="false"
-            [animations]="true"
-            [barPadding]="8"
-            [roundEdges]="true"
-            [gradient]="true">
-          </ngx-charts-bar-vertical>
+          @if (hasEnoughViewsData) {
+            <ngx-charts-bar-vertical
+              [results]="viewsData"
+              [scheme]="colorSchemeViews"
+              [xAxis]="true"
+              [yAxis]="true"
+              [legend]="false"
+              [animations]="true"
+              [barPadding]="8"
+              [roundEdges]="true"
+              [gradient]="true">
+            </ngx-charts-bar-vertical>
+          } @else {
+            <div class="h-full w-full flex flex-col items-center justify-center text-center px-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+              <ng-icon name="lucideTrendingUp" class="text-3xl text-slate-300 mb-3"></ng-icon>
+              <p class="text-sm font-medium text-slate-500 max-w-xs">Pas encore assez de données — le graphique apparaîtra après plusieurs synchronisations</p>
+            </div>
+          }
         </div>
       </div>
     </section>
