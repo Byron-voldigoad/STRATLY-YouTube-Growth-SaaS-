@@ -60,9 +60,7 @@ export async function fetchVideoMetricsBatch(
       },
     });
 
-    console.log("CTR API status:", response.status);
     const json = await response.json();
-    console.log("CTR API raw response:", JSON.stringify(json).slice(0, 500));
 
     if (!response.ok) {
       return {};
@@ -135,12 +133,7 @@ export async function fetchRetentionCurve(
       },
     });
 
-    console.log("Retention API status:", response.status);
     const json = await response.json();
-    console.log(
-      "Retention API raw response:",
-      JSON.stringify(json).slice(0, 500),
-    );
 
     if (!response.ok) {
       return [];

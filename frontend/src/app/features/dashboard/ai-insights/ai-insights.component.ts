@@ -64,23 +64,6 @@ import {
             <p hlmCardDescription>
               Cette analyse se base sur vos dernières vidéos.
             </p>
-          </div>
-
-          <div hlmCardContent class="flex-1 p-8">
-            @if (showGenerateDecisionPrompt) {
-              <div class="mb-8 p-6 rounded-2xl bg-indigo-50 border border-indigo-200 text-center animate-in fade-in slide-in-from-top-4">
-                <h4 class="text-lg font-bold text-indigo-900 mb-2">Votre audit est prêt.</h4>
-                <p class="text-indigo-700 mb-6">Générez votre première décision pour commencer.</p>
-                <button
-                  (click)="goToDecision()"
-                  [disabled]="!analysisResult && !isAnalyzing"
-                  class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-lg disabled:cursor-not-allowed"
-                >
-                  <ng-icon name="lucideSparkles" class="w-4 h-4 mr-2 inline"></ng-icon>
-                  Générer ma décision
-                </button>
-              </div>
-            }
 
             @if (isAnalyzing) {
               <div
@@ -510,16 +493,7 @@ export class AiInsightsComponent implements OnInit {
         thumbnailUrl: v.thumbnail_url || ''
       }));
 
-      console.log('--- DEBUG UI: DATA BEFORE ANALYSIS ---');
-      console.log('Videos count:', videoData.length);
-      console.log(
-        'Videos views:',
-        videoData.map((v) => v.views),
-      );
-      console.log('Channel Stats:', channelStats);
-      console.log('---------------------------------------');
 
-      console.log('Calling Genkit analyzeChannel...');
 
       // Charger les niches sélectionnées par l'utilisateur
       let focusNiches: string[] = [];
@@ -553,14 +527,8 @@ export class AiInsightsComponent implements OnInit {
         focusNiches.length > 0 ? focusNiches : undefined,
       );
 
-      console.log('Genkit Response received:', response);
       if (response && response.result) {
         this.analysisResult = response.result;
-        console.log(
-          'FRESH FROM BACKEND - patterns:',
-          response.result?.patterns?.toRepeat?.map((p: any) => p.videoTitle),
-        );
-        console.log('analysisResult set to:', this.analysisResult);
       } else {
         throw new Error('Réponse Genkit invalide');
       }

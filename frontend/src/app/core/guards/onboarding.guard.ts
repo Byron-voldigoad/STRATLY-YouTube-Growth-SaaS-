@@ -27,8 +27,15 @@ export const onboardingGuard: CanActivateFn = async (route, state) => {
       return router.createUrlTree(['/dashboard/ai-insights']);
     }
 
-    // 3. Vérifier dans la table decisions si une décision est en statut PENDING ou ACCEPTED
-    // (Une décision "en cours" a forcément le verdict PENDING, qu'elle soit acceptée ou non)
+    // 3. Si la navigation transporte des auditInsights (chaînage Audit → Decide),
+    //    on autorise l'accès pour créer une nouvelle décision.
+    const navigation = router.getCurrentNavigation();
+    const auditInsights = navigation?.extras?.state?.['auditInsights'];
+    if (auditInsights) {
+      return true;
+    }
+
+    // 4. Vérifier dans la table decisions si une décision est en statut PENDING ou ACCEPTED
     const { data: decisionData } = await supabase.client
       .from('decisions')
       .select('id, verdict, accepted_at')

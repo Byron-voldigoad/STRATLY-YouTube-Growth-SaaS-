@@ -29,3 +29,5 @@ backend/raw_llama_output.json
 # OS files
 .DS_Store
 Thumbs.db
+
+.walkthrough_Audit.md

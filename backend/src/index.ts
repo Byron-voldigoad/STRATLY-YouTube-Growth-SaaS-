@@ -277,7 +277,6 @@ export const analyzeChannelFlow = ai.defineFlow(
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
     if (userNiche && userNiche !== "Non renseignée" && youtubeApiKey) {
       nicheTrends = await fetchNicheTrends(userNiche, youtubeApiKey);
-      console.log("NICHE TRENDS:", nicheTrends.length, "vidéos trouvées");
     }
 
     const promptVideos = filteredVideos.filter((v) => v.viewCount >= 10);
@@ -304,7 +303,6 @@ export const analyzeChannelFlow = ai.defineFlow(
           try {
             thumbnailAnalyses[video.videoId] =
               await analyzeThumbnail({ imageUri: thumbnailUrl }, visionApiKey);
-            console.log(`THUMBNAIL analyzed: ${video.title.slice(0, 30)}`);
           } catch (e: any) {
             console.warn(`THUMBNAIL analysis omitted for ${video.videoId}: ${e.message}`);
             thumbnailAnalyses[video.videoId] = {
@@ -321,7 +319,6 @@ export const analyzeChannelFlow = ai.defineFlow(
             text: [],
             missing: true
           };
-          console.log(`THUMBNAIL absent: ${video.title.slice(0, 30)}`);
         }
       }
     }
@@ -436,8 +433,6 @@ ${nicheTrends.length > 0
 
 ${thumbnailsPromptSection}`;
 
-    console.log("--- USER PROMPT ---", userPrompt);
-
     const { output } = await ai.generate({
       model: "openai/llama-3.3-70b-versatile",
       system: `Tu es un analyste YouTube expert. 
@@ -531,7 +526,6 @@ RÈGLES ABSOLUES :
       throw new Error("Le modèle IA n'a pas généré de réponse.");
     }
 
-    console.log("--- GENKIT DEBUG: SUCCESSFUL JSON RESPONSE ---");
     const result = output;
 
     // Validation post-génération
