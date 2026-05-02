@@ -54,6 +54,6 @@ export const onboardingGuard: CanActivateFn = async (route, state) => {
     return true;
   } catch (error) {
     console.error('Onboarding guard error:', error);
-    return true;
+    return router.createUrlTree(['/dashboard/ai-insights']);
   }
 };

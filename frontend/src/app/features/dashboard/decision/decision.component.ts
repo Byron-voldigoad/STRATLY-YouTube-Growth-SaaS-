@@ -377,7 +377,7 @@ import {
                       <div class="space-y-3 mb-4">
                         @for (concept of conceptSuggestions; track concept.idea; let i = $index) {
                           <button
-                            (click)="selectedConcept = concept.idea; customConcept = concept.idea"
+                            (click)="onSelectConcept(concept.idea)"
                             class="w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-sm"
                             [ngClass]="selectedConcept === concept.idea
                               ? 'border-violet-400 bg-violet-50/50 shadow-sm'
@@ -686,7 +686,7 @@ import {
                       <div class="space-y-3 mb-4">
                         @for (title of titleSuggestions; track title; let i = $index) {
                           <button
-                            (click)="selectedTitle = title; customTitle = title"
+                            (click)="onSelectTitle(title)"
                             class="w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-sm"
                             [ngClass]="selectedTitle === title
                               ? 'border-indigo-400 bg-indigo-50/50 shadow-sm'
@@ -1351,6 +1351,29 @@ export class DecisionComponent implements OnInit {
   discoveredVideos: any[] = [];
   isDiscoveringVideos = false;
 
+  saveWorkshopState() {
+    if (!this.currentDecision) return;
+    this.decisionService.updateWorkshopState(this.currentDecision.id, {
+      workshop_step: this.workshopStep,
+      selected_concept: this.selectedConcept || this.customConcept,
+      brainstorm_data: this.brainstormData,
+      selected_title: this.selectedTitle || this.customTitle,
+      thumbnail_brief: this.thumbnailBrief
+    });
+  }
+
+  onSelectConcept(idea: string) {
+    this.selectedConcept = idea;
+    this.customConcept = idea;
+    this.saveWorkshopState();
+  }
+
+  onSelectTitle(title: string) {
+    this.selectedTitle = title;
+    this.customTitle = title;
+    this.saveWorkshopState();
+  }
+
   // Contexte utilisateur pour la popup
   userCtx: UserContext = {
     hasVideoInProgress: false,
@@ -1438,6 +1461,15 @@ export class DecisionComponent implements OnInit {
       const pending = history.find((d) => d.verdict === 'PENDING');
       if (pending) {
         this.currentDecision = pending;
+        if (pending.accepted_at && pending.workshop_step && pending.workshop_step > 1) {
+          this.workshopStep = pending.workshop_step;
+          this.selectedConcept = pending.selected_concept || '';
+          this.customConcept = pending.selected_concept || '';
+          this.brainstormData = pending.brainstorm_data || null;
+          this.selectedTitle = pending.selected_title || '';
+          this.customTitle = pending.selected_title || '';
+          this.thumbnailBrief = pending.thumbnail_brief || null;
+        }
       } else {
         // Chercher la dernière décision évaluée pour l'afficher
         const lastEvaluated = history.find((d) => d.verdict === 'VALIDATED' || d.verdict === 'FAILED');
@@ -1645,12 +1677,22 @@ export class DecisionComponent implements OnInit {
     this.lastEvaluationImprovement = null;
     this.resistanceMessage = null;
     this.resistanceLevel = 0;
-    // Reset workshop if viewing a different accepted decision
+    // Reset or restore workshop if viewing a different accepted decision
     if (decision.accepted_at && decision.verdict === 'PENDING') {
-      this.workshopStep = 1;
-      this.conceptSuggestions = [];
-      this.titleSuggestions = [];
-      this.thumbnailBrief = null;
+      if (decision.workshop_step && decision.workshop_step > 1) {
+        this.workshopStep = decision.workshop_step;
+        this.selectedConcept = decision.selected_concept || '';
+        this.customConcept = decision.selected_concept || '';
+        this.brainstormData = decision.brainstorm_data || null;
+        this.selectedTitle = decision.selected_title || '';
+        this.customTitle = decision.selected_title || '';
+        this.thumbnailBrief = decision.thumbnail_brief || null;
+      } else {
+        this.workshopStep = 1;
+        this.conceptSuggestions = [];
+        this.titleSuggestions = [];
+        this.thumbnailBrief = null;
+      }
       this.videoUrl = '';
       this.linkMessage = '';
       this.loadConceptSuggestions();
@@ -1692,6 +1734,7 @@ export class DecisionComponent implements OnInit {
     this.conceptEvaluation = null;
     // Move to brainstorm step
     this.workshopStep = 2;
+    this.saveWorkshopState();
     this.loadBrainstorm();
   }
 
@@ -1723,6 +1766,7 @@ export class DecisionComponent implements OnInit {
       this.userCtx.videoInProgressTopic = this.brainstormData.refinedConcept;
     }
     this.workshopStep = 3;
+    this.saveWorkshopState();
     this.loadTitleSuggestions();
   }
 
@@ -1794,6 +1838,7 @@ export class DecisionComponent implements OnInit {
 
     // Passer à l'étape 4 et charger le brief miniature
     this.workshopStep = 4;
+    this.saveWorkshopState();
     this.isLoadingWorkshop = true;
     try {
       this.thumbnailBrief = await this.decisionService.getThumbnailBrief(
@@ -1811,6 +1856,7 @@ export class DecisionComponent implements OnInit {
     if (!this.currentDecision || !this.customTitle) return;
     this.currentDecision.video_title = this.customTitle;
     this.workshopStep = 5;
+    this.saveWorkshopState();
     this.discoverVideos();
   }
 

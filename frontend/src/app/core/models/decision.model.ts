@@ -37,6 +37,12 @@ export interface Decision {
   accepted_at: string | null;
   evaluated_at: string | null;
   updated_at: string;
+  workshop_step?: number;
+  selected_concept?: string;
+  brainstorm_data?: any;
+  selected_title?: string;
+  thumbnail_brief?: any;
+  workshop_completed_at?: string | null;
 }
 
 export interface TensionScore {

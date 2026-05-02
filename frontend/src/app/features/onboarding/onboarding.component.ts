@@ -215,7 +215,7 @@ export class OnboardingComponent implements OnInit, OnDestroy {
           this.startAnalysis();
         }
       }
-    }, 2000);
+    }, 5000);
   }
 
   async checkState() {

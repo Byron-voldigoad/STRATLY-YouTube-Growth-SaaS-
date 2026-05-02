@@ -913,6 +913,33 @@ app.post("/decisions/:id/accept", authMiddleware, async (req, res) => {
   }
 });
 
+// Mise à jour de l'état du workshop
+app.patch("/decisions/:id/workshop", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = { ...req.body };
+    
+    // Sécurité : on empêche de modifier l'id ou le user_id, et on injecte le userId
+    delete updateData.id;
+    delete updateData.user_id;
+    // req.userId est injecté par authMiddleware
+    delete updateData.userId; // En cas de doublon
+
+    const { error } = await supabase
+      .from("decisions")
+      .update(updateData)
+      .eq("id", id)
+      .eq("user_id", req.userId);
+
+    if (error) throw error;
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("[NERRA] Workshop update error:", error?.message);
+    res.status(500).json({ error: error?.message || "Erreur mise à jour workshop" });
+  }
+});
+
 // Refuse une décision (gestion de la résistance)
 app.post("/decisions/:id/reject", authMiddleware, async (req, res) => {
   try {

@@ -80,16 +80,13 @@ export class YouTubeService {
    * Récupère les statistiques historiques de la chaîne depuis Supabase
    */
   async getChannelAnalytics() {
-    const user = await this.supabase.getUser();
-    if (!user) return null;
-
     const profile = await this.supabase.getProfile();
     if (!profile?.youtube_channel_id) return null;
 
     const { data, error } = await this.supabase.client
       .from('channel_analytics')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', profile.id)
       .eq('channel_id', profile.youtube_channel_id)
       .order('date', { ascending: true })
       .limit(30);
@@ -102,16 +99,13 @@ export class YouTubeService {
    * Récupère les dernières performances vidéos depuis Supabase
    */
   async getVideoAnalytics() {
-    const user = await this.supabase.getUser();
-    if (!user) return null;
-
     const profile = await this.supabase.getProfile();
     if (!profile?.youtube_channel_id) return null;
 
     const { data, error } = await this.supabase.client
       .from('video_analytics')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', profile.id)
       .eq('channel_id', profile.youtube_channel_id)
       .order('published_at', { ascending: false })
       .limit(50);

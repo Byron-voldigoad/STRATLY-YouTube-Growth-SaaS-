@@ -6,8 +6,8 @@ export const guestGuard: CanActivateFn = async () => {
   const supabase = inject(SupabaseService);
   const router = inject(Router);
 
-  const session = await supabase.getSession();
-  if (session) {
+  const user = await supabase.getUser();
+  if (user) {
     router.navigate(['/dashboard']);
     return false;
   }

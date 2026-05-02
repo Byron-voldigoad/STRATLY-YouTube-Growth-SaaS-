@@ -49,6 +49,16 @@ export class DecisionService {
   }
 
   /**
+   * Met à jour silencieusement l'état du workshop en base (fire and forget)
+   */
+  updateWorkshopState(decisionId: string, partialData: Partial<Decision>): void {
+    this.http.patch(`${this.apiUrl}/decisions/${decisionId}/workshop`, partialData)
+      .subscribe({
+        error: (err) => console.error('[NERRA] Silent workshop update failed:', err)
+      });
+  }
+
+  /**
    * Refuse une décision (déclenche la gestion de résistance)
    */
   async rejectDecision(decisionId: string): Promise<ResistanceResult> {
