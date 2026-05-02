@@ -11,7 +11,8 @@
  * - Le protocole REBOOT (chaînes inactives > 90 jours)
  */
 
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from "./lib/supabase.js";
 import { genkit, z } from "genkit";
 import { google } from "googleapis";
 
@@ -114,10 +115,7 @@ const EXPERIMENT_METRICS: Record<ExperimentType, string> = {
 // ─── Helper ─────────────────────────────────────────────────────────
 
 function getSupabase(): SupabaseClient {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
+  return supabase;
 }
 
 /**

@@ -7,7 +7,8 @@ import { expressHandler } from "@genkit-ai/express";
 import express from "express";
 import cors from "cors";
 import { google } from "googleapis";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "./lib/supabase.js";
+import { authMiddleware } from "./middleware/auth.middleware.js";
 import { processVideos } from "./videoProcessor.js";
 import {
   fetchVideoMetricsBatch,
@@ -210,10 +211,7 @@ export const analyzeChannelFlow = ai.defineFlow(
     const filteredVideos = processedVideos.filter((v) => !v.isOutlier);
 
     // Récupérer le access_token depuis Supabase via client dédié
-    const supabaseClient = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    const supabaseClient = supabase;
 
     const { data: profileData } = await supabaseClient
       .from("profiles")
@@ -559,10 +557,7 @@ RÈGLES ABSOLUES :
     };
 
     // PERSISTANCE DANS SUPABASE
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+
 
     const { error: upsertError } = await supabase.from("ai_analyses").upsert(
       {
@@ -613,10 +608,7 @@ export const generateIdeasFlow = ai.defineFlow(
     });
 
     const ideas = output || [];
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+
     const { error: ideasError } = await supabase.from("ai_analyses").upsert(
       {
         user_id: input.userId,
@@ -641,10 +633,7 @@ export const importYouTubeFlow = ai.defineFlow(
     outputSchema: z.any(),
   },
   async (input) => {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
@@ -824,10 +813,7 @@ export const detectNichesFlow = ai.defineFlow(
     );
 
     // Persistance dans Supabase
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+
     const { error: nicheError } = await supabase.from("user_niches").upsert(
       {
         user_id: input.userId,
@@ -854,21 +840,18 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post("/analyzeChannel", expressHandler(analyzeChannelFlow));
-app.post("/generateIdeas", expressHandler(generateIdeasFlow));
-app.post("/importYouTube", expressHandler(importYouTubeFlow));
-app.post("/detectNiches", expressHandler(detectNichesFlow));
-app.get("/analyses/latest", async (req, res) => {
+app.post("/analyzeChannel", authMiddleware, expressHandler(analyzeChannelFlow));
+app.post("/generateIdeas", authMiddleware, expressHandler(generateIdeasFlow));
+app.post("/importYouTube", authMiddleware, expressHandler(importYouTubeFlow));
+app.post("/detectNiches", authMiddleware, expressHandler(detectNichesFlow));
+app.get("/analyses/latest", authMiddleware, async (req, res) => {
   try {
     const { userId, channelId, type } = req.query as { userId: string; channelId: string; type?: string };
     if (!userId || !channelId) {
       return res.status(400).json({ error: "userId et channelId requis" });
     }
     const analysisType = type || "channel";
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+
     const { data, error } = await supabase
       .from("ai_analyses")
       .select("analysis_text, updated_at")
@@ -895,7 +878,7 @@ app.get("/health", (req, res) => res.json({ status: "ok" }));
 // ─── NERRA Decision Engine Endpoints ────────────────────────────────
 
 // Génère la prochaine décision
-app.post("/decisions/next", async (req, res) => {
+app.post("/decisions/next", authMiddleware, async (req, res) => {
   try {
     const { userId, channelId, auditInsights, userContext } = req.body;
     if (!userId || !channelId) {
@@ -910,7 +893,7 @@ app.post("/decisions/next", async (req, res) => {
 });
 
 // Évalue une décision après publication
-app.post("/decisions/:id/evaluate", async (req, res) => {
+app.post("/decisions/:id/evaluate", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { resultValue } = req.body;
@@ -926,7 +909,7 @@ app.post("/decisions/:id/evaluate", async (req, res) => {
 });
 
 // Accepte une décision
-app.post("/decisions/:id/accept", async (req, res) => {
+app.post("/decisions/:id/accept", authMiddleware, async (req, res) => {
   try {
     await acceptDecision(req.params.id);
     res.json({ success: true });
@@ -937,7 +920,7 @@ app.post("/decisions/:id/accept", async (req, res) => {
 });
 
 // Refuse une décision (gestion de la résistance)
-app.post("/decisions/:id/reject", async (req, res) => {
+app.post("/decisions/:id/reject", authMiddleware, async (req, res) => {
   try {
     const result = await handleResistance(req.params.id);
     res.json({ success: true, ...result });
@@ -948,7 +931,7 @@ app.post("/decisions/:id/reject", async (req, res) => {
 });
 
 // Historique des décisions
-app.get("/decisions/history", async (req, res) => {
+app.get("/decisions/history", authMiddleware, async (req, res) => {
   try {
     const { userId, channelId } = req.query as { userId: string; channelId: string };
     if (!userId || !channelId) {
@@ -963,7 +946,7 @@ app.get("/decisions/history", async (req, res) => {
 });
 
 // Score de tension stratégique
-app.get("/decisions/tension-score", async (req, res) => {
+app.get("/decisions/tension-score", authMiddleware, async (req, res) => {
   try {
     const { userId, channelId } = req.query as { userId: string; channelId: string };
     if (!userId || !channelId) {
@@ -978,7 +961,7 @@ app.get("/decisions/tension-score", async (req, res) => {
 });
 
 // Mode actuel (ASSISTED / PILOT)
-app.get("/decisions/mode", async (req, res) => {
+app.get("/decisions/mode", authMiddleware, async (req, res) => {
   try {
     const { userId, channelId } = req.query as { userId: string; channelId: string };
     if (!userId || !channelId) {
@@ -994,7 +977,7 @@ app.get("/decisions/mode", async (req, res) => {
 });
 
 // Génère les suggestions de titres pour une décision acceptée
-app.post("/decisions/:id/titles", async (req, res) => {
+app.post("/decisions/:id/titles", authMiddleware, async (req, res) => {
   try {
     const { userContext } = req.body;
     const result = await generateTitleSuggestions(ai, req.params.id, userContext);
@@ -1006,7 +989,7 @@ app.post("/decisions/:id/titles", async (req, res) => {
 });
 
 // Génère les suggestions de concepts pour une décision acceptée
-app.post("/decisions/:id/concepts", async (req, res) => {
+app.post("/decisions/:id/concepts", authMiddleware, async (req, res) => {
   try {
     const { userNotes } = req.body;
     const result = await generateVideoConcepts(ai, req.params.id, userNotes);
@@ -1018,7 +1001,7 @@ app.post("/decisions/:id/concepts", async (req, res) => {
 });
 
 // Évalue un concept personnalisé proposé par l'utilisateur
-app.post("/decisions/:id/evaluate-concept", async (req, res) => {
+app.post("/decisions/:id/evaluate-concept", authMiddleware, async (req, res) => {
   try {
     const { concept } = req.body;
     if (!concept) {
@@ -1033,7 +1016,7 @@ app.post("/decisions/:id/evaluate-concept", async (req, res) => {
 });
 
 // Brainstorm : développe un concept avec l'utilisateur
-app.post("/decisions/:id/brainstorm", async (req, res) => {
+app.post("/decisions/:id/brainstorm", authMiddleware, async (req, res) => {
   try {
     const { concept, userNotes } = req.body;
     if (!concept) {
@@ -1048,7 +1031,7 @@ app.post("/decisions/:id/brainstorm", async (req, res) => {
 });
 
 // Évalue un titre personnalisé proposé par l'utilisateur
-app.post("/decisions/:id/evaluate-title", async (req, res) => {
+app.post("/decisions/:id/evaluate-title", authMiddleware, async (req, res) => {
   try {
     const { title, userContext } = req.body;
     if (!title) {
@@ -1063,7 +1046,7 @@ app.post("/decisions/:id/evaluate-title", async (req, res) => {
 });
 
 // Génère un brief miniature pour une décision acceptée
-app.post("/decisions/:id/thumbnail-brief", async (req, res) => {
+app.post("/decisions/:id/thumbnail-brief", authMiddleware, async (req, res) => {
   try {
     const { videoTitle } = req.body;
     const result = await generateThumbnailBrief(ai, req.params.id, videoTitle);
@@ -1077,7 +1060,7 @@ app.post("/decisions/:id/thumbnail-brief", async (req, res) => {
 import { evaluateCustomTitle, evaluateThumbnailBase64 } from "./decisionEngine.js";
 
 // Évalue une miniature uploadée en base64
-app.post("/decisions/:id/evaluate-thumbnail", async (req, res) => {
+app.post("/decisions/:id/evaluate-thumbnail", authMiddleware, async (req, res) => {
   try {
     const { base64Image } = req.body;
     if (!base64Image) {
@@ -1092,7 +1075,7 @@ app.post("/decisions/:id/evaluate-thumbnail", async (req, res) => {
 });
 
 // Lie une vidéo YouTube à une décision et lance l'évaluation auto
-app.post("/decisions/:id/link-video", async (req, res) => {
+app.post("/decisions/:id/link-video", authMiddleware, async (req, res) => {
   try {
     const { videoId, videoTitle } = req.body;
     if (!videoId) {
@@ -1107,7 +1090,7 @@ app.post("/decisions/:id/link-video", async (req, res) => {
 });
 
 // Récupère les chaînes disponibles pour un compte déjà connecté
-app.post("/auth/youtube/callback", async (req, res) => {
+app.post("/auth/youtube/callback", authMiddleware, async (req, res) => {
   try {
     console.log("--- ENTERING OAUTH CALLBACK ROUTE ---", req.body);
     const { code, userId } = req.body;
@@ -1165,10 +1148,7 @@ app.post("/auth/youtube/callback", async (req, res) => {
 
     // 3. Sauvegarder dans Supabase
     console.log("Step 3: Saving to Supabase for userId:", userId);
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+
 
     const updateData: Record<string, any> = {
       youtube_access_token: tokens.access_token,
