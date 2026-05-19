@@ -8,6 +8,7 @@ import express from "express";
 import cors from "cors";
 import { google } from "googleapis";
 import { supabase } from "./lib/supabase.js";
+import { logAiInteraction } from "./lib/logger.js";
 import { authMiddleware } from "./middleware/auth.middleware.js";
 import { processVideos } from "./videoProcessor.js";
 import {
@@ -416,14 +417,18 @@ ${nicheTrends.length > 0
               `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`,
           )
           .join("\n")
-        : "Aucune tendance trouvée pour cette niche"
+        : "Aucune tendance"
       }
+    `;
 
-${thumbnailsPromptSection}`;
+    let output: any = null;
+    let errorToLog: any = null;
+    const startTime = Date.now();
 
-    const { output } = await ai.generate({
-      model: "openai/llama-3.3-70b-versatile",
-      system: `Tu es un analyste YouTube expert. 
+    try {
+      const genResponse = await ai.generate({
+        model: "openai/llama-3.3-70b-versatile",
+        system: `Tu es un analyste YouTube expert. 
 Tu reçois des données réelles et calculées d'une chaîne.
 Si la chaîne contient 0 vidéo, considère-la comme une "Nouvelle Chaîne" et oriente ta recommandation vers le lancement (choix de niche, premier concept).
 
@@ -463,7 +468,7 @@ RÈGLES ABSOLUES :
    un format ou un type de contenu précis,
    pas une direction générale.
 3. Le champ proof DOIT contenir des chiffres 
-   issus des données fournies — pas d'invention
+   issu des données fournies — pas d'invention
 4. Si une donnée manque, tu écris 
    "Données insuffisantes" — jamais une valeur inventée
 5. Tu ignores les vidéos marquées isOutlier: true
@@ -497,17 +502,40 @@ RÈGLES ABSOLUES :
 14. Si ANALYSE DES MINIATURES est disponible, utilise ces informations pour enrichir recommendation.proof. Si une vidéo performante a du texte visible et des couleurs vives dans sa miniature, mentionne-le comme facteur de succès. Si une vidéo a une MINIATURE ABSENTE, mentionne explicitement que l'absence de miniature personnalisée est probablement l'une des causes de ses mauvaises performances, SAUF si la vidéo est identifiée comme un format court, 'clip', ou Short (ex: titre contenant #shorts, mots-clés liés aux jeux mobiles/édits) car les Shorts n'ont PAS de miniature personnalisée sur YouTube. Ne recommande JAMAIS de miniature pour un Short.
 15. RÈGLE ABSOLUE POUR LES SHORTS : Toute vidéo dont le 'Format' (contentType) est noté comme 'clip' est UN SHORT. Pour ces vidéos 'clip', TU NE DOIS JAMAIS MENTIONNER L'ABSENCE DE MINIATURE, NI DANS 'À éviter', NI DANS 'Pourquoi', NI DANS 'Stratégie Recommandée'. C'est interdit, car ça donne de mauvais conseils à l'utilisateur.
     `,
-      prompt: userPrompt,
-      output: {
-        format: "json",
-        schema: AnalysisResultSchema,
-      },
-      config: {
-        temperature: 0.1,
-        // @ts-ignore
-        response_format: { type: "json_object" },
-      },
-    });
+        prompt: userPrompt,
+        output: {
+          format: "json",
+          schema: AnalysisResultSchema,
+        },
+        config: {
+          temperature: 0.1,
+          // @ts-ignore
+          response_format: { type: "json_object" },
+        },
+      });
+      output = genResponse.output;
+    } catch (err: any) {
+      errorToLog = {
+        message: err.message,
+        status: err.status,
+        stack: err.stack,
+        details: err.details
+      };
+      throw err; // On rethrow pour ne pas casser le flux utilisateur, mais on veut logger avant si possible
+    } finally {
+      const latencyMs = Date.now() - startTime;
+      console.log(`[DEBUG] analyzeChannelFlow: Attempting log for userId=${input.userId}, channelId=${input.channelId}`);
+      logAiInteraction(
+        input.userId,
+        input.channelId,
+        userNiche !== "Non renseignée" ? userNiche : null,
+        "audit",
+        userPrompt,
+        output || errorToLog,
+        "openai/llama-3.3-70b-versatile",
+        latencyMs
+      );
+    }
 
     if (!output) {
       console.error("GENKIT ERROR: No output from model");
@@ -575,6 +603,7 @@ export const generateIdeasFlow = ai.defineFlow(
   async (input) => {
     const prompt = `Génère 5 idées de vidéos YouTube pour "${input.niche}". Top vidéos : ${input.topVideos.map((v) => v.title).join(", ")}. JSON array uniquement.`;
 
+    const startTime = Date.now();
     const { output } = await ai.generate({
       model: "openai/llama-3.3-70b-versatile",
       prompt,
@@ -588,6 +617,17 @@ export const generateIdeasFlow = ai.defineFlow(
         response_format: { type: "json_object" },
       },
     });
+    const latencyMs = Date.now() - startTime;
+    logAiInteraction(
+      input.userId,
+      input.channelId,
+      input.niche,
+      "workshop_concept", // or ideas
+      prompt,
+      output,
+      "openai/llama-3.3-70b-versatile",
+      latencyMs
+    );
 
     const ideas = output || [];
 
@@ -745,10 +785,7 @@ export const detectNichesFlow = ai.defineFlow(
       "VIDEOS ---",
     );
 
-    const { output } = await ai.generate({
-      model: "openai/llama-3.3-70b-versatile",
-      system: `Tu es un expert en classification thématique de contenus YouTube. NE RENVOIE QUE DU JSON VALIDE. Ton JSON DOIT contenir 'niches' et 'outliers'. Pas de markdown, pas de texte autour.`,
-      prompt: `
+    const promptText = `
             Analyse les titres de ces vidéos YouTube et regroupe-les par thème/niche.
 
             RÈGLES:
@@ -770,7 +807,13 @@ export const detectNichesFlow = ai.defineFlow(
 
             VIDÉOS À CLASSIFIER:
             ${input.videos.map((v) => `- ID: ${v.id} | Titre: ${v.title} | Vues: ${v.views}`).join("\n")}
-            `,
+            `;
+    
+    const startTime = Date.now();
+    const { output } = await ai.generate({
+      model: "openai/llama-3.3-70b-versatile",
+      system: `Tu es un expert en classification thématique de contenus YouTube. NE RENVOIE QUE DU JSON VALIDE. Ton JSON DOIT contenir 'niches' et 'outliers'. Pas de markdown, pas de texte autour.`,
+      prompt: promptText,
       output: {
         format: "json",
         schema: NicheDetectionResultSchema,
@@ -781,6 +824,17 @@ export const detectNichesFlow = ai.defineFlow(
         response_format: { type: "json_object" },
       },
     });
+    const latencyMs = Date.now() - startTime;
+    logAiInteraction(
+      input.userId,
+      input.channelId,
+      null, // No niche provided
+      "niche_detection",
+      promptText,
+      output,
+      "openai/llama-3.3-70b-versatile",
+      latencyMs
+    );
 
     if (!output) {
       throw new Error(

@@ -15,6 +15,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase.js";
 import { genkit, z } from "genkit";
 import { google } from "googleapis";
+import { logAiInteraction } from "./lib/logger.js";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -650,6 +651,30 @@ IMPORTANT : Adapte ta décision pour qu'elle puisse s'appliquer à cette vidéo 
     ai_reasoning: z.string().describe("Raisonnement qui INCLUT OBLIGATOIREMENT le nom et chiffre des vidéos extraites dans cited_videos."),
   });
 
+  const startTime = Date.now();
+  const promptText = `Génère la prochaine décision stratégique pour cette chaîne YouTube.
+
+STATS CHAÎNE :
+${statsContext}
+
+DERNIÈRES VIDÉOS (avec métriques réelles) :
+${videoContext}
+
+HISTORIQUE DES DÉCISIONS (les plus récentes en premier) :
+${historyContext}
+
+TYPES RÉCEMMENT TESTÉS (éviter la répétition) : ${recentTypes.join(", ") || "Aucun"}
+TYPES RÉSISTÉS (l'utilisateur a refusé 3 fois) : ${resistedTypes.join(", ") || "Aucun"}
+${auditContext}
+${userCtxBlock}
+
+CONTRAINTES :
+- Ne propose PAS un type déjà résisté sauf si c'est absolument critique.
+- Varie les types d'expériences pour couvrir tous les leviers de croissance.
+- Le ai_reasoning DOIT citer des vidéos spécifiques avec leurs métriques réelles (vues, engagement). PAS de généralités.
+${auditInsights ? "- Ta décision DOIT être alignée avec les conclusions de l'audit IA ci-dessus." : ""}
+${userContext?.hasVideoInProgress ? "- Adapte la décision à la vidéo en cours de préparation." : ""}`;
+
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
     system: `Tu es NERRA, un système de pilotage stratégique YouTube. Tu ne suggères pas — tu DÉCIDES.
@@ -680,28 +705,7 @@ MODE ACTUEL : ${modeInfo.mode}
 ${modeInfo.mode === "PILOT" ? "En mode PILOT, tu IMPOSES une décision unique. Pas de suggestion, pas d'option." : "En mode ASSISTED, tu formules une hypothèse que l'utilisateur peut accepter ou refuser."}
 
 ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive depuis ${rebootStatus.daysSinceLastVideo} jours. Propose une expérience de réactivation rapide basée sur un format qui a déjà fonctionné pour cette chaîne (cite la vidéo).` : ""}`,
-    prompt: `Génère la prochaine décision stratégique pour cette chaîne YouTube.
-
-STATS CHAÎNE :
-${statsContext}
-
-DERNIÈRES VIDÉOS (avec métriques réelles) :
-${videoContext}
-
-HISTORIQUE DES DÉCISIONS (les plus récentes en premier) :
-${historyContext}
-
-TYPES RÉCEMMENT TESTÉS (éviter la répétition) : ${recentTypes.join(", ") || "Aucun"}
-TYPES RÉSISTÉS (l'utilisateur a refusé 3 fois) : ${resistedTypes.join(", ") || "Aucun"}
-${auditContext}
-${userCtxBlock}
-
-CONTRAINTES :
-- Ne propose PAS un type déjà résisté sauf si c'est absolument critique.
-- Varie les types d'expériences pour couvrir tous les leviers de croissance.
-- Le ai_reasoning DOIT citer des vidéos spécifiques avec leurs métriques réelles (vues, engagement). PAS de généralités.
-${auditInsights ? "- Ta décision DOIT être alignée avec les conclusions de l'audit IA ci-dessus." : ""}
-${userContext?.hasVideoInProgress ? "- Adapte la décision à la vidéo en cours de préparation." : ""}`,
+    prompt: promptText,
     output: {
       format: "json",
       schema: DecisionOutputSchema,
@@ -712,6 +716,19 @@ ${userContext?.hasVideoInProgress ? "- Adapte la décision à la vidéo en cours
       response_format: { type: "json_object" },
     },
   });
+  
+  const latencyMs = Date.now() - startTime;
+  console.log(`[DEBUG] generateNextDecision: Attempting log for userId=${userId}, channelId=${channelId}`);
+  logAiInteraction(
+    userId,
+    channelId,
+    null,
+    "decision_generation",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs
+  );
 
   if (!output) {
     throw new Error("Le modèle IA n'a pas généré de décision.");
@@ -795,19 +812,8 @@ export async function generateVideoConcepts(
     reasoning: z.string().describe("Raisonnement global sur les opportunités de la niche"),
   });
 
-  const { output } = await ai.generate({
-    model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, un producteur stratégique YouTube.
-Tu génères EXACTEMENT 3 concepts de vidéos en te basant sur les DONNÉES DE TENDANCES YouTube fournies.
-
-RÈGLES :
-1. Chaque concept doit cibler une opportunité : forte demande + peu de concurrence de qualité.
-2. Analyse les tendances fournies : quels sujets marchent ? Quels angles sont saturés ? Quels sous-sujets sont sous-exploités ?
-3. Pour chaque concept, fournis un 'marketInsight' expliquant POURQUOI c'est une opportunité (ex: "Les vidéos sur X font 500k+ vues mais aucune ne couvre l'angle Y").
-4. Adapte le format au type de décision (clip/Short = concepts visuels rapides, vidéo longue = contenu dense).
-5. Sois ULTRA spécifique. Pas "Une vidéo sur l'anime" mais "Un edit de 30s comparant la puissance de Jinwoo saison 1 vs saison 2".
-6. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
-    prompt: `Génère 3 idées de vidéos en exploitant les tendances marché.
+  const startTime = Date.now();
+  const promptText = `Génère 3 idées de vidéos en exploitant les tendances marché.
 
 DÉCISION STRATÉGIQUE :
 - Hypothèse : "${decision.hypothesis}"
@@ -824,7 +830,21 @@ ${trendData.length > 0
   : "Données non disponibles — base tes propositions sur ta connaissance du marché."
 }
 
-Propose 3 concepts qui exploitent des TROUS dans le marché : sujets recherchés mais mal couverts.`,
+Propose 3 concepts qui exploitent des TROUS dans le marché : sujets recherchés mais mal couverts.`;
+
+  const { output } = await ai.generate({
+    model: "openai/llama-3.3-70b-versatile",
+    system: `Tu es NERRA, un producteur stratégique YouTube.
+Tu génères EXACTEMENT 3 concepts de vidéos en te basant sur les DONNÉES DE TENDANCES YouTube fournies.
+
+RÈGLES :
+1. Chaque concept doit cibler une opportunité : forte demande + peu de concurrence de qualité.
+2. Analyse les tendances fournies : quels sujets marchent ? Quels angles sont saturés ? Quels sous-sujets sont sous-exploités ?
+3. Pour chaque concept, fournis un 'marketInsight' expliquant POURQUOI c'est une opportunité (ex: "Ce sujet a 50k+ recherches/mois mais seulement 3 vidéos de qualité existantes").
+4. Adapte le format au type de décision (clip/Short = concepts visuels rapides, vidéo longue = contenu dense).
+5. Sois ULTRA spécifique. Pas "Une vidéo sur l'anime" mais "Un edit de 30s comparant la puissance de Jinwoo saison 1 vs saison 2".
+6. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+    prompt: promptText,
     output: { format: "json", schema: ConceptOutputSchema },
     config: { temperature: 0.8 },
   });
@@ -870,21 +890,8 @@ export async function evaluateVideoConcept(
     feedback: z.string().describe("Feedback constructif en 2-3 phrases max, incluant l'analyse marché"),
   });
 
-  const { output } = await ai.generate({
-    model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, un producteur stratégique YouTube.
-On te soumet une idée de vidéo. Tu dois l'évaluer en fonction de la stratégie ET des données de marché.
-
-RÈGLES :
-1. Note de 1 à 10 (10 = idée avec fort potentiel marché et alignée avec la stratégie).
-2. Dans ton feedback, mentionne OBLIGATOIREMENT :
-   - Si le sujet est demandé (vues des vidéos similaires dans les tendances)
-   - Si le sujet est saturé ou peu couvert
-   - Ce qui manque pour maximiser les chances
-3. Sois direct et constructif.
-4. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
-5. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
-    prompt: `Évalue cette idée de vidéo :
+  const startTime = Date.now();
+  const promptText = `Évalue cette idée de vidéo :
 
 IDÉE PROPOSÉE : "${concept}"
 
@@ -902,10 +909,38 @@ ${trendData.length > 0
   : "Données de tendances non disponibles."
 }
 
-L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stratégie ?`,
+L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stratégie ?`;
+
+  const { output } = await ai.generate({
+    model: "openai/llama-3.3-70b-versatile",
+    system: `Tu es NERRA, un producteur stratégique YouTube.
+On te soumet une idée de vidéo. Tu dois l'évaluer en fonction de la stratégie ET des données de marché.
+
+RÈGLES :
+1. Note de 1 à 10 (10 = idée avec fort potentiel marché et alignée avec la stratégie).
+2. Dans ton feedback, mentionne OBLIGATOIREMENT :
+   - Si le sujet est demandé (vues des vidéos similaires dans les tendances)
+   - Si le sujet est saturé ou peu couvert
+   - Ce qui manque pour maximiser les chances
+3. Sois direct et constructif.
+4. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
+5. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+    prompt: promptText,
     output: { format: "json", schema: EvalSchema },
     config: { temperature: 0.3 },
   });
+
+  const latencyMs = Date.now() - startTime;
+  logAiInteraction(
+    decision.user_id,
+    decision.channel_id,
+    null,
+    "workshop_concept",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs
+  );
 
   if (!output) throw new Error("Échec de l'évaluation");
   return { score: output.score, feedback: output.feedback };
@@ -979,6 +1014,19 @@ export async function brainstormConcept(
 
   const BrainstormSchema = z.object(baseFields);
 
+  const startTime = Date.now();
+  const promptText = `Développe cette idée de vidéo en détail.
+
+CONCEPT : "${concept}"
+
+DÉCISION STRATÉGIQUE :
+- Hypothèse : "${decision.hypothesis}"
+- Type : ${decision.experiment_type}
+
+${userNotes ? `NOTES/SUGGESTIONS DE L'UTILISATEUR (À ÉVALUER ET INTÉGRER) :\n"${userNotes}"` : "Aucune note."}
+
+Plan de production avec scènes précises et suggestions musicales du MÊME GENRE.`;
+
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
     system: `Tu es NERRA, un directeur créatif YouTube et music supervisor expert. Tu opères dans N'IMPORTE QUELLE NICHE (gaming, finance, vlog, anime, tech, etc.). Adapte-toi au contexte du concept.
@@ -1003,20 +1051,22 @@ ${userNotes ? `RÈGLES ÉVALUATION DES NOTES :
 10. INTÈGRE ses suggestions dans le plan raffiné.` : ""}
 
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
-    prompt: `Développe cette idée de vidéo en détail.
-
-CONCEPT : "${concept}"
-
-DÉCISION STRATÉGIQUE :
-- Hypothèse : "${decision.hypothesis}"
-- Type : ${decision.experiment_type}
-
-${userNotes ? `NOTES/SUGGESTIONS DE L'UTILISATEUR (À ÉVALUER ET INTÉGRER) :\n"${userNotes}"` : "Aucune note."}
-
-Plan de production avec scènes précises et suggestions musicales du MÊME GENRE.`,
+    prompt: promptText,
     output: { format: "json", schema: BrainstormSchema },
     config: { temperature: 0.7 },
   });
+
+  const latencyMs = Date.now() - startTime;
+  logAiInteraction(
+    decision.user_id,
+    decision.channel_id,
+    null,
+    "workshop_brainstorm",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs
+  );
 
   if (!output) throw new Error("Échec du brainstorm");
 
@@ -1129,19 +1179,8 @@ export async function generateTitleSuggestions(
     reasoning: z.string().describe("Pourquoi ces titres fonctionneraient"),
   });
 
-  const { output } = await ai.generate({
-    model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, un expert en titres YouTube optimisés pour le CTR.
-Tu génères EXACTEMENT 3 propositions de titres pour une vidéo YouTube.
-
-RÈGLES :
-1. Chaque titre doit être accrocheur, court (< 60 caractères) et optimisé pour le CTR.
-2. Varie les styles : un émotionnel, un descriptif, un clickbait maîtrisé.
-3. Analyse attentivement la structure et les "Click Triggers" du BENCHMARK YOUTUBE fourni, ce sont les vidéos les plus performantes globalement sur ce sujet précis.
-4. TU DOIS IMPÉRATIVEMENT CITER LES TITRES EXACTS du benchmark dans ton champ 'reasoning' pour justifier pourquoi tes propositions fonctionneront (ex: "J'ai utilisé la structure de la vidéo X qui a fait 1M vues...").
-5. Intègre impérativement le contexte spécifique fourni par l'utilisateur.
-6. RENVOIE UNIQUEMENT DU JSON VALIDE`,
-    prompt: `Génère 3 titres pour cette vidéo.
+  const startTime = Date.now();
+  const promptText = `Génère 3 titres pour cette vidéo.
 
 DÉCISION ACCEPTÉE :
 - Hypothèse : "${decision.hypothesis}"
@@ -1159,10 +1198,36 @@ ${benchmarkVideos.map((v: any) => {
   return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
 }).join("\n")}
 
-Génère 3 titres qui appliquent l'expérience décidée tout en s'inspirant fortement de la structure des titres du BENCHMARK et en respectant le contexte utilisateur.`,
+Génère 3 titres qui appliquent l'expérience décidée tout en s'inspirant fortement de la structure des titres du BENCHMARK et en respectant le contexte utilisateur.`;
+
+  const { output } = await ai.generate({
+    model: "openai/llama-3.3-70b-versatile",
+    system: `Tu es NERRA, un expert en titres YouTube optimisés pour le CTR.
+Tu génères EXACTEMENT 3 propositions de titres pour une vidéo YouTube.
+
+RÈGLES :
+1. Chaque titre doit être accrocheur, court (< 60 caractères) et optimisé pour le CTR.
+2. Varie les styles : un émotionnel, un descriptif, un clickbait maîtrisé.
+3. Analyse attentivement la structure et les "Click Triggers" du BENCHMARK YOUTUBE fourni, ce sont les vidéos les plus performantes globalement sur ce sujet précis.
+4. TU DOIS IMPÉRATIVEMENT CITER LES TITRES EXACTS du benchmark dans ton champ 'reasoning' pour justifier pourquoi tes propositions fonctionneront (ex: "J'ai utilisé la structure de la vidéo X qui a fait 1M vues...").
+5. Intègre impérativement le contexte spécifique fourni par l'utilisateur.
+6. RENVOIE UNIQUEMENT DU JSON VALIDE`,
+    prompt: promptText,
     output: { format: "json", schema: TitleOutputSchema },
     config: { temperature: 0.7 },
   });
+
+  const latencyMs = Date.now() - startTime;
+  logAiInteraction(
+    decision.user_id,
+    decision.channel_id,
+    null,
+    "title_generation",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs
+  );
 
   if (!output) throw new Error("Échec de la génération de titres");
 
@@ -1199,19 +1264,8 @@ export async function evaluateCustomTitle(
     feedback: z.string().describe("Avis stratégique court et constructif sur le titre, et pourquoi il marche ou comment l'améliorer."),
   });
 
-  const { output } = await ai.generate({
-    model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, une stratège de croissance YouTube d'élite et une experte en psychologie de l'audience. Ta mission est d'auditer le titre proposé avec une exigence maximale.
-Ne sois pas simplement "gentille", sois stratégique. On n'est pas là pour faire une jolie vidéo, on est là pour dominer la niche.
-
-RÈGLES D'AUDIT :
-1. ANALYSE DU POINT FOCAL : Le titre doit immédiatement capturer l'intérêt. S'il est trop générique (ex: "My AMV"), c'est une erreur mortelle. Dis-le.
-2. ALIGNEMENT STRATÉGIQUE : Le titre doit refléter parfaitement le SUJET et l'HYPOTHÈSE de l'expérience. Si l'utilisateur s'éloigne de son objectif, recadre-le.
-3. BENCHMARK GLOBAL : Compare le titre à ce qui fonctionne ACTUELLEMENT sur YouTube dans cette niche. TU DOIS IMPÉRATIVEMENT CITER des titres exacts du benchmark pour appuyer ton argumentaire (ex: "La vidéo 'X' a fait 800k vues en utilisant cette structure...").
-4. PSYCHOLOGIE : Cherche le "Click Trigger" (curiosité, émotion, urgence). S'il manque, le score doit être sévère mais le conseil doit être précis.
-5. TON : Direct, pro, exigeant mais orienté résultats. 
-RENVOIE UNIQUEMENT DU JSON VALIDE.`,
-    prompt: `Voici le titre proposé par le créateur : "${title}"
+  const startTime = Date.now();
+  const promptText = `Voici le titre proposé par le créateur : "${title}"
 
 DÉCISION À APPLIQUER :
 - Type d'expérience : ${decision.experiment_type}
@@ -1224,10 +1278,37 @@ ${userContext?.notes ? `- Notes : "${userContext.notes}"` : ""}
 BENCHMARK YOUTUBE (Vidéos globales les plus performantes sur ce sujet) :
 ${benchmarkVideos.map((v: any) => `- "${v.title}" (${v.views} vues)`).join("\n") || "- Pas de données"}
 
-Évalue ce titre en lui donnant une note sur 10. Assure-toi qu'il correspond bien au contexte de la vidéo. Donne un conseil pour l'optimiser si nécessaire en s'inspirant de CE QUI MARCHE GLOBALEMENT SUR YOUTUBE (cf: Benchmark).`,
+Évalue ce titre en lui donnant une note sur 10. Assure-toi qu'il correspond bien au contexte de la vidéo. Si le titre est déjà optimal (9-10/10), ne propose pas d'optimisation. Sinon, donne un conseil pour l'optimiser en s'inspirant de CE QUI MARCHE GLOBALEMENT SUR YOUTUBE (cf: Benchmark).`;
+
+  const { output } = await ai.generate({
+    model: "openai/llama-3.3-70b-versatile",
+    system: `Tu es NERRA, une stratège de croissance YouTube d'élite et une experte en psychologie de l'audience. Ta mission est d'auditer le titre proposé avec une exigence maximale.
+Ne sois pas simplement "gentille", sois stratégique. On n'est pas là pour faire une jolie vidéo, on est là pour dominer la niche.
+
+RÈGLES D'AUDIT :
+1. ANALYSE DU POINT FOCAL : Le titre doit immédiatement capturer l'intérêt. S'il est trop générique (ex: "My AMV"), c'est une erreur mortelle. Dis-le.
+2. ALIGNEMENT STRATÉGIQUE : Le titre doit refléter parfaitement le SUJET et l'HYPOTHÈSE de l'expérience. Si l'utilisateur s'éloigne de son objectif, recadre-le.
+3. BENCHMARK GLOBAL : Compare le titre à ce qui fonctionne ACTUELLEMENT sur YouTube dans cette niche. TU DOIS IMPÉRATIVEMENT CITER des titres exacts du benchmark pour appuyer ton argumentaire (ex: "La vidéo 'X' a fait 800k vues en utilisant cette structure...").
+4. PSYCHOLOGIE : Cherche le "Click Trigger" (curiosité, émotion, urgence). S'il manque, le score doit être sévère mais le conseil doit être précis.
+5. TON : Direct, pro, exigeant mais orienté résultats. 
+6. RÈGLE DE SATISFACTION (CRUCIAL) : Si le titre est déjà excellent (score 9 ou 10), ton feedback doit être uniquement un encouragement (ex: "Titre parfait, prêt à publier"). NE PROPOSE AUCUNE modification ou optimisation si le score est >= 9. Si le score est 8, le conseil doit être optionnel, très court et ne pas remettre en cause la structure globale.
+RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+    prompt: promptText,
     output: { format: "json", schema: EvalOutputSchema },
     config: { temperature: 0.5 },
   });
+
+  const latencyMs = Date.now() - startTime;
+  logAiInteraction(
+    decision.user_id,
+    decision.channel_id,
+    null,
+    "title_evaluation",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs
+  );
 
   if (!output) throw new Error("Échec de l'évaluation du titre");
 
@@ -1289,6 +1370,31 @@ export async function generateThumbnailBrief(
     generationPrompt: z.string().describe("Un prompt en anglais détaillé pour générer cette image avec Midjourney ou DALL-E. Le prompt DOIT inclure les dimensions YouTube standard : 1280x720 pixels, ratio 16:9, orientation paysage (landscape). Si un texte est recommandé dans 'textOverlay', demande EXPLICITEMENT de l'intégrer à l'image (ex: with the text 'YOUR TEXT' written in bold typography). Le prompt doit correspondre au STYLE et à l'AMBIANCE réelle du contenu, PAS à une interprétation littérale du titre."),
   });
 
+  const startTime = Date.now();
+  const promptText = `Crée un brief miniature pour cette vidéo.
+
+DÉCISION :
+- Hypothèse : "${decision.hypothesis}"
+- Type d'expérience : ${decision.experiment_type}
+${videoTitleContext ? `- Titre choisi : "${videoTitleContext}"` : ""}
+
+TOUS LES TITRES DE LA CHAÎNE (pour identifier la niche générale) :
+${allVideoTitles}
+
+BENCHMARK YOUTUBE (Meilleures vidéos globales pour ce sujet) :
+${benchmarkVideos.map((v: any) => {
+  const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
+  return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
+}).join("\n")}
+
+INSTRUCTIONS (SUIS CET ORDRE) :
+1. Identifie la NICHE de la chaîne à partir de tous les titres
+2. Si le titre de la vidéo fait référence à une chanson, un anime ou une œuvre connue : rappelle-toi ses PAROLES, son THÈME et son AMBIANCE RÉELLE
+3. Identifie le STYLE DE TEXTE (textOverlay) le plus performant en analysant le BENCHMARK YOUTUBE (ex: titre de l'œuvre, titre de la musique, ou aucun texte)
+4. Crée le brief en t'appuyant sur cette compréhension réelle du contenu
+5. Le prompt IA doit produire une image fidèle au thème RÉEL, pas au sens littéral du titre
+6. Dans 'inspiration', cite les vidéos de référence du benchmark par leurs TITRES EXACTS`;
+
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
     system: `Tu es NERRA, une directrice artistique spécialisée en miniatures YouTube à fort CTR.
@@ -1318,32 +1424,22 @@ RÈGLES DE BRIEF :
 7. Le texte sur la miniature (textOverlay) DOIT s'inspirer de ce que font les MEILLEURES VIDÉOS CONCURRENTES (Benchmark YOUTUBE) listées ci-dessous. Ne mets pas un mot au hasard, observe les codes de ces vidéos.
 8. Dans le champ 'inspiration', cite les vidéos concurrentes par leur TITRE EXACT.
 9. RENVOIE UNIQUEMENT DU JSON VALIDE`,
-    prompt: `Crée un brief miniature pour cette vidéo.
-
-DÉCISION :
-- Hypothèse : "${decision.hypothesis}"
-- Type d'expérience : ${decision.experiment_type}
-${videoTitleContext ? `- Titre choisi : "${videoTitleContext}"` : ""}
-
-TOUS LES TITRES DE LA CHAÎNE (pour identifier la niche générale) :
-${allVideoTitles}
-
-BENCHMARK YOUTUBE (Meilleures vidéos globales pour ce sujet) :
-${benchmarkVideos.map((v: any) => {
-  const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-  return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
-}).join("\n")}
-
-INSTRUCTIONS (SUIS CET ORDRE) :
-1. Identifie la NICHE de la chaîne à partir de tous les titres
-2. Si le titre de la vidéo fait référence à une chanson, un anime ou une œuvre connue : rappelle-toi ses PAROLES, son THÈME et son AMBIANCE RÉELLE
-3. Identifie le STYLE DE TEXTE (textOverlay) le plus performant en analysant le BENCHMARK YOUTUBE (ex: titre de l'œuvre, titre de la musique, ou aucun texte)
-4. Crée le brief en t'appuyant sur cette compréhension réelle du contenu
-5. Le prompt IA doit produire une image fidèle au thème RÉEL, pas au sens littéral du titre
-6. Dans 'inspiration', cite les vidéos de référence du benchmark par leurs TITRES EXACTS`,
+    prompt: promptText,
     output: { format: "json", schema: BriefOutputSchema },
     config: { temperature: 0.5 },
   });
+
+  const latencyMs = Date.now() - startTime;
+  logAiInteraction(
+    decision.user_id,
+    decision.channel_id,
+    null,
+    "thumbnail_brief",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs
+  );
 
   if (!output) throw new Error("Échec de la génération du brief miniature");
 
@@ -1387,6 +1483,9 @@ export async function evaluateThumbnailBase64(
   });
 
   try {
+    const startTime = Date.now();
+    const promptText = `DÉCISION À APPLIQUER :\n- Hypothèse : "${decision.hypothesis}"\n\nVoici la miniature (importée) :\nÉvalue cette miniature sur la base de ce que tu y vois. Est-ce qu'elle respecte l'hypothèse ? Est-elle optimisée pour YouTube (ex: bon contraste, texte lisible s'il y en a) ? Donne une note sur 10.`;
+    
     const { output } = await ai.generate({
       model: "googleai/gemini-flash-latest",
       system: `Tu es NERRA, une directrice artistique et stratège YouTube obsédée par le CTR. Tu as des yeux bioniques pour détecter ce qui fera cliquer l'audience.
@@ -1400,12 +1499,24 @@ CRITÈRES D'OBLIGATION :
 5. TON : Très exigeant, technique, sans compromis sur l'efficacité, mais toujours avec une solution pour réparer.
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
       prompt: [
-        { text: `DÉCISION À APPLIQUER :\n- Hypothèse : "${decision.hypothesis}"\n\nVoici la miniature (importée) :\nÉvalue cette miniature sur la base de ce que tu y vois. Est-ce qu'elle respecte l'hypothèse ? Est-elle optimisée pour YouTube (ex: bon contraste, texte lisible s'il y en a) ? Donne une note sur 10.` },
+        { text: promptText },
         { media: { url: base64Image } }
       ],
       output: { format: "json", schema: EvalOutputSchema },
       config: { temperature: 0.5 },
     });
+
+    const latencyMs = Date.now() - startTime;
+    logAiInteraction(
+      decision.user_id,
+      decision.channel_id,
+      null,
+      "thumbnail_evaluation",
+      promptText + "\n[IMAGE BASE64 OMITTED]",
+      output,
+      "googleai/gemini-flash-latest",
+      latencyMs
+    );
 
     if (!output) throw new Error("Échec de l'évaluation de la miniature par Gemini (pas de réponse)");
 

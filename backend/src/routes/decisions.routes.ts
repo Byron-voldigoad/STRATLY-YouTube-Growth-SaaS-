@@ -50,7 +50,7 @@ export function createDecisionRoutes(ai: any): Router {
       if (resultValue === undefined) {
         return res.status(400).json({ error: "resultValue requis" });
       }
-      const result = await evaluateDecision(id, resultValue);
+      const result = await evaluateDecision(req.params.id as string, resultValue);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Evaluate decision error:", error?.message);
@@ -61,7 +61,7 @@ export function createDecisionRoutes(ai: any): Router {
   // Accepte une décision
   router.post("/:id/accept", authMiddleware, async (req, res) => {
     try {
-      await acceptDecision(req.params.id);
+      await acceptDecision(req.params.id as string);
       res.json({ success: true });
     } catch (error: any) {
       console.error("[NERRA] Accept decision error:", error?.message);
@@ -98,7 +98,7 @@ export function createDecisionRoutes(ai: any): Router {
   // Refuse une décision (gestion de la résistance)
   router.post("/:id/reject", authMiddleware, async (req, res) => {
     try {
-      const result = await handleResistance(req.params.id);
+      const result = await handleResistance(req.params.id as string);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Reject decision error:", error?.message);
@@ -156,7 +156,7 @@ export function createDecisionRoutes(ai: any): Router {
   router.post("/:id/titles", authMiddleware, async (req, res) => {
     try {
       const { userContext } = req.body;
-      const result = await generateTitleSuggestions(ai, req.params.id, userContext);
+      const result = await generateTitleSuggestions(ai, req.params.id as string, userContext);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Title suggestions error:", error?.message);
@@ -168,7 +168,7 @@ export function createDecisionRoutes(ai: any): Router {
   router.post("/:id/concepts", authMiddleware, async (req, res) => {
     try {
       const { userNotes } = req.body;
-      const result = await generateVideoConcepts(ai, req.params.id, userNotes);
+      const result = await generateVideoConcepts(ai, req.params.id as string, userNotes);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Concept suggestions error:", error?.message);
@@ -183,7 +183,7 @@ export function createDecisionRoutes(ai: any): Router {
       if (!concept) {
         return res.status(400).json({ error: "concept requis" });
       }
-      const result = await evaluateVideoConcept(ai, req.params.id, concept);
+      const result = await evaluateVideoConcept(ai, req.params.id as string, concept);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Concept evaluation error:", error?.message);
@@ -198,7 +198,7 @@ export function createDecisionRoutes(ai: any): Router {
       if (!concept) {
         return res.status(400).json({ error: "concept requis" });
       }
-      const result = await brainstormConcept(ai, req.params.id, concept, userNotes);
+      const result = await brainstormConcept(ai, req.params.id as string, concept, userNotes);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Brainstorm error:", error?.message);
@@ -213,7 +213,7 @@ export function createDecisionRoutes(ai: any): Router {
       if (!title) {
         return res.status(400).json({ error: "Titre requis" });
       }
-      const result = await evaluateCustomTitle(ai, req.params.id, title, userContext);
+      const result = await evaluateCustomTitle(ai, req.params.id as string, title, userContext);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Title evaluation error:", error?.message);
@@ -225,7 +225,7 @@ export function createDecisionRoutes(ai: any): Router {
   router.post("/:id/thumbnail-brief", authMiddleware, async (req, res) => {
     try {
       const { videoTitle } = req.body;
-      const result = await generateThumbnailBrief(ai, req.params.id, videoTitle);
+      const result = await generateThumbnailBrief(ai, req.params.id as string, videoTitle);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Thumbnail brief error:", error?.message);
@@ -240,7 +240,7 @@ export function createDecisionRoutes(ai: any): Router {
       if (!base64Image) {
         return res.status(400).json({ error: "base64Image requis" });
       }
-      const result = await evaluateThumbnailBase64(ai, req.params.id, base64Image);
+      const result = await evaluateThumbnailBase64(ai, req.params.id as string, base64Image);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Thumbnail evaluation error:", error?.message);
@@ -255,7 +255,7 @@ export function createDecisionRoutes(ai: any): Router {
       if (!videoId) {
         return res.status(400).json({ error: "videoId requis" });
       }
-      const result = await linkVideoToDecision(req.params.id, videoId, videoTitle);
+      const result = await linkVideoToDecision(req.params.id as string, videoId, videoTitle);
       res.json({ success: true, ...result });
     } catch (error: any) {
       console.error("[NERRA] Link video error:", error?.message);
