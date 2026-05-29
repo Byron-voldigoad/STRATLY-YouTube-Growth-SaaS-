@@ -16,7 +16,6 @@ import {
   fetchRetentionCurve,
   getKeyRetentionPoints,
   fetchNicheTrends,
-  analyzeThumbnail,
 } from "./youtubeAnalytics.js";
 // Decision engine functions are now used via route modules
 import { createDecisionRoutes } from "./routes/decisions.routes.js";
@@ -270,7 +269,6 @@ export const analyzeChannelFlow = ai.defineFlow(
 
     const promptVideos = filteredVideos.filter((v) => v.viewCount >= 10);
 
-    const visionApiKey = process.env.GOOGLE_VISION_API_KEY;
     const thumbnailAnalyses: Record<string, {
       labels: string[];
       dominantColors: string[];
@@ -278,30 +276,44 @@ export const analyzeChannelFlow = ai.defineFlow(
       missing?: boolean;
     }> = {};
 
-    if (visionApiKey) {
-      const top3Videos = promptVideos
-        .filter(v => channelStats.bestVideoIds.includes(v.videoId))
-        .slice(0, 3);
+    const top3Videos = promptVideos
+      .filter(v => channelStats.bestVideoIds.includes(v.videoId))
+      .slice(0, 3);
 
-      for (const video of top3Videos) {
-        const thumbnailUrl = input.videos.find(
-          v => v.id === video.videoId
-        )?.thumbnailUrl;
+    for (const video of top3Videos) {
+      const thumbnailUrl = input.videos.find(
+        v => v.id === video.videoId
+      )?.thumbnailUrl;
 
-        if (thumbnailUrl) {
-          try {
-            thumbnailAnalyses[video.videoId] =
-              await analyzeThumbnail({ imageUri: thumbnailUrl }, visionApiKey);
-          } catch (e: any) {
-            console.warn(`THUMBNAIL analysis omitted for ${video.videoId}: ${e.message}`);
-            thumbnailAnalyses[video.videoId] = {
-              labels: [],
-              dominantColors: [],
-              text: [],
-              missing: true
-            };
-          }
-        } else {
+      if (thumbnailUrl) {
+        try {
+          const { output } = await ai.generate({
+            model: "googleai/gemini-flash-latest",
+            system: "Tu es un expert en analyse visuelle de miniatures YouTube.",
+            prompt: [
+              { text: "Analyse cette miniature YouTube. Extrais les éléments visuels principaux (labels), les couleurs dominantes (dominantColors au format rgb), et le texte visible (text). Renvoie uniquement un objet JSON valide." },
+              { media: { url: thumbnailUrl } }
+            ],
+            output: {
+              format: "json",
+              schema: z.object({
+                labels: z.array(z.string()),
+                dominantColors: z.array(z.string()),
+                text: z.array(z.string())
+              })
+            },
+            config: { temperature: 0.2 }
+          });
+          
+          if (!output) throw new Error("Aucune réponse de Gemini");
+          
+          thumbnailAnalyses[video.videoId] = {
+            labels: output.labels || [],
+            dominantColors: output.dominantColors || [],
+            text: output.text || []
+          };
+        } catch (e: any) {
+          console.warn(`THUMBNAIL analysis omitted for ${video.videoId}: ${e.message}`);
           thumbnailAnalyses[video.videoId] = {
             labels: [],
             dominantColors: [],
@@ -309,6 +321,13 @@ export const analyzeChannelFlow = ai.defineFlow(
             missing: true
           };
         }
+      } else {
+        thumbnailAnalyses[video.videoId] = {
+          labels: [],
+          dominantColors: [],
+          text: [],
+          missing: true
+        };
       }
     }
 
@@ -557,10 +576,10 @@ RÈGLES ABSOLUES :
         ),
       },
       patterns: {
-        toAvoid: (result.patterns?.toAvoid ?? []).filter((p) =>
+        toAvoid: (result.patterns?.toAvoid ?? []).filter((p: any) =>
           allowedTitles.has(p.videoTitle),
         ),
-        toRepeat: (result.patterns?.toRepeat ?? []).filter((p) =>
+        toRepeat: (result.patterns?.toRepeat ?? []).filter((p: any) =>
           allowedTitles.has(p.videoTitle),
         ),
       },

@@ -959,13 +959,14 @@ export async function brainstormConcept(
   concept: string,
   userNotes?: string,
 ): Promise<{
-  scenes: string[];
   style: string;
   duration: string;
   musicDirection: string;
-  musicSuggestions: { name: string; reason: string }[];
   hookSuggestion: string;
   refinedConcept: string;
+  narrativeStructure: { act: string; purpose: string; visualCue: string }[];
+  audioVibe: { genre: string; mood: string; bpmRange: string; referenceStyle: string };
+  visualCues: string[];
   resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[];
   tutorialVideos: { title: string; url: string; thumbnailUrl: string }[];
   notesEvaluation: { score: number; feedback: string } | null;
@@ -984,24 +985,25 @@ export async function brainstormConcept(
   }
 
   const baseFields: Record<string, any> = {
-    scenes: z.array(z.string()).min(3).max(5).describe(
-      "3 à 5 scènes. CHAQUE scène DOIT référencer un MOMENT PRÉCIS ou un ÉLÉMENT RÉEL du sujet (ex: 'À la minute 3:12 du jeu', 'Lors de la démonstration du produit', 'Passage sur le concept X'). ATTENTION: N'INVENTE AUCUN FAUX DÉTAIL."
-    ),
+    narrativeStructure: z.array(z.object({
+      act: z.string().describe("Nom de l'acte narratif (ex: 'Ouverture', 'Montée', 'Climax', 'Résolution')"),
+      purpose: z.string().describe("L'objectif émotionnel de cet acte (ex: 'Créer le mystère', 'Monter la tension')"),
+      visualCue: z.string().describe("Description abstraite du type de visuel (ex: 'Plans rapides et saccadés', 'Ralenti dramatique')"),
+    })).min(3).max(5).describe("Structure narrative en 3-5 actes. NE JAMAIS citer de timestamps, épisodes ou scènes spécifiques."),
     style: z.string().describe("Style de montage recommandé"),
     duration: z.string().describe("Durée recommandée"),
     musicDirection: z.string().describe("Analyse du genre musical : identifier le sous-genre exact et le mood"),
-    musicSuggestions: z.array(z.object({
-      name: z.string().describe("Nom EXACT du son (artiste - titre)"),
-      reason: z.string().describe("Pourquoi ce son colle au montage — mentionne un moment précis du montage"),
-    })).min(2).max(3).describe("2-3 sons du MÊME GENRE/SOUS-GENRE que celui mentionné par l'utilisateur"),
-    hookSuggestion: z.string().describe("Comment capter l'attention dans les 3 premières secondes — un moment PRÉCIS de la vidéo"),
+    audioVibe: z.object({
+      genre: z.string().describe("Genre/sous-genre musical (ex: 'Lo-fi hip-hop', 'Orchestral épique')"),
+      mood: z.string().describe("Ambiance sonore (ex: 'Mélancolique et lent', 'Intense et rapide')"),
+      bpmRange: z.string().describe("Fourchette de BPM recommandée (ex: '80-100 BPM', '140-160 BPM')"),
+      referenceStyle: z.string().describe("Style de référence SANS citer de titre exact (ex: 'Dans le style des musiques de trailer cinématiques')"),
+    }).describe("Direction audio abstraite. INTERDICTION de citer des titres de musique spécifiques."),
+    visualCues: z.array(z.string()).min(3).max(5).describe(
+      "3-5 indications visuelles abstraites (type de plans, transitions, effets). Ex: 'Utiliser des jump cuts rapides', 'Transition en fondu noir entre les actes'. NE JAMAIS citer de timestamps ou de scènes précises d'une œuvre."
+    ),
+    hookSuggestion: z.string().describe("Comment capter l'attention dans les 3 premières secondes — une technique de montage, PAS une scène spécifique"),
     refinedConcept: z.string().describe("Le concept reformulé et enrichi en une phrase"),
-    searchQueries: z.array(z.string()).length(3).describe(
-      "3 requêtes YouTube pour trouver du MATÉRIEL SOURCE lié au concept (pas de concurrents). Ex: '[Nom du jeu/sujet] raw footage', '[Sujet spécifique] b-roll without copyright'"
-    ),
-    tutorialQueries: z.array(z.string()).length(2).describe(
-      "2 requêtes YouTube pour trouver des TUTORIELS utiles pour réaliser ce montage précis. Ex: 'premiere pro fast pacing tutorial', 'how to edit gaming funny moments'"
-    ),
   };
 
   // Ajouter l'évaluation des notes si l'utilisateur en a fourni
@@ -1029,26 +1031,29 @@ Plan de production avec scènes précises et suggestions musicales du MÊME GENR
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
-    system: `Tu es NERRA, un directeur créatif YouTube et music supervisor expert. Tu opères dans N'IMPORTE QUELLE NICHE (gaming, finance, vlog, anime, tech, etc.). Adapte-toi au contexte du concept.
+    system: `Tu es NERRA, un directeur créatif YouTube. Tu opères dans N'IMPORTE QUELLE NICHE (gaming, finance, vlog, anime, tech, etc.). Adapte-toi au contexte du concept.
 
-RÈGLES SCÈNES (ANTI-HALLUCINATIONS) :
-1. N'INVENTE ABSOLUMENT PAS de faux faits, éléments ou passages qui n'existent pas dans le sujet abordé.
-2. Vérifie tes faits. Si c'est un jeu, un film ou un sujet précis, référence des éléments qui s'y trouvent RÉELLEMENT. 
-3. Inclus des timestamps estimatifs (ex: 0-5s, 5-15s) et détaille Visuellement la scène sans mentir sur le contenu.
+⛔ RÈGLES ANTI-HALLUCINATION (ABSOLUES — NON NÉGOCIABLES) :
+1. NE JAMAIS générer de timestamps, de numéros d'épisodes précis ou de noms de scènes spécifiques d'une œuvre.
+2. NE JAMAIS citer de titres de musique spécifiques (artiste - titre). Décris uniquement le GENRE, le MOOD et le BPM.
+3. NE JAMAIS inventer de faits, personnages, ou éléments d'une œuvre que tu n'es pas CERTAIN de connaître.
+4. Tu travailles en DIRECTIVES CRÉATIVES ABSTRAITES : structure narrative, ambiance visuelle, direction audio.
 
-RÈGLES MUSIQUE (CRUCIAL — INTERDICTION DE CHANGER DE GENRE) :
-3. Si l'utilisateur mentionne un style ou un son, IDENTIFIE le genre/sous-genre EXACT.
-4. Tes suggestions DOIVENT être du MÊME genre/sous-genre. INTERDIT de proposer de la musique épique si l'utilisateur veut de la lo-fi, etc.
-5. Pour chaque son, explique à quel moment PRÉCIS du montage il colle.
+RÈGLES STRUCTURE NARRATIVE (remplace les "scènes") :
+5. Découpe en ACTES narratifs (Ouverture, Montée, Climax, Résolution) et NON en scènes chronologiques.
+6. Chaque acte a un OBJECTIF ÉMOTIONNEL et un TYPE DE VISUEL, jamais une référence à un moment précis.
 
-RÈGLES RESSOURCES :
-6. Génère 3 requêtes YouTube pour MATÉRIEL SOURCE (rushes, b-roll, footage brut de la thématique) et 2 pour TUTORIELS techniques.
-7. NE GÉNÈRE AUCUNE URL toi-même. Uniquement des REQUÊTES DE RECHERCHE.
+RÈGLES AUDIO (remplace les "suggestions musicales") :
+7. Décris le genre, le mood, la fourchette de BPM et le style de référence SANS JAMAIS citer un titre.
+8. Si l'utilisateur mentionne un style ou un son, IDENTIFIE le genre/sous-genre EXACT et reste dans ce registre.
+
+RÈGLES VISUELLES :
+9. Fournis des indications de montage abstraites (types de plans, transitions, effets) sans référencer de scènes précises.
 
 ${userNotes ? `RÈGLES ÉVALUATION DES NOTES :
-8. L'utilisateur a fourni des suggestions. ÉVALUE-les avec une note /10 et un feedback.
-9. Dis ce qui est pertinent et ce qui peut être amélioré.
-10. INTÈGRE ses suggestions dans le plan raffiné.` : ""}
+10. L'utilisateur a fourni des suggestions. ÉVALUE-les avec une note /10 et un feedback.
+11. Dis ce qui est pertinent et ce qui peut être amélioré.
+12. INTÈGRE ses suggestions dans le plan raffiné.` : ""}
 
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
@@ -1070,6 +1075,24 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
 
   if (!output) throw new Error("Échec du brainstorm");
 
+  // Générer les queries de recherche CÔTÉ CODE (pas par le LLM) pour éviter les hallucinations
+  // Tronquer le concept à ~4 mots-clés pour des requêtes YouTube pertinentes
+  const truncateConcept = (text: string, maxWords = 4): string => {
+    return text.split(/\s+/).slice(0, maxWords).join(" ");
+  };
+  const shortConcept = truncateConcept(concept);
+
+  const searchQueries = [
+    `${shortConcept} raw footage`,
+    `${shortConcept} b-roll no copyright`,
+    `${shortConcept} clips compilation`,
+  ];
+
+  const tutorialQueries = [
+    `premiere pro ${output.style || "edit"} tutorial`,
+    `how to edit ${shortConcept}`,
+  ];
+
   // Rechercher les vidéos sources et tutoriels sur YouTube
   const apiKey = process.env.YOUTUBE_API_KEY;
   let resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[] = [];
@@ -1077,69 +1100,66 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
 
   if (apiKey) {
     // Vidéos sources (rushes)
-    if (output.searchQueries?.length > 0) {
-      try {
-        const allResults: any[] = [];
-        for (const query of output.searchQueries.slice(0, 3)) {
-          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=3&key=${apiKey}`;
-          const res = await fetch(searchUrl);
-          const data = await res.json();
-          if (data.items) {
-            allResults.push(...data.items.map((item: any) => ({
-              title: item.snippet?.title || "",
-              url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
-              thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
-              why: query,
-            })));
-          }
+    try {
+      const allResults: any[] = [];
+      for (const query of searchQueries) {
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=3&key=${apiKey}`;
+        const res = await fetch(searchUrl);
+        const data = await res.json();
+        if (data.items) {
+          allResults.push(...data.items.map((item: any) => ({
+            title: item.snippet?.title || "",
+            url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
+            thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
+            why: query,
+          })));
         }
-        const seen = new Set<string>();
-        resourceVideos = allResults.filter((v) => {
-          if (seen.has(v.url)) return false;
-          seen.add(v.url);
-          return true;
-        }).slice(0, 6);
-      } catch (err) {
-        console.error("[NERRA] Resource video search error:", err);
       }
+      const seen = new Set<string>();
+      resourceVideos = allResults.filter((v) => {
+        if (seen.has(v.url)) return false;
+        seen.add(v.url);
+        return true;
+      }).slice(0, 6);
+    } catch (err) {
+      console.error("[NERRA] Resource video search error:", err);
     }
 
     // Tutoriels
-    if ((output as any).tutorialQueries?.length > 0) {
-      try {
-        const tutResults: any[] = [];
-        for (const query of (output as any).tutorialQueries.slice(0, 2)) {
-          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=2&key=${apiKey}`;
-          const res = await fetch(searchUrl);
-          const data = await res.json();
-          if (data.items) {
-            tutResults.push(...data.items.map((item: any) => ({
-              title: item.snippet?.title || "",
-              url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
-              thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
-            })));
-          }
+    try {
+      const tutResults: any[] = [];
+      for (const query of tutorialQueries) {
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=2&key=${apiKey}`;
+        const res = await fetch(searchUrl);
+        const data = await res.json();
+        if (data.items) {
+          tutResults.push(...data.items.map((item: any) => ({
+            title: item.snippet?.title || "",
+            url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
+            thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
+          })));
         }
-        const seen = new Set<string>();
-        tutorialVideos = tutResults.filter((v) => {
-          if (seen.has(v.url)) return false;
-          seen.add(v.url);
-          return true;
-        }).slice(0, 4);
-      } catch (err) {
-        console.error("[NERRA] Tutorial search error:", err);
       }
+      const seen = new Set<string>();
+      tutorialVideos = tutResults.filter((v) => {
+        if (seen.has(v.url)) return false;
+        seen.add(v.url);
+        return true;
+      }).slice(0, 4);
+    } catch (err) {
+      console.error("[NERRA] Tutorial search error:", err);
     }
   }
 
   return {
-    scenes: output.scenes,
     style: output.style,
     duration: output.duration,
     musicDirection: output.musicDirection,
-    musicSuggestions: output.musicSuggestions || [],
     hookSuggestion: output.hookSuggestion,
     refinedConcept: output.refinedConcept,
+    narrativeStructure: output.narrativeStructure,
+    audioVibe: output.audioVibe,
+    visualCues: output.visualCues,
     resourceVideos,
     tutorialVideos,
     notesEvaluation: (output as any).notesEvaluation || null,

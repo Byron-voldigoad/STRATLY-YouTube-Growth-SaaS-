@@ -96,13 +96,14 @@ export class DecisionComponent implements OnInit {
 
   // Brainstorm workshop
   brainstormData: {
-    scenes: string[];
     style: string;
     duration: string;
     musicDirection: string;
-    musicSuggestions: { name: string; reason: string }[];
     hookSuggestion: string;
     refinedConcept: string;
+    narrativeStructure: { act: string; purpose: string; visualCue: string }[];
+    audioVibe: { genre: string; mood: string; bpmRange: string; referenceStyle: string };
+    visualCues: string[];
     resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[];
     tutorialVideos: { title: string; url: string; thumbnailUrl: string }[];
     notesEvaluation: { score: number; feedback: string } | null;
@@ -209,7 +210,7 @@ export class DecisionComponent implements OnInit {
       } else {
         // Sinon, vérifier si l'utilisateur a déjà répondu dans la session courante
         const hasAnswered = sessionStorage.getItem('nerra_context_answered');
-        if (!hasAnswered && (!this.decisionHistory || this.decisionHistory.length === 0)) {
+        if (!hasAnswered && !this.currentDecision) {
            // Demander systématiquement s'il n'y a pas eu de réponse
            this.showContextPopup = true;
         }
@@ -474,7 +475,10 @@ export class DecisionComponent implements OnInit {
       }
       this.videoUrl = '';
       this.linkMessage = '';
-      this.loadConceptSuggestions();
+      // Only auto-load concepts if we're at step 1 — never auto-trigger AI for later steps
+      if (this.workshopStep === 1) {
+        this.loadConceptSuggestions();
+      }
     }
   }
 

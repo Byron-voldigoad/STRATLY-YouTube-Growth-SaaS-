@@ -162,13 +162,14 @@ export class DecisionService {
     concept: string,
     userNotes?: string,
   ): Promise<{
-    scenes: string[];
     style: string;
     duration: string;
     musicDirection: string;
-    musicSuggestions: { name: string; reason: string }[];
     hookSuggestion: string;
     refinedConcept: string;
+    narrativeStructure: { act: string; purpose: string; visualCue: string }[];
+    audioVibe: { genre: string; mood: string; bpmRange: string; referenceStyle: string };
+    visualCues: string[];
     resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[];
     tutorialVideos: { title: string; url: string; thumbnailUrl: string }[];
     notesEvaluation: { score: number; feedback: string } | null;
@@ -177,13 +178,14 @@ export class DecisionService {
       this.http.post<any>(`${this.apiUrl}/decisions/${decisionId}/brainstorm`, { concept, userNotes }),
     );
     return {
-      scenes: response.scenes,
       style: response.style,
       duration: response.duration,
       musicDirection: response.musicDirection,
-      musicSuggestions: response.musicSuggestions || [],
       hookSuggestion: response.hookSuggestion,
       refinedConcept: response.refinedConcept,
+      narrativeStructure: response.narrativeStructure || [],
+      audioVibe: response.audioVibe || { genre: '', mood: '', bpmRange: '', referenceStyle: '' },
+      visualCues: response.visualCues || [],
       resourceVideos: response.resourceVideos || [],
       tutorialVideos: response.tutorialVideos || [],
       notesEvaluation: response.notesEvaluation || null,
