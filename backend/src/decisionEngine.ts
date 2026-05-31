@@ -16,6 +16,7 @@ import { supabase } from "./lib/supabase.js";
 import { genkit, z } from "genkit";
 import { google } from "googleapis";
 import { logAiInteraction } from "./lib/logger.js";
+import { fetchMarketContext } from "./youtubeAnalytics.js";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -716,7 +717,7 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
       response_format: { type: "json_object" },
     },
   });
-  
+
   const latencyMs = Date.now() - startTime;
   console.log(`[DEBUG] generateNextDecision: Attempting log for userId=${userId}, channelId=${channelId}`);
   logAiInteraction(
@@ -796,18 +797,22 @@ export async function generateVideoConcepts(
     throw new Error("Décision introuvable");
   }
 
-  // Récupérer les tendances YouTube pour identifier les opportunités
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  let trendData: any[] = [];
-  if (apiKey) {
-    const searchQuery = userNotes || decision.hypothesis;
-    trendData = await fetchNicheTrends(searchQuery, apiKey);
-  }
+  const youtubeClient = google.youtube({
+    version: 'v3',
+    auth: process.env.YOUTUBE_API_KEY
+  });
+  const searchQuery = userNotes ||
+    decision.hypothesis;
+  const marketContext = await fetchMarketContext(
+    searchQuery,
+    supabase,
+    youtubeClient
+  );
 
   const ConceptOutputSchema = z.object({
     concepts: z.array(z.object({
       idea: z.string().describe("L'idée de vidéo concrète et spécifique"),
-      marketInsight: z.string().describe("Pourquoi c'est une opportunité : demande VS concurrence. Ex: 'Ce sujet a 50k+ recherches/mois mais seulement 3 vidéos de qualité existantes'"),
+      marketInsight: z.string().describe("Pourquoi c'est une opportunité. Ex: 'Ce format fait d'excellentes vues sur d'autres animes, mais aucune chaîne n'a encore appliqué cet angle précis sur ce personnage.' NE JAMAIS INVENTER DE VOLUME DE RECHERCHES CHIFFRÉ."),
     })).length(3),
     reasoning: z.string().describe("Raisonnement global sur les opportunités de la niche"),
   });
@@ -821,14 +826,8 @@ DÉCISION STRATÉGIQUE :
 
 ${userNotes ? `NOTES UTILISATEUR : "${userNotes}"` : ""}
 
-TENDANCES YOUTUBE (vidéos les plus performantes de la niche) :
-${trendData.length > 0
-  ? trendData.map((v: any) => {
-    const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-    return `- "${v.title}" (${v.views.toLocaleString()} vues, ${eng}% engagement, chaîne: ${v.channelTitle})`;
-  }).join("\n")
-  : "Données non disponibles — base tes propositions sur ta connaissance du marché."
-}
+TENDANCES YOUTUBE (Top 3 vidéos récentes, 90 derniers jours) :
+${marketContext}
 
 Propose 3 concepts qui exploitent des TROUS dans le marché : sujets recherchés mais mal couverts.`;
 
@@ -838,12 +837,14 @@ Propose 3 concepts qui exploitent des TROUS dans le marché : sujets recherchés
 Tu génères EXACTEMENT 3 concepts de vidéos en te basant sur les DONNÉES DE TENDANCES YouTube fournies.
 
 RÈGLES :
+0. Les données de tendances fournies sont RÉELLES. Tu DOIS baser tes marketInsight sur ces vidéos concrètes. NE DIS JAMAIS que tu manques de données.
 1. Chaque concept doit cibler une opportunité : forte demande + peu de concurrence de qualité.
-2. Analyse les tendances fournies : quels sujets marchent ? Quels angles sont saturés ? Quels sous-sujets sont sous-exploités ?
-3. Pour chaque concept, fournis un 'marketInsight' expliquant POURQUOI c'est une opportunité (ex: "Ce sujet a 50k+ recherches/mois mais seulement 3 vidéos de qualité existantes").
-4. Adapte le format au type de décision (clip/Short = concepts visuels rapides, vidéo longue = contenu dense).
-5. Sois ULTRA spécifique. Pas "Une vidéo sur l'anime" mais "Un edit de 30s comparant la puissance de Jinwoo saison 1 vs saison 2".
-6. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+2. Si le contexte marché contient "OCÉAN BLEU DÉTECTÉ", considère que la demande existe déjà. Évalue alors si l'utilisateur peut exploiter cette demande selon sa niche, son format et son positionnement.
+3. Analyse les tendances fournies : quels sujets marchent ? Quels angles sont saturés ? Quels sous-sujets sont sous-exploités ?
+4. Pour chaque concept, fournis un 'marketInsight' expliquant POURQUOI c'est une opportunité (ex: "Ce sujet a 50k+ recherches/mois mais seulement 3 vidéos de qualité existantes").
+5. Adapte le format au type de décision (clip/Short = concepts visuels rapides, vidéo longue = contenu dense).
+6. Sois ULTRA spécifique. Pas "Une vidéo sur l'anime" mais "Un edit de 30s comparant la puissance de Jinwoo saison 1 vs saison 2".
+7. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
     output: { format: "json", schema: ConceptOutputSchema },
     config: { temperature: 0.8 },
@@ -876,14 +877,15 @@ export async function evaluateVideoConcept(
     throw new Error("Décision introuvable");
   }
 
-  // Récupérer les tendances pour comparer l'idée au marché
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  let trendData: any[] = [];
-  if (apiKey) {
-    // Utiliser l'hypothèse (plus large) comme query pour obtenir des tendances pertinentes
-    const trendQuery = decision.hypothesis || concept;
-    trendData = await fetchNicheTrends(trendQuery, apiKey);
-  }
+  const youtubeClient = google.youtube({
+    version: 'v3',
+    auth: process.env.YOUTUBE_API_KEY
+  });
+  const marketContext = await fetchMarketContext(
+    concept,
+    supabase,
+    youtubeClient
+  );
 
   const EvalSchema = z.object({
     score: z.number().min(1).max(10).describe("Note de 1 à 10"),
@@ -900,14 +902,8 @@ DÉCISION STRATÉGIQUE :
 - Type : ${decision.experiment_type}
 - Variable : ${decision.variable}
 
-TENDANCES YOUTUBE (marché actuel sur ce sujet) :
-${trendData.length > 0
-  ? trendData.map((v: any) => {
-    const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-    return `- "${v.title}" (${v.views.toLocaleString()} vues, ${eng}% eng.)`;
-  }).join("\n")
-  : "Données de tendances non disponibles."
-}
+TENDANCES YOUTUBE (Top 3 vidéos récentes sur ce sujet, 90 derniers jours) :
+${marketContext}
 
 L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stratégie ?`;
 
@@ -917,14 +913,16 @@ L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stra
 On te soumet une idée de vidéo. Tu dois l'évaluer en fonction de la stratégie ET des données de marché.
 
 RÈGLES :
+0. Tu as accès aux tendances réelles du marché ci-dessus. Base ton évaluation UNIQUEMENT sur ces données. NE DIS JAMAIS que tu n'as pas accès aux tendances ou à internet. Agis en stratège assumé.
 1. Note de 1 à 10 (10 = idée avec fort potentiel marché et alignée avec la stratégie).
-2. Dans ton feedback, mentionne OBLIGATOIREMENT :
-   - Si le sujet est demandé (vues des vidéos similaires dans les tendances)
+2. Si le contexte marché contient "OCÉAN BLEU DÉTECTÉ", considère que la demande existe. N'exige pas des vidéos existantes pour conclure. Évalue surtout si l'utilisateur peut exploiter cette demande selon sa niche et son positionnement.
+3. Dans ton feedback, mentionne OBLIGATOIREMENT :
+   - Si le sujet est demandé (vues des vidéos similaires dans les tendances, ou signal d'autocomplétion si OCÉAN BLEU)
    - Si le sujet est saturé ou peu couvert
    - Ce qui manque pour maximiser les chances
-3. Sois direct et constructif.
-4. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
-5. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+4. Sois direct et constructif.
+5. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
+6. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
     output: { format: "json", schema: EvalSchema },
     config: { temperature: 0.3 },
@@ -1310,7 +1308,7 @@ RÈGLES D'AUDIT :
 2. ALIGNEMENT STRATÉGIQUE : Le titre doit refléter parfaitement le SUJET et l'HYPOTHÈSE de l'expérience. Si l'utilisateur s'éloigne de son objectif, recadre-le.
 3. BENCHMARK GLOBAL : Compare le titre à ce qui fonctionne ACTUELLEMENT sur YouTube dans cette niche. TU DOIS IMPÉRATIVEMENT CITER des titres exacts du benchmark pour appuyer ton argumentaire (ex: "La vidéo 'X' a fait 800k vues en utilisant cette structure...").
 4. PSYCHOLOGIE : Cherche le "Click Trigger" (curiosité, émotion, urgence). S'il manque, le score doit être sévère mais le conseil doit être précis.
-5. TON : Direct, pro, exigeant mais orienté résultats. 
+5. TON : Direct, pro, exigeant mais orienté résultats.
 6. RÈGLE DE SATISFACTION (CRUCIAL) : Si le titre est déjà excellent (score 9 ou 10), ton feedback doit être uniquement un encouragement (ex: "Titre parfait, prêt à publier"). NE PROPOSE AUCUNE modification ou optimisation si le score est >= 9. Si le score est 8, le conseil doit être optionnel, très court et ne pas remettre en cause la structure globale.
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
@@ -1376,7 +1374,7 @@ export async function generateThumbnailBrief(
   // Récupérer le TOP 5 GLOBAL YouTube sur ce sujet pour l'inspiration
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) throw new Error("YOUTUBE_API_KEY non configurée");
-  
+
   const searchQuery = passedVideoTitle || decision.video_title || decision.hypothesis;
   const videoTitleContext = passedVideoTitle || decision.video_title;
   const benchmarkVideos = await fetchNicheTrends(searchQuery, apiKey);
@@ -1505,7 +1503,7 @@ export async function evaluateThumbnailBase64(
   try {
     const startTime = Date.now();
     const promptText = `DÉCISION À APPLIQUER :\n- Hypothèse : "${decision.hypothesis}"\n\nVoici la miniature (importée) :\nÉvalue cette miniature sur la base de ce que tu y vois. Est-ce qu'elle respecte l'hypothèse ? Est-elle optimisée pour YouTube (ex: bon contraste, texte lisible s'il y en a) ? Donne une note sur 10.`;
-    
+
     const { output } = await ai.generate({
       model: "googleai/gemini-flash-latest",
       system: `Tu es NERRA, une directrice artistique et stratège YouTube obsédée par le CTR. Tu as des yeux bioniques pour détecter ce qui fera cliquer l'audience.
@@ -1550,7 +1548,7 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
 // ─── Post-Acceptance: Link Video & Auto-Evaluate ────────────────────
 
 /**
- * Lie un video_id YouTube à une décision et récupère les métriques 
+ * Lie un video_id YouTube à une décision et récupère les métriques
  * pour une évaluation future automatique.
  */
 export async function linkVideoToDecision(

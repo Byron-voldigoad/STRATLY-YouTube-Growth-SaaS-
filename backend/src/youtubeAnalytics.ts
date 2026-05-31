@@ -17,6 +17,41 @@ export interface KeyRetentionPoints {
 const YOUTUBE_ANALYTICS_URL =
   "https://youtubeanalytics.googleapis.com/v2/reports";
 
+export function extractKeywords(idea: string): string {
+  // Liste des mots de liaison et de contexte à détruire
+  const stopWords = new Set(["un", "une", "des", "le", "la", "les", "de", "du", "sur", "qui", "que", "quoi", "dont", "ou", "et", "dans", "pour", "avec", "par", "edit", "video", "faire", "comment", "met", "en", "avant", "puissance", "analyse", "top", "meilleur", "meilleurs", "montage", "histoire"]);
+
+  // Nettoyer, splitter, filtrer
+  const words = idea.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .split(/\s+/);
+
+  const filtered = words.filter(w => !stopWords.has(w) && w.length > 2);
+
+  // Ne garder que les 3 mots les plus importants (généralement l'entité)
+  return filtered.slice(0, 3).join(" ");
+}
+
+async function fetchAutocompleteSuggestion(query: string): Promise<string | null> {
+  try {
+    const suggestUrl = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
+    const suggestRes = await fetch(suggestUrl);
+
+    if (!suggestRes.ok) {
+      return null;
+    }
+
+    const suggestData = await suggestRes.json();
+    const suggestions = Array.isArray(suggestData?.[1]) ? suggestData[1] : [];
+    const suggestion = typeof suggestions[0] === "string" ? suggestions[0].trim() : "";
+
+    return suggestion || null;
+  } catch (error) {
+    console.error("fetchAutocompleteSuggestion error:", error);
+    return null;
+  }
+}
+
 function formatDate(date: Date): string {
   return date.toISOString().substring(0, 10);
 }
@@ -223,7 +258,7 @@ export async function fetchNicheTrends(
     const publishedAfter = new Date(
       Date.now() - 365 * 24 * 60 * 60 * 1000, // Look back 1 year
     ).toISOString();
-    
+
     // Fetch 15 results to have a pool for filtering good thumbnails
     const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&order=relevance&publishedAfter=${publishedAfter}&maxResults=15&key=${apiKey}`;
 
@@ -307,7 +342,7 @@ export async function analyzeThumbnail(
     );
 
     const data = await response.json();
-    
+
     if (data.error) {
       console.error("[Vision API] Global error:", data.error.message);
       throw new Error(`Vision API: ${data.error.message}`);
@@ -347,5 +382,91 @@ export async function analyzeThumbnail(
   } catch (error: any) {
     console.error("analyzeThumbnail error:", error);
     throw new Error(`Erreur analyse visuelle : ${error?.message || "Erreur inconnue"}`);
+  }
+}
+
+export async function fetchMarketContext(
+  rawQuery: string,
+  supabaseClient: any,
+  youtubeClient: any
+): Promise<string> {
+  const cleanQuery = extractKeywords(rawQuery);
+  const query = cleanQuery || rawQuery.trim().toLowerCase();
+  const TTL_HOURS = 24;
+
+  // 1. Chercher dans le cache
+  try {
+    const { data } = await supabaseClient
+      .from('youtube_search_cache')
+      .select('result_data, updated_at')
+      .eq('query', query)
+      .single();
+
+    if (data) {
+      const updatedAt = new Date(data.updated_at);
+      const hoursSince = (Date.now() -
+        updatedAt.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSince < TTL_HOURS) {
+        console.log('MARKET CACHE HIT:', query);
+        return data.result_data;
+      }
+    }
+  } catch (e) {
+    // Cache miss — continuer
+  }
+
+  // 2. Appeler YouTube API
+  try {
+    const publishedAfter = new Date(
+      Date.now() - 90 * 24 * 60 * 60 * 1000
+    ).toISOString();
+
+    const response = await youtubeClient
+      .search.list({
+        part: ['snippet'],
+        q: query,
+        type: ['video'],
+        order: 'viewCount',
+        maxResults: 3,
+        publishedAfter,
+      });
+
+    const items = response.data.items || [];
+
+    let resultData: string;
+
+    if (items.length > 0) {
+      resultData = items
+        .map((item: any) =>
+          `- '${item.snippet.title}' (${item.snippet.channelTitle})`
+        )
+        .join('\n');
+    } else {
+      const suggestion = await fetchAutocompleteSuggestion(query);
+
+      if (suggestion) {
+        resultData = `OCÉAN BLEU DÉTECTÉ : aucune vidéo récente trouvée pour "${query}", mais l'autocomplétion YouTube suggère "${suggestion}".`;
+      } else {
+        resultData = `SUJET MORT : aucune vidéo récente ni suggestion YouTube pour "${query}".`;
+      }
+    }
+
+    // 3. Sauvegarder dans le cache
+    await supabaseClient
+      .from('youtube_search_cache')
+      .upsert({
+        query,
+        result_data: resultData,
+        updated_at: new Date().toISOString(),
+      });
+
+    console.log('MARKET API CALL:', query);
+    return resultData;
+
+  } catch (error) {
+    console.error('fetchMarketContext error:',
+      error);
+    return `SUJET MORT : impossible de récupérer des tendances ou suggestions pour "${query}".`;
   }
 }
