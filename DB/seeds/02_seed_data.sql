@@ -85,7 +85,7 @@ BEGIN
   -- 3. Channel Analytics (3 points par channel sauf genesis)
   IF uid_a IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-0000000000a1', uid_a, 'UC_A', today - 30, 1400, 20000),
       ('11111111-0000-0000-0000-0000000000a2', uid_a, 'UC_A', today - 15, 1450, 25000),
       ('11111111-0000-0000-0000-0000000000a3', uid_a, 'UC_A', today, 1500, 30000)
@@ -94,7 +94,7 @@ BEGIN
 
   IF uid_b IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-0000000000b1', uid_b, 'UC_B', today - 30, 280, 5000),
       ('11111111-0000-0000-0000-0000000000b2', uid_b, 'UC_B', today - 15, 290, 5500),
       ('11111111-0000-0000-0000-0000000000b3', uid_b, 'UC_B', today, 300, 6000)
@@ -103,18 +103,18 @@ BEGIN
 
   IF uid_c IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-0000000000c1', uid_c, 'UC_C', today - 30, 700, 15000),
       ('11111111-0000-0000-0000-0000000000c2', uid_c, 'UC_C', today - 15, 750, 18000),
       ('11111111-0000-0000-0000-0000000000c3', uid_c, 'UC_C', today, 800, 20000)
     ON CONFLICT (channel_id, date) DO UPDATE SET subscribers = EXCLUDED.subscribers;
   END IF;
-  
+
   -- skip D (Genesis)
 
   IF uid_e IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-0000000000e1', uid_e, 'UC_E', today - 30, 180, 2000),
       ('11111111-0000-0000-0000-0000000000e2', uid_e, 'UC_E', today - 15, 190, 2500),
       ('11111111-0000-0000-0000-0000000000e3', uid_e, 'UC_E', today, 200, 3000)
@@ -123,7 +123,7 @@ BEGIN
 
   IF uid_f IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-0000000000f1', uid_f, 'UC_F', today - 30, 580, 8000),
       ('11111111-0000-0000-0000-0000000000f2', uid_f, 'UC_F', today - 15, 590, 8500),
       ('11111111-0000-0000-0000-0000000000f3', uid_f, 'UC_F', today, 600, 9000)
@@ -132,7 +132,7 @@ BEGIN
 
   IF uid_g IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-000000000011', uid_g, 'UC_G', today - 30, 1900, 40000),
       ('11111111-0000-0000-0000-000000000012', uid_g, 'UC_G', today - 15, 1950, 45000),
       ('11111111-0000-0000-0000-000000000013', uid_g, 'UC_G', today, 2000, 50000)
@@ -141,7 +141,7 @@ BEGIN
 
   IF uid_h IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-000000000021', uid_h, 'UC_H', today - 30, 380, 4000),
       ('11111111-0000-0000-0000-000000000022', uid_h, 'UC_H', today - 15, 390, 4500),
       ('11111111-0000-0000-0000-000000000023', uid_h, 'UC_H', today, 400, 5000)
@@ -150,7 +150,7 @@ BEGIN
 
   IF uid_i IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-000000000031', uid_i, 'UC_I', today - 30, 1250, 15000),
       ('11111111-0000-0000-0000-000000000032', uid_i, 'UC_I', today - 15, 1220, 15500),
       ('11111111-0000-0000-0000-000000000033', uid_i, 'UC_I', today, 1200, 15800)
@@ -159,7 +159,7 @@ BEGIN
 
   IF uid_j IS NOT NULL THEN
     INSERT INTO channel_analytics (id, user_id, channel_id, date, subscribers, views)
-    VALUES 
+    VALUES
       ('11111111-0000-0000-0000-000000000041', uid_j, 'UC_J', today - 30, 480, 6000),
       ('11111111-0000-0000-0000-000000000042', uid_j, 'UC_J', today - 15, 490, 6500),
       ('11111111-0000-0000-0000-000000000043', uid_j, 'UC_J', today, 500, 7000)
@@ -168,27 +168,26 @@ BEGIN
 
   -- 4. User Niches
   IF uid_a IS NOT NULL THEN
-    INSERT INTO user_niches (id, user_id, channel_id, detected_niches)
-    VALUES ('22222222-0000-0000-0000-0000000000a1', uid_a, 'UC_A', '["Gaming", "Let''s Play"]')
-    ON CONFLICT (user_id, channel_id) DO UPDATE SET detected_niches = EXCLUDED.detected_niches;
+    INSERT INTO user_niches (id, user_id, channel_id, detected_niches, selected_niches)
+    VALUES ('22222222-0000-0000-0000-0000000000a1', uid_a, 'UC_A', '["Gaming", "Let''s Play"]', '["Gaming", "Let''s Play"]')
+    ON CONFLICT (user_id, channel_id) DO UPDATE SET detected_niches = EXCLUDED.detected_niches, selected_niches = EXCLUDED.selected_niches;
   END IF;
 
   IF uid_g IS NOT NULL THEN
-    INSERT INTO user_niches (id, user_id, channel_id, detected_niches)
-    VALUES ('22222222-0000-0000-0000-000000000011', uid_g, 'UC_G', '["Cuisine", "Recettes"]')
-    ON CONFLICT (user_id, channel_id) DO UPDATE SET detected_niches = EXCLUDED.detected_niches;
-  END IF;
-  
-  -- J (MultiNiche) n'a pas de niche détectée, mais on ajoute la row
-  IF uid_j IS NOT NULL THEN
-    INSERT INTO user_niches (id, user_id, channel_id, detected_niches)
-    VALUES ('22222222-0000-0000-0000-000000000041', uid_j, 'UC_J', '[]')
-    ON CONFLICT (user_id, channel_id) DO UPDATE SET detected_niches = EXCLUDED.detected_niches;
+    INSERT INTO user_niches (id, user_id, channel_id, detected_niches, selected_niches)
+    VALUES ('22222222-0000-0000-0000-000000000011', uid_g, 'UC_G', '["Cuisine", "Recettes"]', '["Cuisine", "Recettes"]')
+    ON CONFLICT (user_id, channel_id) DO UPDATE SET detected_niches = EXCLUDED.detected_niches, selected_niches = EXCLUDED.selected_niches;
   END IF;
 
-  
+  IF uid_j IS NOT NULL THEN
+    INSERT INTO user_niches (id, user_id, channel_id, detected_niches, selected_niches)
+    VALUES ('22222222-0000-0000-0000-000000000041', uid_j, 'UC_J', '[]', '[]')
+    ON CONFLICT (user_id, channel_id) DO UPDATE SET detected_niches = EXCLUDED.detected_niches, selected_niches = EXCLUDED.selected_niches;
+  END IF;
+
+
   -- 5. Video Analytics (génération complète et réaliste)
-  
+
   -- Variables locales pour les calculs réalistes
   DECLARE
     v_views int;
@@ -205,7 +204,7 @@ BEGIN
         v_ctr := round((random() * 8 + 2)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * (random() * 0.4 + 0.3))) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-000a-' || lpad(i::text, 12, '0') AS UUID),
@@ -222,7 +221,7 @@ BEGIN
         v_ctr := round((random() * 5 + 1)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.35)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-000b-' || lpad(i::text, 12, '0') AS UUID),
@@ -239,7 +238,7 @@ BEGIN
         v_ctr := round((random() * 6 + 3)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.5)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-000c-' || lpad(i::text, 12, '0') AS UUID),
@@ -256,7 +255,7 @@ BEGIN
         v_ctr := round((random() * 4 + 2)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.4)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-000e-' || lpad(i::text, 12, '0') AS UUID),
@@ -273,7 +272,7 @@ BEGIN
         v_ctr := round((random() * 5 + 2)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.35)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-000f-' || lpad(i::text, 12, '0') AS UUID),
@@ -290,7 +289,7 @@ BEGIN
         v_ctr := round((random() * 9 + 4)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.6)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-0011-' || lpad(i::text, 12, '0') AS UUID),
@@ -307,7 +306,7 @@ BEGIN
         v_ctr := round((random() * 5 + 2)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.4)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-0012-' || lpad(i::text, 12, '0') AS UUID),
@@ -324,7 +323,7 @@ BEGIN
         v_ctr := round((1.5 + ((18-i) * 0.1))::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.3)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-0013-' || lpad(i::text, 12, '0') AS UUID),
@@ -341,28 +340,28 @@ BEGIN
         v_ctr := round((random() * 7 + 1)::numeric, 2);
         v_impressions := floor(v_views / (v_ctr / 100));
         v_watch_time := floor((v_views * (v_duration * 0.45)) / 60);
-        
+
         INSERT INTO video_analytics (id, user_id, channel_id, video_id, video_title, views, likes, comments, published_at, impressions, click_through_rate, duration_seconds, watch_time_minutes, thumbnail_url)
         VALUES (
           CAST('33333333-0000-0000-0014-' || lpad(i::text, 12, '0') AS UUID),
-          uid_j, 'UC_J', 'vid_j_' || i, 
-          CASE i % 4 
-            WHEN 0 THEN 'Gaming Let''s Play ' || i 
-            WHEN 1 THEN 'Recette Végétarienne ' || i 
-            WHEN 2 THEN 'Vlog Voyage ' || i 
-            ELSE 'Cover Guitare ' || i 
+          uid_j, 'UC_J', 'vid_j_' || i,
+          CASE i % 4
+            WHEN 0 THEN 'Gaming Let''s Play ' || i
+            WHEN 1 THEN 'Recette Végétarienne ' || i
+            WHEN 2 THEN 'Vlog Voyage ' || i
+            ELSE 'Cover Guitare ' || i
           END,
           v_views, floor(v_views * 0.05), floor(v_views * 0.005), now_ts - (i * 10 || ' days')::interval, v_impressions, v_ctr, v_duration, v_watch_time, 'https://picsum.photos/seed/j' || i || '/320/180'
         ) ON CONFLICT (video_id) DO UPDATE SET views = EXCLUDED.views, impressions = EXCLUDED.impressions, click_through_rate = EXCLUDED.click_through_rate, duration_seconds = EXCLUDED.duration_seconds, watch_time_minutes = EXCLUDED.watch_time_minutes, likes = EXCLUDED.likes, comments = EXCLUDED.comments;
       END LOOP;
     END IF;
   END;
-  
+
 -- 6. Decisions
   -- B: 3 skipped (resistance sur FORMAT)
   IF uid_b IS NOT NULL THEN
     INSERT INTO decisions (id, user_id, channel_id, experiment_type, hypothesis, variable, target_metric, verdict, is_resistance_confirmed, created_at)
-    VALUES 
+    VALUES
       ('44444444-0000-0000-0000-0000000000b1', uid_b, 'UC_B', 'TYPE_FORMAT', 'Hypo 1', 'Var 1', 'engagement_rate', 'SKIPPED', true, now_ts - interval '3 days'),
       ('44444444-0000-0000-0000-0000000000b2', uid_b, 'UC_B', 'TYPE_FORMAT', 'Hypo 2', 'Var 2', 'engagement_rate', 'SKIPPED', true, now_ts - interval '2 days'),
       ('44444444-0000-0000-0000-0000000000b3', uid_b, 'UC_B', 'TYPE_FORMAT', 'Hypo 3', 'Var 3', 'engagement_rate', 'SKIPPED', true, now_ts - interval '1 days')
@@ -383,7 +382,7 @@ BEGIN
   -- E: MidWorkshop
   IF uid_e IS NOT NULL THEN
     INSERT INTO decisions (id, user_id, channel_id, experiment_type, hypothesis, variable, target_metric, verdict, workshop_step, selected_concept, selected_title, accepted_at)
-    VALUES 
+    VALUES
       ('44444444-0000-0000-0000-0000000000e1', uid_e, 'UC_E', 'TYPE_HOOK', 'Hypo Hook', 'Var Hook', 'watch_time_30s', 'PENDING', 3, 'Concept A', 'Mon Titre', now_ts)
     ON CONFLICT (id) DO UPDATE SET workshop_step = EXCLUDED.workshop_step;
   END IF;
@@ -391,7 +390,7 @@ BEGIN
   -- F: Tension (4 skipped sur TYPE_FORMAT il y a longtemps)
   IF uid_f IS NOT NULL THEN
     INSERT INTO decisions (id, user_id, channel_id, experiment_type, hypothesis, variable, target_metric, verdict, is_resistance_confirmed, created_at)
-    VALUES 
+    VALUES
       ('44444444-0000-0000-0000-0000000000f1', uid_f, 'UC_F', 'TYPE_FORMAT', 'H1', 'V1', 'engagement', 'SKIPPED', true, now_ts - interval '64 days'),
       ('44444444-0000-0000-0000-0000000000f2', uid_f, 'UC_F', 'TYPE_FORMAT', 'H2', 'V2', 'engagement', 'SKIPPED', true, now_ts - interval '63 days'),
       ('44444444-0000-0000-0000-0000000000f3', uid_f, 'UC_F', 'TYPE_FORMAT', 'H3', 'V3', 'engagement', 'SKIPPED', true, now_ts - interval '62 days'),
@@ -403,7 +402,7 @@ BEGIN
   -- H: RecentPublisher (accepted, with video_id, 2 days ago)
   IF uid_h IS NOT NULL THEN
     INSERT INTO decisions (id, user_id, channel_id, experiment_type, hypothesis, variable, target_metric, verdict, video_id, accepted_at)
-    VALUES 
+    VALUES
       ('44444444-0000-0000-0000-000000000021', uid_h, 'UC_H', 'TYPE_MINIATURE', 'H1', 'V1', 'ctr', 'PENDING', 'vid_pub_h1', now_ts - interval '2 days')
     ON CONFLICT (id) DO UPDATE SET video_id = EXCLUDED.video_id;
   END IF;

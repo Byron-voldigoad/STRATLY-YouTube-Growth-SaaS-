@@ -530,6 +530,20 @@ export async function generateNextDecision(
 ): Promise<Decision> {
   const supabase = getSupabase();
 
+  const { data: nicheData } = await supabase
+    .from("user_niches")
+    .select("selected_niches")
+    .eq("channel_id", channelId)
+    .maybeSingle();
+
+  let niches: string[] = [];
+  if (nicheData?.selected_niches) {
+    niches = typeof nicheData.selected_niches === "string"
+      ? JSON.parse(nicheData.selected_niches)
+      : nicheData.selected_niches;
+  }
+  const channelNiche = niches.length > 0 ? niches.join(" ") : "youtube video";
+
   // 1. Vérifier le protocole REBOOT
   const rebootStatus = await checkRebootEligibility(userId, channelId);
 
@@ -797,16 +811,29 @@ export async function generateVideoConcepts(
     throw new Error("Décision introuvable");
   }
 
+  const { data: nicheData } = await supabase
+    .from("user_niches")
+    .select("selected_niches")
+    .eq("channel_id", decision.channel_id)
+    .maybeSingle();
+
+  let niches: string[] = [];
+  if (nicheData?.selected_niches) {
+    niches = typeof nicheData.selected_niches === "string"
+      ? JSON.parse(nicheData.selected_niches)
+      : nicheData.selected_niches;
+  }
+  const channelNiche = niches.length > 0 ? niches.join(" ") : "youtube video";
+
   const youtubeClient = google.youtube({
     version: 'v3',
     auth: process.env.YOUTUBE_API_KEY
   });
-  const searchQuery = userNotes ||
-    decision.hypothesis;
   const marketContext = await fetchMarketContext(
-    searchQuery,
+    channelNiche,
     supabase,
-    youtubeClient
+    youtubeClient,
+    ai
   );
 
   const ConceptOutputSchema = z.object({
@@ -825,6 +852,8 @@ DÉCISION STRATÉGIQUE :
 - Type : ${decision.experiment_type}
 
 ${userNotes ? `NOTES UTILISATEUR : "${userNotes}"` : ""}
+
+NICHE DE LA CHAÎNE : "${channelNiche}"
 
 TENDANCES YOUTUBE (Top 3 vidéos récentes, 90 derniers jours) :
 ${marketContext}
@@ -877,14 +906,31 @@ export async function evaluateVideoConcept(
     throw new Error("Décision introuvable");
   }
 
+  const { data: nicheData } = await supabase
+    .from("user_niches")
+    .select("selected_niches")
+    .eq("user_id", decision.user_id)
+    .eq("channel_id", decision.channel_id)
+    .maybeSingle();
+
+  let globalNiches: string[] = [];
+  if (nicheData?.selected_niches) {
+    globalNiches = typeof nicheData.selected_niches === "string"
+      ? JSON.parse(nicheData.selected_niches)
+      : nicheData.selected_niches;
+  }
+
   const youtubeClient = google.youtube({
     version: 'v3',
     auth: process.env.YOUTUBE_API_KEY
   });
+  // ON CHERCHE LES TENDANCES SUR L'IDÉE DE L'UTILISATEUR, PAS SUR LA TECHNIQUE
+  const trendQuery = concept;
   const marketContext = await fetchMarketContext(
-    concept,
+    trendQuery,
     supabase,
-    youtubeClient
+    youtubeClient,
+    ai
   );
 
   const EvalSchema = z.object({
@@ -902,7 +948,10 @@ DÉCISION STRATÉGIQUE :
 - Type : ${decision.experiment_type}
 - Variable : ${decision.variable}
 
-TENDANCES YOUTUBE (Top 3 vidéos récentes sur ce sujet, 90 derniers jours) :
+${globalNiches.length > 0 ? `NICHE GLOBALE DE LA CHAÎNE : ${globalNiches.join(", ")}
+Autorise toutes les variations thématiques au sein de cette niche.
+
+` : ""}TENDANCES YOUTUBE (Top 3 vidéos récentes sur ce sujet, 90 derniers jours) :
 ${marketContext}
 
 L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stratégie ?`;
@@ -916,13 +965,14 @@ RÈGLES :
 0. Tu as accès aux tendances réelles du marché ci-dessus. Base ton évaluation UNIQUEMENT sur ces données. NE DIS JAMAIS que tu n'as pas accès aux tendances ou à internet. Agis en stratège assumé.
 1. Note de 1 à 10 (10 = idée avec fort potentiel marché et alignée avec la stratégie).
 2. Si le contexte marché contient "OCÉAN BLEU DÉTECTÉ", considère que la demande existe. N'exige pas des vidéos existantes pour conclure. Évalue surtout si l'utilisateur peut exploiter cette demande selon sa niche et son positionnement.
-3. Dans ton feedback, mentionne OBLIGATOIREMENT :
+3. ALIGNEMENT NICHE (CRITIQUE) : Évalue la distance sémantique entre l'idée et la NICHE GLOBALE de la chaîne. Si l'idée est beaucoup trop éloignée de la niche, sois catégorique et recadre l'utilisateur avec une note MAXIMALE de 4.5/10, même si le potentiel marché est énorme (ne tente pas de justifier des liens artificiels). En revanche, si l'idée est proche, connexe, ou une variation au sein de la même macro-niche, évalue-la normalement.
+4. Dans ton feedback, mentionne OBLIGATOIREMENT :
    - Si le sujet est demandé (vues des vidéos similaires dans les tendances, ou signal d'autocomplétion si OCÉAN BLEU)
    - Si le sujet est saturé ou peu couvert
    - Ce qui manque pour maximiser les chances
-4. Sois direct et constructif.
-5. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
-6. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+5. Sois direct et constructif.
+6. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
+7. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
     output: { format: "json", schema: EvalSchema },
     config: { temperature: 0.3 },

@@ -26,6 +26,7 @@ vi.mock("../youtubeAnalytics.js", () => ({
     { title: "Benchmark Video 1", views: 1000000 },
     { title: "Benchmark Video 2", views: 500000 },
   ]),
+  fetchMarketContext: vi.fn().mockResolvedValue("OCÉAN BLEU DÉTECTÉ : test marché anime."),
   analyzeThumbnail: vi.fn(),
   fetchChannelStats: vi.fn(),
   fetchRecentVideos: vi.fn(),
@@ -43,6 +44,7 @@ import {
   handleResistance,
   acceptDecision,
   evaluateCustomTitle,
+  evaluateVideoConcept,
 } from "../decisionEngine.js";
 
 // ─── Helper pour créer une chaîne Supabase mockée ──────────────────
@@ -154,6 +156,53 @@ describe("acceptDecision", () => {
     expect(updateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         accepted_at: expect.any(String),
+      }),
+    );
+  });
+});
+
+describe("evaluateVideoConcept", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.YOUTUBE_API_KEY = "mock-api-key";
+  });
+
+  it("doit inclure la règle critique d'alignement de niche dans le prompt système", async () => {
+    const mockAi = {
+      generate: vi.fn().mockResolvedValue({
+        output: { score: 2, feedback: "Hors niche." },
+      }),
+    } as any;
+
+    mockFrom.mockReturnValue(
+      mockSupabaseChain({
+        data: {
+          id: "dec-concept-1",
+          user_id: "user-1",
+          channel_id: "channel-1",
+          hypothesis: "Créer des AMV anime centrés sur des personnages populaires",
+          experiment_type: "short",
+          variable: "concept",
+        },
+        error: null,
+      }),
+    );
+
+    await evaluateVideoConcept(
+      mockAi,
+      "dec-concept-1",
+      "Comment trouver ses premiers clients en freelance en 2026",
+    );
+
+    expect(mockAi.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        system: expect.stringContaining("ALIGNEMENT NICHE (CRITIQUE)"),
+      }),
+    );
+
+    expect(mockAi.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        system: expect.stringContaining("tu DOIS donner une note maximale de 3/10"),
       }),
     );
   });

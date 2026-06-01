@@ -17,19 +17,32 @@ export interface KeyRetentionPoints {
 const YOUTUBE_ANALYTICS_URL =
   "https://youtubeanalytics.googleapis.com/v2/reports";
 
+type KeywordAiLike = {
+  generate: (params: {
+    model: string;
+    system?: string;
+    prompt: string;
+    config?: Record<string, any>;
+  }) => Promise<{ output?: string }>;
+};
+
 export function extractKeywords(idea: string): string {
   // Liste des mots de liaison et de contexte à détruire
-  const stopWords = new Set(["un", "une", "des", "le", "la", "les", "de", "du", "sur", "qui", "que", "quoi", "dont", "ou", "et", "dans", "pour", "avec", "par", "edit", "video", "faire", "comment", "met", "en", "avant", "puissance", "analyse", "top", "meilleur", "meilleurs", "montage", "histoire"]);
+  const stopWords = new Set([
+    "un", "une", "des", "le", "la", "les", "de", "du", "sur", "qui", "que", "quoi", "dont", "ou", "et", "dans", "pour", "avec", "par", "en", "vs", "contre",
+    "amv", "edit", "video", "vidéo", "clip", "short", "minute", "minutes", "seconde", "secondes", "créer", "réaliser", "faire", "montage",
+    "mettant", "scène", "comparant", "pouvoirs", "capacités", "meilleurs", "moments", "combat", "combats", "transitions", "rapides", "effets", "visuels", "lumière", "intéressants", "musique", "énergique", "spectaculaires", "focus", "thème", "thèmes", "histoire", "analyse", "top", "meilleur", "évolution", "personnages", "dynamiques"
+  ]);
 
   // Nettoyer, splitter, filtrer
   const words = idea.toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[^a-zà-ÿ0-9\s-]/g, "")
     .split(/\s+/);
 
   const filtered = words.filter(w => !stopWords.has(w) && w.length > 2);
 
   // Ne garder que les 3 mots les plus importants (généralement l'entité)
-  return filtered.slice(0, 3).join(" ");
+  return filtered.slice(0, 4).join(" ");
 }
 
 async function fetchAutocompleteSuggestion(query: string): Promise<string | null> {
@@ -385,12 +398,49 @@ export async function analyzeThumbnail(
   }
 }
 
+export async function extractKeywordsWithAI(
+  idea: string,
+  ai: KeywordAiLike,
+): Promise<string> {
+  try {
+    const response = await ai.generate({
+      model: "openai/llama-3.3-70b-versatile",
+      system: `Tu es un extracteur d'entités SEO. Isole UNIQUEMENT le sujet principal (Nom, œuvre, concept central).
+  RÈGLES ABSOLUES :
+  1. Renvoie 1 à 4 mots MAXIMUM.
+  2. SUPPRIME tout le vocabulaire YouTube (AMV, edit, vidéo, clip, créer, faire, minute, seconde).
+  3. SUPPRIME les mots de narration (mettant, scène, comparant, pouvoirs, combat).
+  4. RENVOIE UNIQUEMENT LES MOTS-CLÉS BRUTS, sans ponctuation.`,
+      prompt: `Extrais l'entité de cette idée : "${idea}"`,
+      config: { temperature: 0.1 }
+    });
+
+    const text = typeof (response as any).text === "string"
+      ? (response as any).text.replace(/^['"`]+|['"`]+$/g, "")
+      : typeof response.output === "string"
+        ? response.output.replace(/^['"`]+|['"`]+$/g, "")
+        : "";
+
+    const finalQuery = text ? text.trim().toLowerCase() : idea.slice(0, 30);
+    console.log(`[DEBUG NERRA] Idea: "${idea}" ---> Extracted Query: "${finalQuery}"`);
+    return finalQuery;
+  } catch (error) {
+    console.error("extractKeywordsWithAI error:", error);
+    const finalQuery = extractKeywords(idea);
+    console.log(`[DEBUG NERRA] Idea: "${idea}" ---> Extracted Query: "${finalQuery}"`);
+    return finalQuery;
+  }
+}
+
 export async function fetchMarketContext(
   rawQuery: string,
   supabaseClient: any,
-  youtubeClient: any
+  youtubeClient: any,
+  ai?: KeywordAiLike,
 ): Promise<string> {
-  const cleanQuery = extractKeywords(rawQuery);
+  const cleanQuery = ai
+    ? await extractKeywordsWithAI(rawQuery, ai)
+    : extractKeywords(rawQuery);
   const query = cleanQuery || rawQuery.trim().toLowerCase();
   const TTL_HOURS = 24;
 

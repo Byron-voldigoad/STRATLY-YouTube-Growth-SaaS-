@@ -63,6 +63,7 @@ export class DecisionComponent implements OnInit {
   isGenerating = false;
   isActioning = false;
   showContextPopup = false;
+  hasNicheConfigured = false;
 
   currentDecision: Decision | null = null;
   decisionHistory: Decision[] = [];
@@ -191,6 +192,21 @@ export class DecisionComponent implements OnInit {
 
       this.userId = profile.id;
       this.channelId = profile.youtube_channel_id;
+
+      const { data: nicheData } = await this.supabase.client
+        .from('user_niches')
+        .select('selected_niches')
+        .eq('user_id', profile.id)
+        .eq('channel_id', profile.youtube_channel_id)
+        .maybeSingle();
+
+      let niches: string[] = [];
+      if (nicheData?.selected_niches) {
+        niches = typeof nicheData.selected_niches === 'string'
+          ? JSON.parse(nicheData.selected_niches)
+          : nicheData.selected_niches;
+      }
+      this.hasNicheConfigured = niches.length > 0;
 
       // Récupérer le contexte utilisateur sauvegardé s'il existe
       const savedUserCtx = sessionStorage.getItem('nerra_user_ctx');
@@ -822,4 +838,3 @@ export class DecisionComponent implements OnInit {
     }
   }
 }
-
