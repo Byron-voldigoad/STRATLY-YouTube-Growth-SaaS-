@@ -132,14 +132,14 @@ export class DecisionComponent implements OnInit {
   discoveredVideos: any[] = [];
   isDiscoveringVideos = false;
 
-  saveWorkshopState() {
+  async saveWorkshopState(): Promise<void> {
     if (!this.currentDecision) return;
-    this.decisionService.updateWorkshopState(this.currentDecision.id, {
+    await this.decisionService.updateWorkshopState(this.currentDecision.id, {
       workshop_step: this.workshopStep,
       selected_concept: this.selectedConcept || this.customConcept,
       brainstorm_data: this.brainstormData,
       selected_title: this.selectedTitle || this.customTitle,
-      thumbnail_brief: this.thumbnailBrief
+      thumbnail_brief: this.thumbnailBrief,
     });
   }
 
@@ -528,6 +528,7 @@ export class DecisionComponent implements OnInit {
   }
 
   confirmConcept() {
+    this.selectedConcept = this.customConcept;
     // Transfer the selected concept into the user context topic
     this.userCtx.videoInProgressTopic = this.customConcept;
     this.conceptEvaluation = null;
@@ -548,6 +549,8 @@ export class DecisionComponent implements OnInit {
         this.customConcept,
         this.brainstormNotes || undefined,
       );
+      await this.saveWorkshopState();
+      this.brainstormNotes = '';
     } catch (err) {
       console.error('[NERRA] Brainstorm error:', err);
     } finally {
@@ -632,20 +635,28 @@ export class DecisionComponent implements OnInit {
   async confirmTitle() {
     if (!this.currentDecision || !this.customTitle) return;
 
-    // Sauvegarder le titre choisi dans la décision
     this.currentDecision.video_title = this.customTitle;
-
-    // Passer à l'étape 4 et charger le brief miniature
     this.workshopStep = 4;
-    this.saveWorkshopState();
+    await this.saveWorkshopState();
+    await this.loadThumbnailBrief();
+  }
+
+  async loadThumbnailBrief() {
+    if (!this.currentDecision) return;
+
+    const title = this.customTitle || this.currentDecision.video_title;
+    if (!title) return;
+
     this.isLoadingWorkshop = true;
     try {
       this.thumbnailBrief = await this.decisionService.getThumbnailBrief(
         this.currentDecision.id,
-        this.customTitle
+        title,
       );
+      await this.saveWorkshopState();
     } catch (err) {
       console.error('[NERRA] Thumbnail brief error:', err);
+      this.thumbnailBrief = null;
     } finally {
       this.isLoadingWorkshop = false;
     }
@@ -689,7 +700,11 @@ export class DecisionComponent implements OnInit {
       );
     } catch (err) {
       console.error('[NERRA] Thumbnail evaluation error:', err);
-      alert("Erreur lors de l'évaluation de la miniature.");
+      this.thumbnailEvaluation = {
+        score: 5,
+        feedback:
+          "⚠️ L'analyse visuelle est temporairement indisponible. Tu peux continuer l'atelier et valider ta miniature toi-même.",
+      };
     } finally {
       this.isEvaluatingThumbnail = false;
     }

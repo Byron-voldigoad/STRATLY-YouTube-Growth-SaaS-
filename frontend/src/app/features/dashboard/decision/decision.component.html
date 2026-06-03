@@ -939,6 +939,18 @@
                           </button>
                         </div>
                       </div>
+                    } @else {
+                      <div class="p-6 text-center">
+                        <p class="text-sm text-slate-500 mb-4">Le brief de la miniature n'a pas pu être chargé.</p>
+                        <button
+                          type="button"
+                          (click)="loadThumbnailBrief()"
+                          [disabled]="isLoadingWorkshop"
+                          class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-amber-600 transition-all disabled:opacity-50"
+                        >
+                          Générer le brief de miniature
+                        </button>
+                      </div>
                     }
                   </div>
                 }

@@ -1052,6 +1052,8 @@ export async function brainstormConcept(
     ),
     hookSuggestion: z.string().describe("Comment capter l'attention dans les 3 premières secondes — une technique de montage, PAS une scène spécifique"),
     refinedConcept: z.string().describe("Le concept reformulé et enrichi en une phrase"),
+    searchQueries: z.array(z.string()).min(2).max(3).describe("2 ou 3 requêtes YouTube (mots-clés COURTS) pour trouver le matériel source brut. Adapte le vocabulaire à la niche (ex Anime: 'veldra tempest twixtor 4k', ex Cuisine: 'tarte pommes recette')."),
+    tutorialQueries: z.array(z.string()).min(1).max(2).describe("1 ou 2 requêtes YouTube pour trouver des tutoriels de montage liés EXACTEMENT au style demandé (ex: 'tuto montage phonk capcut', 'premiere pro transition fluide')."),
   };
 
   // Ajouter l'évaluation des notes si l'utilisateur en a fourni
@@ -1097,11 +1099,12 @@ RÈGLES AUDIO (remplace les "suggestions musicales") :
 
 RÈGLES VISUELLES :
 9. Fournis des indications de montage abstraites (types de plans, transitions, effets) sans référencer de scènes précises.
+10. POUR LES REQUÊTES YOUTUBE (searchQueries et tutorialQueries) : Tu ne génères que les MOTS-CLÉS de recherche (max 5 mots par requête). Pense comme un monteur vidéo qui cherche ses ressources. Ne génère aucune URL et aucun titre de vidéo.
 
 ${userNotes ? `RÈGLES ÉVALUATION DES NOTES :
-10. L'utilisateur a fourni des suggestions. ÉVALUE-les avec une note /10 et un feedback.
-11. Dis ce qui est pertinent et ce qui peut être amélioré.
-12. INTÈGRE ses suggestions dans le plan raffiné.` : ""}
+11. L'utilisateur a fourni des suggestions. ÉVALUE-les avec une note /10 et un feedback.
+12. Dis ce qui est pertinent et ce qui peut être amélioré.
+13. INTÈGRE ses suggestions dans le plan raffiné.` : ""}
 
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
@@ -1123,23 +1126,9 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
 
   if (!output) throw new Error("Échec du brainstorm");
 
-  // Générer les queries de recherche CÔTÉ CODE (pas par le LLM) pour éviter les hallucinations
-  // Tronquer le concept à ~4 mots-clés pour des requêtes YouTube pertinentes
-  const truncateConcept = (text: string, maxWords = 4): string => {
-    return text.split(/\s+/).slice(0, maxWords).join(" ");
-  };
-  const shortConcept = truncateConcept(concept);
-
-  const searchQueries = [
-    `${shortConcept} raw footage`,
-    `${shortConcept} b-roll no copyright`,
-    `${shortConcept} clips compilation`,
-  ];
-
-  const tutorialQueries = [
-    `premiere pro ${output.style || "edit"} tutorial`,
-    `how to edit ${shortConcept}`,
-  ];
+  // À la place du hardcode, on utilise ce que l'IA a intelligemment déduit de la niche
+  const searchQueries = output.searchQueries;
+  const tutorialQueries = output.tutorialQueries;
 
   // Rechercher les vidéos sources et tutoriels sur YouTube
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -1550,9 +1539,24 @@ export async function evaluateThumbnailBase64(
     feedback: z.string().describe("Avis stratégique très pertinent fondé sur les éléments visuels de l'image (composition, texte, couleurs, ambiance) par rapport à l'hypothèse"),
   });
 
+  const mimeType = (() => {
+    const dataUrlMatch = base64Image.match(/^data:([^;]+);/);
+    if (dataUrlMatch) return dataUrlMatch[1];
+    if (base64Image.includes("png")) return "image/png";
+    if (base64Image.includes("webp")) return "image/webp";
+    return "image/jpeg";
+  })();
+
+  const promptText = `DÉCISION À APPLIQUER :\n- Hypothèse : "${decision.hypothesis}"\n\nVoici la miniature (importée) :\nÉvalue cette miniature sur la base de ce que tu y vois. Est-ce qu'elle respecte l'hypothèse ? Est-elle optimisée pour YouTube (ex: bon contraste, texte lisible s'il y en a) ? Donne une note sur 10.`;
+
+  const visionFallback = {
+    score: 5,
+    feedback:
+      "⚠️ L'analyse visuelle est temporairement indisponible (limite de quota de l'IA). Ta miniature n'a pas pu être notée, mais tu peux continuer l'atelier et la valider toi-même.",
+  };
+
   try {
     const startTime = Date.now();
-    const promptText = `DÉCISION À APPLIQUER :\n- Hypothèse : "${decision.hypothesis}"\n\nVoici la miniature (importée) :\nÉvalue cette miniature sur la base de ce que tu y vois. Est-ce qu'elle respecte l'hypothèse ? Est-elle optimisée pour YouTube (ex: bon contraste, texte lisible s'il y en a) ? Donne une note sur 10.`;
 
     const { output } = await ai.generate({
       model: "googleai/gemini-flash-latest",
@@ -1567,8 +1571,8 @@ CRITÈRES D'OBLIGATION :
 5. TON : Très exigeant, technique, sans compromis sur l'efficacité, mais toujours avec une solution pour réparer.
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
       prompt: [
+        { media: { url: base64Image, contentType: mimeType } },
         { text: promptText },
-        { media: { url: base64Image } }
       ],
       output: { format: "json", schema: EvalOutputSchema },
       config: { temperature: 0.5 },
@@ -1589,9 +1593,9 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     if (!output) throw new Error("Échec de l'évaluation de la miniature par Gemini (pas de réponse)");
 
     return output;
-  } catch (genError: any) {
-    console.error("[NERRA] Gemini Generation Error Details:", genError);
-    throw new Error(`Erreur AI (${genError.status || "UNKNOWN"}): ${genError.message}`);
+  } catch (error) {
+    console.error("[NERRA] Erreur Vision Gemini (Timeout/Quota):", error);
+    return visionFallback;
   }
 }
 

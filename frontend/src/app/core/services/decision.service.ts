@@ -49,13 +49,17 @@ export class DecisionService {
   }
 
   /**
-   * Met à jour silencieusement l'état du workshop en base (fire and forget)
+   * Met à jour l'état du workshop en base
    */
-  updateWorkshopState(decisionId: string, partialData: Partial<Decision>): void {
-    this.http.patch(`${this.apiUrl}/decisions/${decisionId}/workshop`, partialData)
-      .subscribe({
-        error: (err) => console.error('[NERRA] Silent workshop update failed:', err)
-      });
+  async updateWorkshopState(decisionId: string, partialData: Partial<Decision>): Promise<void> {
+    try {
+      await lastValueFrom(
+        this.http.patch(`${this.apiUrl}/decisions/${decisionId}/workshop`, partialData),
+      );
+    } catch (err) {
+      console.error('[NERRA] Workshop update failed:', err);
+      throw err;
+    }
   }
 
   /**
