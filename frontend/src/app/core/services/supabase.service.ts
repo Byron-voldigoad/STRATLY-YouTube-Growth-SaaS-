@@ -69,6 +69,7 @@ export class SupabaseService {
     const { error } = await this.supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
+        scopes: 'https://www.googleapis.com/auth/youtube.readonly',
         redirectTo: `${environment.appUrl}/auth/callback`,
         queryParams: {
           access_type: 'offline',

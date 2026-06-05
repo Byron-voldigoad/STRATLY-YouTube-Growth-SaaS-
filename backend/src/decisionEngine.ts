@@ -16,6 +16,7 @@ import { supabase } from "./lib/supabase.js";
 import { genkit, z } from "genkit";
 import { google } from "googleapis";
 import { logAiInteraction } from "./lib/logger.js";
+import { getValidYouTubeClient } from "./auth.service.js";
 import { fetchMarketContext } from "./youtubeAnalytics.js";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -544,6 +545,17 @@ export async function generateNextDecision(
   }
   const channelNiche = niches.length > 0 ? niches.join(" ") : "youtube video";
 
+  const youtubeClient = google.youtube({
+    version: "v3",
+    auth: process.env.YOUTUBE_API_KEY,
+  });
+  const marketContext = await fetchMarketContext(
+    channelNiche,
+    supabase,
+    youtubeClient,
+    ai,
+  );
+
   // 1. Vérifier le protocole REBOOT
   const rebootStatus = await checkRebootEligibility(userId, channelId);
 
@@ -733,17 +745,6 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
   });
 
   const latencyMs = Date.now() - startTime;
-  console.log(`[DEBUG] generateNextDecision: Attempting log for userId=${userId}, channelId=${channelId}`);
-  logAiInteraction(
-    userId,
-    channelId,
-    null,
-    "decision_generation",
-    promptText,
-    output,
-    "openai/llama-3.3-70b-versatile",
-    latencyMs
-  );
 
   if (!output) {
     throw new Error("Le modèle IA n'a pas généré de décision.");
@@ -770,6 +771,8 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
     verdict: "PENDING" as DecisionVerdict,
     resistance_count: 0,
     is_resistance_confirmed: false,
+    market_snapshot: marketContext,
+    engine_version: "v1.0-llama3.3",
   };
 
   const { data: inserted, error } = await supabase
@@ -779,6 +782,19 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
     .single();
 
   if (error) throw error;
+
+  console.log(`[DEBUG] generateNextDecision: Attempting log for userId=${userId}, channelId=${channelId}`);
+  logAiInteraction(
+    userId,
+    channelId,
+    null,
+    "decision_generation",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs,
+    inserted.id,
+  );
 
   console.log(
     `[NERRA] Decision generated: ${output.experiment_type} — "${output.hypothesis}"`,
@@ -878,6 +894,19 @@ RÈGLES :
     output: { format: "json", schema: ConceptOutputSchema },
     config: { temperature: 0.8 },
   });
+
+  const latencyMs = Date.now() - startTime;
+  logAiInteraction(
+    decision.user_id,
+    decision.channel_id,
+    channelNiche,
+    "workshop_concepts",
+    promptText,
+    output,
+    "openai/llama-3.3-70b-versatile",
+    latencyMs,
+    decisionId,
+  );
 
   if (!output) throw new Error("Échec de la génération de concepts");
 
@@ -987,7 +1016,8 @@ RÈGLES :
     promptText,
     output,
     "openai/llama-3.3-70b-versatile",
-    latencyMs
+    latencyMs,
+    decisionId,
   );
 
   if (!output) throw new Error("Échec de l'évaluation");
@@ -1121,7 +1151,8 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     promptText,
     output,
     "openai/llama-3.3-70b-versatile",
-    latencyMs
+    latencyMs,
+    decisionId,
   );
 
   if (!output) throw new Error("Échec du brainstorm");
@@ -1495,7 +1526,8 @@ RÈGLES DE BRIEF :
     promptText,
     output,
     "openai/llama-3.3-70b-versatile",
-    latencyMs
+    latencyMs,
+    decisionId,
   );
 
   if (!output) throw new Error("Échec de la génération du brief miniature");
@@ -1587,7 +1619,8 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
       promptText + "\n[IMAGE BASE64 OMITTED]",
       output,
       "googleai/gemini-flash-latest",
-      latencyMs
+      latencyMs,
+      decisionId,
     );
 
     if (!output) throw new Error("Échec de l'évaluation de la miniature par Gemini (pas de réponse)");
@@ -1677,31 +1710,7 @@ export async function discoverRecentVideos(decisionId: string) {
 
   if (dError || !decision) throw new Error("Décision introuvable");
 
-  // 2. Récupérer les tokens YouTube du profil
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("youtube_access_token, youtube_refresh_token")
-    .eq("id", decision.user_id)
-    .single();
-
-  if (!profile?.youtube_refresh_token) {
-    throw new Error("Compte YouTube non lié ou jeton manquant");
-  }
-
-  // 3. Initialiser le client YouTube
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_CALLBACK_URL
-  );
-
-  oauth2Client.setCredentials({
-    access_token: profile.youtube_access_token,
-    refresh_token: profile.youtube_refresh_token,
-  });
-
-  // Rafraîchir le token si nécessaire
-  const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+  const youtube = await getValidYouTubeClient(decision.user_id);
 
   try {
     // 4. Lister les 5 dernières vidéos (activités de type upload)

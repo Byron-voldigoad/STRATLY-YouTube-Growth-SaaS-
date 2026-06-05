@@ -6,7 +6,6 @@ import { openAI } from "genkitx-openai";
 import { expressHandler } from "@genkit-ai/express";
 import express from "express";
 import cors from "cors";
-import { google } from "googleapis";
 import { supabase } from "./lib/supabase.js";
 import { logAiInteraction } from "./lib/logger.js";
 import { authMiddleware } from "./middleware/auth.middleware.js";
@@ -17,6 +16,11 @@ import {
   getKeyRetentionPoints,
   fetchNicheTrends,
 } from "./youtubeAnalytics.js";
+import {
+  getValidYouTubeAccessToken,
+  getValidYouTubeClient,
+  YouTubeDisconnectedError,
+} from "./auth.service.js";
 // Decision engine functions are now used via route modules
 import { createDecisionRoutes } from "./routes/decisions.routes.js";
 import { createAuthRoutes } from "./routes/auth.routes.js";
@@ -198,15 +202,6 @@ export const analyzeChannelFlow = ai.defineFlow(
 
     const filteredVideos = processedVideos.filter((v) => !v.isOutlier);
 
-    // Récupérer le access_token depuis Supabase via client dédié
-    const supabaseClient = supabase;
-
-    const { data: profileData } = await supabaseClient
-      .from("profiles")
-      .select("youtube_access_token, youtube_refresh_token")
-      .eq("id", input.userId)
-      .single();
-
     let analyticsData: Record<string, { views: number; avgDuration: number }> =
       {};
 
@@ -219,24 +214,13 @@ export const analyzeChannelFlow = ai.defineFlow(
       }
     > = {};
 
-    // Rafraîchir le token avant les appels Analytics
-    let accessToken = profileData?.youtube_access_token;
-
-    if (profileData?.youtube_refresh_token) {
-      try {
-        const oauth2Client = new google.auth.OAuth2(
-          process.env.GOOGLE_CLIENT_ID,
-          process.env.GOOGLE_CLIENT_SECRET,
-          process.env.GOOGLE_CALLBACK_URL,
-        );
-        oauth2Client.setCredentials({
-          refresh_token: profileData.youtube_refresh_token,
-        });
-
-        // @ts-ignore (méthode non typée proprement dans certains SDK)
-        const { credentials } = await oauth2Client.refreshAccessToken();
-        accessToken = (credentials?.access_token as string) ?? accessToken;
-      } catch (e) {
+    let accessToken: string | null = null;
+    try {
+      accessToken = await getValidYouTubeAccessToken(input.userId);
+    } catch (e) {
+      if (e instanceof YouTubeDisconnectedError) {
+        console.warn("[NERRA] YouTube disconnected — analytics skipped");
+      } else {
         console.warn("Token refresh failed:", e);
       }
     }
@@ -675,23 +659,15 @@ export const importYouTubeFlow = ai.defineFlow(
   },
   async (input) => {
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", input.userId)
-      .single();
-    if (!profile?.youtube_refresh_token)
-      throw new Error("Refresh token manquant");
-
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_CALLBACK_URL,
-    );
-    oauth2Client.setCredentials({
-      refresh_token: profile.youtube_refresh_token,
-    });
-    const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+    let youtube;
+    try {
+      youtube = await getValidYouTubeClient(input.userId);
+    } catch (e) {
+      if (e instanceof YouTubeDisconnectedError) {
+        throw new Error("YOUTUBE_DISCONNECTED");
+      }
+      throw e;
+    }
 
     let channelRes;
     if (input.channelId) {

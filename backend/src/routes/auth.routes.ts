@@ -46,8 +46,15 @@ export function createAuthRoutes(): Router {
       }
 
       // 3. Sauvegarder dans Supabase
+      const expiresInSeconds =
+        (tokens as { expires_in?: number }).expires_in ?? 3600;
+      const expiresAt = tokens.expiry_date
+        ? new Date(tokens.expiry_date).toISOString()
+        : new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+
       const updateData: Record<string, any> = {
         youtube_access_token: tokens.access_token,
+        youtube_token_expires_at: expiresAt,
         youtube_channel_id: channel.id,
         youtube_channel_title: channel.snippet?.title,
         youtube_channel_thumbnail: channel.snippet?.thumbnails?.high?.url || channel.snippet?.thumbnails?.default?.url,
