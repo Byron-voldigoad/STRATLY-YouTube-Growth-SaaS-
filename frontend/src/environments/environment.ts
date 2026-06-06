@@ -1,8 +1,10 @@
 export const environment = {
-    production: false,
-    supabaseUrl: 'https://xjpahvdpzbnybkehhyeu.supabase.co',
-    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqcGFodmRwemJueWJrZWhoeWV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTg5OTksImV4cCI6MjA4MTAzNDk5OX0.3zLyJesaCwtZj4y9UeLShES03d9UNCUI58ZAEJm4m80',
-    genkitApiUrl: 'http://localhost:3400',
-    googleClientId: '651916310651-qkbmgm95342uo2lils5pusq5qq7s16go.apps.googleusercontent.com',
-    appUrl: 'http://localhost:4200'
+  production: true,
+  supabaseUrl: "https://logfwxffbzpqrcgzrkwl.supabase.co",
+  supabaseAnonKey:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvZ2Z3eGZmYnpwcXJjZ3pya3dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODUsImV4cCI6MjA5NjI2NDA4NX0.Q3izLxynvWOWuNMyoQmve9uZ_b8PKdk0DArSsIRqIUw",
+  genkitApiUrl: "https://nerra-backend-nx0i.onrender.com",
+  googleClientId:
+    "651916310651-qkbmgm95342uo2lils5pusq5qq7s16go.apps.googleusercontent.com",
+  appUrl: "https://getnerra.vercel.app",
 };

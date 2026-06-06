@@ -7,8 +7,9 @@ backend/node_modules/
 .env
 .env.local
 .env.*
-stratly/.env*
+frontend/.env*
 backend/.env*
+frontend/src/environments/env.ts
 
 # Compiled output
 dist/
