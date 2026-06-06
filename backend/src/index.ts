@@ -149,9 +149,9 @@ export const analyzeChannelFlow = ai.defineFlow(
   },
   async (input) => {
     const prompt = `
-      Tu es un expert en DATA MINING YouTube. 
+      Tu es un expert en DATA MINING YouTube.
       TA MISSION : Analyser les statistiques fournies et extraire des patterns stratégiques.
-      
+
       DONNÉES CANAL :
       - Abonnés : ${input.channelStats.subscriberCount}
       - Vues totales : ${input.channelStats.viewCount}
@@ -228,12 +228,20 @@ export const analyzeChannelFlow = ai.defineFlow(
     if (accessToken) {
       const videoIds = filteredVideos.map((v) => v.videoId);
 
-      analyticsData = await fetchVideoMetricsBatch(videoIds, accessToken, input.channelId);
+      analyticsData = await fetchVideoMetricsBatch(
+        videoIds,
+        accessToken,
+        input.channelId,
+      );
 
       const top5Ids = channelStats.bestVideoIds.slice(0, 5);
 
       for (const videoId of top5Ids) {
-        const curve = await fetchRetentionCurve(videoId, accessToken, input.channelId);
+        const curve = await fetchRetentionCurve(
+          videoId,
+          accessToken,
+          input.channelId,
+        );
         if (curve.length > 0) {
           retentionMap[videoId] = getKeyRetentionPoints(curve);
         }
@@ -253,56 +261,64 @@ export const analyzeChannelFlow = ai.defineFlow(
 
     const promptVideos = filteredVideos.filter((v) => v.viewCount >= 10);
 
-    const thumbnailAnalyses: Record<string, {
-      labels: string[];
-      dominantColors: string[];
-      text: string[];
-      missing?: boolean;
-    }> = {};
+    const thumbnailAnalyses: Record<
+      string,
+      {
+        labels: string[];
+        dominantColors: string[];
+        text: string[];
+        missing?: boolean;
+      }
+    > = {};
 
     const top3Videos = promptVideos
-      .filter(v => channelStats.bestVideoIds.includes(v.videoId))
+      .filter((v) => channelStats.bestVideoIds.includes(v.videoId))
       .slice(0, 3);
 
     for (const video of top3Videos) {
       const thumbnailUrl = input.videos.find(
-        v => v.id === video.videoId
+        (v) => v.id === video.videoId,
       )?.thumbnailUrl;
 
       if (thumbnailUrl) {
         try {
           const { output } = await ai.generate({
             model: "googleai/gemini-flash-latest",
-            system: "Tu es un expert en analyse visuelle de miniatures YouTube.",
+            system:
+              "Tu es un expert en analyse visuelle de miniatures YouTube.",
             prompt: [
-              { text: "Analyse cette miniature YouTube. Extrais les éléments visuels principaux (labels), les couleurs dominantes (dominantColors au format rgb), et le texte visible (text). Renvoie uniquement un objet JSON valide." },
-              { media: { url: thumbnailUrl } }
+              {
+                text: "Analyse cette miniature YouTube. Extrais les éléments visuels principaux (labels), les couleurs dominantes (dominantColors au format rgb), et le texte visible (text). Renvoie uniquement un objet JSON valide.",
+              },
+              { media: { url: thumbnailUrl } },
             ],
             output: {
               format: "json",
               schema: z.object({
                 labels: z.array(z.string()),
                 dominantColors: z.array(z.string()),
-                text: z.array(z.string())
-              })
+                text: z.array(z.string()),
+              }),
             },
-            config: { temperature: 0.2 }
+            config: { temperature: 0.2 },
           });
-          
+
           if (!output) throw new Error("Aucune réponse de Gemini");
-          
+
           thumbnailAnalyses[video.videoId] = {
             labels: output.labels || [],
             dominantColors: output.dominantColors || [],
-            text: output.text || []
+            text: output.text || [],
           };
         } catch (e: any) {
-          console.warn(`THUMBNAIL analysis omitted for ${video.videoId}: ${e.message}`);
+          console.warn(
+            `THUMBNAIL analysis omitted for ${video.videoId}: ${e.message}`,
+          );
           thumbnailAnalyses[video.videoId] = {
             labels: [],
             dominantColors: [],
             text: [],
-            missing: true
+            missing: true,
           };
         }
       } else {
@@ -310,17 +326,17 @@ export const analyzeChannelFlow = ai.defineFlow(
           labels: [],
           dominantColors: [],
           text: [],
-          missing: true
+          missing: true,
         };
       }
     }
 
-    let thumbnailsPromptSection = 'ANALYSE DES MINIATURES : non disponible';
+    let thumbnailsPromptSection = "ANALYSE DES MINIATURES : non disponible";
     if (Object.keys(thumbnailAnalyses).length > 0) {
       const analysesLines = promptVideos
         .filter((v) => thumbnailAnalyses[v.videoId])
         .map((v) => {
-          if (v.contentType === 'clip') return null;
+          if (v.contentType === "clip") return null;
 
           const t = thumbnailAnalyses[v.videoId];
           if (t.missing) {
@@ -329,14 +345,14 @@ export const analyzeChannelFlow = ai.defineFlow(
           const hasText = t.text && t.text.length > 0;
           const hasLabels = t.labels && t.labels.length > 0;
           return `- "${v.title}" :
-  ${hasLabels ? `Éléments visuels : ${t.labels.join(', ')}` : 'Éléments visuels : non détectés'}
-  ${hasText ? `Texte visible : ${t.text[0]}` : 'Texte visible : aucun'}
-  Couleurs dominantes : ${(t.dominantColors || []).join(', ') || 'non détectées'}`;
+  ${hasLabels ? `Éléments visuels : ${t.labels.join(", ")}` : "Éléments visuels : non détectés"}
+  ${hasText ? `Texte visible : ${t.text[0]}` : "Texte visible : aucun"}
+  Couleurs dominantes : ${(t.dominantColors || []).join(", ") || "non détectées"}`;
         })
         .filter(Boolean);
-        
+
       if (analysesLines.length > 0) {
-        thumbnailsPromptSection = `ANALYSE DES MINIATURES (meilleures vidéos) :\n${analysesLines.join('\n')}`;
+        thumbnailsPromptSection = `ANALYSE DES MINIATURES (meilleures vidéos) :\n${analysesLines.join("\n")}`;
       } else {
         thumbnailsPromptSection = `ANALYSE DES MINIATURES : ignorée (format court)`;
       }
@@ -356,72 +372,76 @@ STATISTIQUES GLOBALES :
 - Intervalle moyen entre publications : ${channelStats.avgDaysBetweenPublications ?? "inconnu"} jours
 
 VIDÉO OUTLIER DÉTECTÉE :
-${filteredVideos.length < processedVideos.length
-        ? processedVideos
-          .filter((v) => v.isOutlier)
-          .map(
-            (v) =>
-              `- "${v.title}" | ${v.viewCount} vues | ${v.engagementRate.toFixed(2)}% engagement | HORS NICHE`,
-          )
-          .join("\n")
-        : "Aucune"
-      }
+${
+  filteredVideos.length < processedVideos.length
+    ? processedVideos
+        .filter((v) => v.isOutlier)
+        .map(
+          (v) =>
+            `- "${v.title}" | ${v.viewCount} vues | ${v.engagementRate.toFixed(2)}% engagement | HORS NICHE`,
+        )
+        .join("\n")
+    : "Aucune"
+}
 
 MEILLEURES VIDÉOS (par taux d'engagement) :
-${channelStats.bestVideoIds
-        .map((id) => promptVideos.find((v) => v.videoId === id))
-        .filter(Boolean)
-        .slice(0, 3)
-        .map(
-          (v) =>
-            `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
-        )
-        .join("\n") || "Données insuffisantes"
-      }
+${
+  channelStats.bestVideoIds
+    .map((id) => promptVideos.find((v) => v.videoId === id))
+    .filter(Boolean)
+    .slice(0, 3)
+    .map(
+      (v) =>
+        `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
+    )
+    .join("\n") || "Données insuffisantes"
+}
 
 PIRES VIDÉOS (par taux d'engagement) :
-${channelStats.worstVideoIds
-        .map((id) => promptVideos.find((v) => v.videoId === id))
-        .filter(Boolean)
-        .slice(0, 3)
-        .map(
-          (v) =>
-            `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
-        )
-        .join("\n") || "Données insuffisantes"
-      }
+${
+  channelStats.worstVideoIds
+    .map((id) => promptVideos.find((v) => v.videoId === id))
+    .filter(Boolean)
+    .slice(0, 3)
+    .map(
+      (v) =>
+        `- "${v!.title}" | ${v!.contentType} | ${v!.engagementRate.toFixed(2)}% engagement | ${v!.viewCount} vues`,
+    )
+    .join("\n") || "Données insuffisantes"
+}
 
 TOUTES LES VIDÉOS ANALYSÉES :
 ${promptVideos
-        .map((v) => {
-          const analytics = analyticsData[v.videoId];
-          const retention = retentionMap[v.videoId];
+  .map((v) => {
+    const analytics = analyticsData[v.videoId];
+    const retention = retentionMap[v.videoId];
 
-          const ctrInfo = analytics
-            ? ` | Avg Duration: ${analytics.avgDuration.toFixed(1)}s`
-            : "";
-          const retentionInfo = retention?.at30s
-            ? ` | Rétention 30s: ${(retention.at30s * 100).toFixed(0)}%`
-            : "";
-          const dropInfo = retention?.dropPoint
-            ? ` | Décrochage à: ${(retention.dropPoint * 100).toFixed(0)}% de la vidéo`
-            : "";
+    const ctrInfo = analytics
+      ? ` | Avg Duration: ${analytics.avgDuration.toFixed(1)}s`
+      : "";
+    const retentionInfo = retention?.at30s
+      ? ` | Rétention 30s: ${(retention.at30s * 100).toFixed(0)}%`
+      : "";
+    const dropInfo = retention?.dropPoint
+      ? ` | Décrochage à: ${(retention.dropPoint * 100).toFixed(0)}% de la vidéo`
+      : "";
 
-          return `- "${v.title}" | ${v.contentType} | ${v.engagementRate.toFixed(2)}% engagement | ${v.viewCount} vues | ${v.viewsPerDay.toFixed(0)} vues/jour${ctrInfo}${retentionInfo}${dropInfo}`;
-        })
-        .join("\n")}
+    return `- "${v.title}" | ${v.contentType} | ${v.engagementRate.toFixed(2)}% engagement | ${v.viewCount} vues | ${v.viewsPerDay.toFixed(0)} vues/jour${ctrInfo}${retentionInfo}${dropInfo}`;
+  })
+  .join("\n")}
 
 TENDANCES DE LA NICHE "${userNiche}" :
-${nicheTrends.length > 0
-        ? nicheTrends
-          .slice(0, 10)
-          .map(
-            (trend, index) =>
-              `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`,
-          )
-          .join("\n")
-        : "Aucune tendance"
-      }
+${
+  nicheTrends.length > 0
+    ? nicheTrends
+        .slice(0, 10)
+        .map(
+          (trend, index) =>
+            `${index + 1}. "${trend.title}" par ${trend.channelTitle} - ${trend.views.toLocaleString()} vues`,
+        )
+        .join("\n")
+    : "Aucune tendance"
+}
     `;
 
     let output: any = null;
@@ -431,73 +451,73 @@ ${nicheTrends.length > 0
     try {
       const genResponse = await ai.generate({
         model: "openai/llama-3.3-70b-versatile",
-        system: `Tu es un analyste YouTube expert. 
+        system: `Tu es un analyste YouTube expert.
 Tu reçois des données réelles et calculées d'une chaîne.
 Si la chaîne contient 0 vidéo, considère-la comme une "Nouvelle Chaîne" et oriente ta recommandation vers le lancement (choix de niche, premier concept).
 
 RÈGLES ABSOLUES :
-1. Tu assignes un statut à la chaîne dans channelStatus selon ces critères stricts : 
+1. Tu assignes un statut à la chaîne dans channelStatus selon ces critères stricts :
    - Si 0 vidéo : 'stable' (avec statusExplanation précisant que c'est une nouvelle chaîne).
    - 'inactive' si lastPublishedDaysAgo > 90.
    - 'en_déclin' si trend est baisse ET lastPublishedDaysAgo > 30.
    - 'en_croissance' si avgEngagement > 5% ET lastPublishedDaysAgo < 30.
-   - 'stable' dans tous les autres cas. 
+   - 'stable' dans tous les autres cas.
    statusExplanation explique en une phrase pourquoi ce statut en citant les chiffres réels ou l'absence de vidéos.
-2. Tu donnes UNE SEULE recommandation 
+2. Tu donnes UNE SEULE recommandation
    - Si 0 vidéo : Propose un angle de lancement basé sur la niche.
    - Sinon : Basée sur la data.
    dans recommendation.action.
-   Cette recommandation doit être 
+   Cette recommandation doit être
    une instruction concrète et spécifique
-   qui répond à : QUOI faire, 
+   qui répond à : QUOI faire,
    dans quel FORMAT, et POURQUOI maintenant.
-   
+
    ⚠️ RÈGLE ANTI-HALLUCINATION : Si le "Format dominant" est "clip" (Shorts), TU AS L'INTERDICTION ABSOLUE D'UTILISER LE MOT "MINIATURE" OU "THUMBNAIL" dans toute ta réponse (action, proof, nextStep, statusExplanation). Les Shorts n'ont pas de miniatures. Parle plutôt d'améliorer l'accroche (hook) ou le montage rythmé.
-   
+
    Exemples de mauvaises recommandations :
    - 'Créer plus de contenu similaire' ❌
    - 'Améliorer le taux d engagement' ❌
    - 'Poster plus régulièrement' ❌
-   
+
    Exemples de bonnes recommandations :
-   - 'Refais une vidéo AMV fairy tail style 
-     — c est ton format le plus engageant 
+   - 'Refais une vidéo AMV fairy tail style
+     — c est ton format le plus engageant
      avec 20% de réactions sur 15 vues' ✅
-   - 'Arrête les compilations mixte — 
+   - 'Arrête les compilations mixte —
      0% d engagement sur 8 vidéos testées,
      concentre toi sur un seul anime par vidéo' ✅
-   
-   La recommandation doit nommer 
+
+   La recommandation doit nommer
    un format ou un type de contenu précis,
    pas une direction générale.
-3. Le champ proof DOIT contenir des chiffres 
+3. Le champ proof DOIT contenir des chiffres
    issu des données fournies — pas d'invention
-4. Si une donnée manque, tu écris 
+4. Si une donnée manque, tu écris
    "Données insuffisantes" — jamais une valeur inventée
 5. Tu ignores les vidéos marquées isOutlier: true
-6. engagementContext compare l'engagement 
+6. engagementContext compare l'engagement
    à la moyenne historique de la chaîne fournie
-7. Le champ confidence doit contenir EXACTEMENT 
+7. Le champ confidence doit contenir EXACTEMENT
    cette phrase et rien d'autre :
    'Basé sur [nombre] vidéos analysées'
-   où [nombre] est remplacé par le nombre réel 
+   où [nombre] est remplacé par le nombre réel
    de vidéos dans le dataset fourni.
-   N'utilise pas de mots comme Faible, Moyenne, 
+   N'utilise pas de mots comme Faible, Moyenne,
    Forte ou tout autre jugement qualitatif.
-8. patterns.toAvoid et patterns.toRepeat 
-   utilisent uniquement des titres présents 
+8. patterns.toAvoid et patterns.toRepeat
+   utilisent uniquement des titres présents
    dans les données fournies — aucun titre inventé
-9. RENVOIE UNIQUEMENT DU JSON VALIDE. 
-   Aucun texte avant ou après. 
+9. RENVOIE UNIQUEMENT DU JSON VALIDE.
+   Aucun texte avant ou après.
    Aucun bloc markdown.
-10. La niche indiquée dans 
+10. La niche indiquée dans
     'Niche OBLIGATOIRE' du prompt
     est une contrainte absolue.
-    Toutes tes recommandations doivent 
+    Toutes tes recommandations doivent
     être cohérentes avec cette niche.
     Si la niche est 'Non renseignée',
-    déduis la niche implicite depuis 
-    les titres des vidéos et reste 
+    déduis la niche implicite depuis
+    les titres des vidéos et reste
     cohérent avec elle.
 11. Si une vidéo outlier est listée dans VIDÉO OUTLIER DÉTECTÉE, tu dois OBLIGATOIREMENT la mentionner dans statusExplanation en expliquant qu'elle représente X% des vues totales mais qu'elle est hors-niche. C'est l'insight le plus important à communiquer.
 12. Tu dois commenter la régularité de publication dans engagementContext ou statusExplanation. Si la dernière publication date de plus de 30 jours, c'est un signal négatif à mentionner explicitement. Si l'intervalle moyen dépasse 14 jours, mentionne que la fréquence est insuffisante pour la croissance.
@@ -522,12 +542,14 @@ RÈGLES ABSOLUES :
         message: err.message,
         status: err.status,
         stack: err.stack,
-        details: err.details
+        details: err.details,
       };
       throw err; // On rethrow pour ne pas casser le flux utilisateur, mais on veut logger avant si possible
     } finally {
       const latencyMs = Date.now() - startTime;
-      console.log(`[DEBUG] analyzeChannelFlow: Attempting log for userId=${input.userId}, channelId=${input.channelId}`);
+      console.log(
+        `[DEBUG] analyzeChannelFlow: Attempting log for userId=${input.userId}, channelId=${input.channelId}`,
+      );
       logAiInteraction(
         input.userId,
         input.channelId,
@@ -536,7 +558,7 @@ RÈGLES ABSOLUES :
         userPrompt,
         output || errorToLog,
         "openai/llama-3.3-70b-versatile",
-        latencyMs
+        latencyMs,
       );
     }
 
@@ -570,7 +592,6 @@ RÈGLES ABSOLUES :
     };
 
     // PERSISTANCE DANS SUPABASE
-
 
     const { error: upsertError } = await supabase.from("ai_analyses").upsert(
       {
@@ -629,7 +650,7 @@ export const generateIdeasFlow = ai.defineFlow(
       prompt,
       output,
       "openai/llama-3.3-70b-versatile",
-      latencyMs
+      latencyMs,
     );
 
     const ideas = output || [];
@@ -654,11 +675,13 @@ export const generateIdeasFlow = ai.defineFlow(
 export const importYouTubeFlow = ai.defineFlow(
   {
     name: "importYouTube",
-    inputSchema: z.object({ userId: z.string(), channelId: z.string().optional() }),
+    inputSchema: z.object({
+      userId: z.string(),
+      channelId: z.string().optional(),
+    }),
     outputSchema: z.any(),
   },
   async (input) => {
-
     let youtube;
     try {
       youtube = await getValidYouTubeClient(input.userId);
@@ -688,11 +711,17 @@ export const importYouTubeFlow = ai.defineFlow(
 
     if (input.channelId) {
       // Update profile with the manual channel info so it becomes the default
-      await supabase.from("profiles").update({ 
-        youtube_channel_id: input.channelId,
-        youtube_channel_title: channel.snippet?.title || "Chaîne Forcée",
-        youtube_channel_thumbnail: channel.snippet?.thumbnails?.high?.url || channel.snippet?.thumbnails?.default?.url || ""
-      }).eq("id", input.userId);
+      await supabase
+        .from("profiles")
+        .update({
+          youtube_channel_id: input.channelId,
+          youtube_channel_title: channel.snippet?.title || "Chaîne Forcée",
+          youtube_channel_thumbnail:
+            channel.snippet?.thumbnails?.high?.url ||
+            channel.snippet?.thumbnails?.default?.url ||
+            "",
+        })
+        .eq("id", input.userId);
     }
 
     let videoRes;
@@ -803,7 +832,7 @@ export const detectNichesFlow = ai.defineFlow(
             VIDÉOS À CLASSIFIER:
             ${input.videos.map((v) => `- ID: ${v.id} | Titre: ${v.title} | Vues: ${v.views}`).join("\n")}
             `;
-    
+
     const startTime = Date.now();
     const { output } = await ai.generate({
       model: "openai/llama-3.3-70b-versatile",
@@ -828,7 +857,7 @@ export const detectNichesFlow = ai.defineFlow(
       promptText,
       output,
       "openai/llama-3.3-70b-versatile",
-      latencyMs
+      latencyMs,
     );
 
     if (!output) {
@@ -864,7 +893,12 @@ export const detectNichesFlow = ai.defineFlow(
 
 // --- SERVER ---
 const app = express();
-app.use(cors({ origin: ["http://localhost:4200"], credentials: true }));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:4200",
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "15mb" }));
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] INCOMING:`, req.method, req.path);
@@ -886,4 +920,3 @@ app.use("/auth", createAuthRoutes());
 app.listen(3400, () => {
   console.log("🚀 Server started on http://localhost:3400");
 });
-

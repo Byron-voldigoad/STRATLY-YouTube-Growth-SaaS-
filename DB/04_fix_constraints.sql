@@ -12,8 +12,10 @@ ALTER TABLE public.profiles
 
 -- 2. CORRECTION DE LA VUE CHANNEL_TENSION (VALIDEE vs VALIDATED)
 -- La table limitait à 'VALIDATED' mais la vue cherchait 'VALIDEE'
-DROP VIEW IF EXISTS channel_tension;
-CREATE OR REPLACE VIEW channel_tension AS
+DROP VIEW IF EXISTS public.channel_tension;
+CREATE OR REPLACE VIEW public.channel_tension
+WITH (security_invoker = true)
+AS
 SELECT
   user_id,
   channel_id,
@@ -27,7 +29,7 @@ SELECT
   )) AS tension_score,
   COUNT(*) AS total_decisions,
   COUNT(CASE WHEN verdict = 'VALIDATED' THEN 1 END) AS validated_count
-FROM decisions
+FROM public.decisions
 GROUP BY user_id, channel_id;
 
 

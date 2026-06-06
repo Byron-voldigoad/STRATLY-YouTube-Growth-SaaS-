@@ -1,5 +1,7 @@
-ALTER TABLE decisions
-ADD COLUMN IF NOT EXISTS strategic_tension_score numeric DEFAULT 0;
+-- Corrige l'alerte Supabase : vue channel_tension en SECURITY DEFINER
+-- Passe en security_invoker pour appliquer le RLS de l'utilisateur qui interroge.
+
+DROP VIEW IF EXISTS public.channel_tension;
 
 CREATE OR REPLACE VIEW public.channel_tension
 WITH (security_invoker = true)
@@ -19,3 +21,5 @@ SELECT
   COUNT(CASE WHEN verdict = 'VALIDATED' THEN 1 END) AS validated_count
 FROM public.decisions
 GROUP BY user_id, channel_id;
+
+NOTIFY pgrst, 'reload schema';
