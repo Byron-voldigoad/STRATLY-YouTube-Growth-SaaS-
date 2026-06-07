@@ -692,25 +692,27 @@ export const importYouTubeFlow = ai.defineFlow(
       throw e;
     }
 
-    let channelRes;
-    if (input.channelId) {
-      // Forçage manuel de la chaîne
-      channelRes = await youtube.channels.list({
-        id: [input.channelId],
-        part: ["snippet", "statistics"],
-      });
-    } else {
-      channelRes = await youtube.channels.list({
-        mine: true,
-        part: ["snippet", "statistics"],
-      });
+    // 1. Récupérer l'ID de la playlist "Uploads" de la chaîne et les détails de la chaîne
+    let uploadsPlaylistId;
+    const channelRes = await youtube.channels.list({
+      mine: !input.channelId,
+      id: input.channelId ? [input.channelId] : undefined,
+      part: ["snippet", "statistics", "contentDetails"], // Ajout de snippet et statistics
+    });
+
+    if (!channelRes.data.items || channelRes.data.items.length === 0) {
+      throw new Error("Chaîne YouTube introuvable.");
     }
+    const channel = channelRes.data.items[0];
+    uploadsPlaylistId = channel.contentDetails?.relatedPlaylists?.uploads;
 
-    const channel = channelRes.data.items?.[0];
-    if (!channel) throw new Error("Chaîne introuvable");
+    if (!channel)
+      throw new new Error(
+        "Chaîne introuvable après récupération des détails.",
+      )();
 
+    // Update profile with the manual channel info so it becomes the default
     if (input.channelId) {
-      // Update profile with the manual channel info so it becomes the default
       await supabase
         .from("profiles")
         .update({
@@ -724,28 +726,18 @@ export const importYouTubeFlow = ai.defineFlow(
         .eq("id", input.userId);
     }
 
-    let videoRes;
-    if (input.channelId) {
-      videoRes = await youtube.search.list({
-        channelId: input.channelId,
-        type: ["video"],
-        part: ["snippet"],
-        maxResults: 50,
-        order: "date",
-      });
-    } else {
-      videoRes = await youtube.search.list({
-        forMine: true,
-        type: ["video"],
-        part: ["snippet"],
-        maxResults: 50,
-        order: "date",
-      });
-    }
+    // 2. Récupérer les vidéos depuis cette playlist fiable (1 unité de quota)
+    const videoRes = await youtube.playlistItems.list({
+      playlistId: uploadsPlaylistId,
+      part: ["snippet"],
+      maxResults: 50,
+    });
 
-    const videoIds = (videoRes.data.items || [])
-      .map((v) => v.id?.videoId)
-      .filter(Boolean) as string[];
+    // 3. Adapter le mappage des IDs de vidéos
+    // IMPORTANT : Dans un playlistItem, l'ID de la vidéo n'est pas `item.id.videoId` mais `item.snippet.resourceId.videoId`
+    const videoIds = videoRes.data.items
+      ?.map((item) => item.snippet?.resourceId?.videoId)
+      .filter((id) => id) as string[];
 
     let videoStats: any[] = [];
     if (videoIds.length > 0) {
