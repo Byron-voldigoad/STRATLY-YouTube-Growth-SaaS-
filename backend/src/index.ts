@@ -707,9 +707,9 @@ export const importYouTubeFlow = ai.defineFlow(
     uploadsPlaylistId = channel.contentDetails?.relatedPlaylists?.uploads;
 
     if (!channel)
-      throw new new Error(
+      throw new Error(
         "Chaîne introuvable après récupération des détails.",
-      )();
+      );
 
     // Update profile with the manual channel info so it becomes the default
     if (input.channelId) {
