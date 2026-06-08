@@ -1185,7 +1185,7 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
   logAiInteraction(
     decision.user_id,
     decision.channel_id,
-    channelNiche,
+    null,
     "workshop_brainstorm",
     promptText,
     output,
