@@ -432,12 +432,18 @@ export async function extractKeywordsWithAI(
   }
 }
 
+export type MarketResult = {
+  contextString: string;
+  marketStatus: 'DEAD' | 'OCEAN_BLUE' | 'FOUND';
+  avgViews: number;
+};
+
 export async function fetchMarketContext(
   rawQuery: string,
   supabaseClient: any,
   youtubeClient: any,
   ai?: KeywordAiLike,
-): Promise<string> {
+): Promise<MarketResult> {
   const cleanQuery = ai
     ? await extractKeywordsWithAI(rawQuery, ai)
     : extractKeywords(rawQuery);
@@ -454,12 +460,26 @@ export async function fetchMarketContext(
 
     if (data) {
       const updatedAt = new Date(data.updated_at);
-      const hoursSince = (Date.now() -
-        updatedAt.getTime()) / (1000 * 60 * 60);
+      const hoursSince = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60);
 
       if (hoursSince < TTL_HOURS) {
         console.log('MARKET CACHE HIT:', query);
-        return data.result_data;
+        // Compatibilité : l'ancienne valeur peut être un string brut
+        try {
+          const parsed = JSON.parse(data.result_data);
+          if (parsed && typeof parsed.contextString === 'string') {
+            return parsed as MarketResult;
+          }
+        } catch {
+          // Ancien format string → convertir en MarketResult
+          const raw: string = data.result_data;
+          const marketStatus = raw.startsWith('OCÉAN BLEU')
+            ? 'OCEAN_BLUE'
+            : raw.startsWith('SUJET MORT')
+            ? 'DEAD'
+            : 'FOUND';
+          return { contextString: raw, marketStatus, avgViews: 0 };
+        }
       }
     }
   } catch (e) {
@@ -472,7 +492,7 @@ export async function fetchMarketContext(
       Date.now() - 90 * 24 * 60 * 60 * 1000
     ).toISOString();
 
-    const response = await youtubeClient
+    const searchRes = await youtubeClient
       .search.list({
         part: ['snippet'],
         q: query,
@@ -482,41 +502,76 @@ export async function fetchMarketContext(
         publishedAfter,
       });
 
-    const items = response.data.items || [];
+    const items = searchRes.data.items || [];
 
-    let resultData: string;
+    let marketResult: MarketResult;
 
     if (items.length > 0) {
-      resultData = items
+      // Double appel pour récupérer les vues réelles
+      const videoIds = items
+        .map((item: any) => item.id?.videoId)
+        .filter(Boolean)
+        .join(',');
+
+      let avgViews = 0;
+
+      if (videoIds) {
+        const statsRes = await youtubeClient.videos.list({
+          part: ['statistics'],
+          id: [videoIds],
+        });
+        let totalViews = 0;
+        statsRes.data.items?.forEach((item: any) => {
+          totalViews += Number(item.statistics?.viewCount || 0);
+        });
+        avgViews = statsRes.data.items?.length
+          ? totalViews / statsRes.data.items.length
+          : 0;
+      }
+
+      const contextString = items
         .map((item: any) =>
           `- '${item.snippet.title}' (${item.snippet.channelTitle})`
         )
         .join('\n');
+
+      marketResult = { contextString, marketStatus: 'FOUND', avgViews };
     } else {
       const suggestion = await fetchAutocompleteSuggestion(query);
 
       if (suggestion) {
-        resultData = `OCÉAN BLEU DÉTECTÉ : aucune vidéo récente trouvée pour "${query}", mais l'autocomplétion YouTube suggère "${suggestion}".`;
+        marketResult = {
+          contextString: `OCÉAN BLEU DÉTECTÉ : aucune vidéo récente trouvée pour "${query}", mais l'autocomplétion YouTube suggère "${suggestion}".`,
+          marketStatus: 'OCEAN_BLUE',
+          avgViews: 0,
+        };
       } else {
-        resultData = `SUJET MORT : aucune vidéo récente ni suggestion YouTube pour "${query}".`;
+        marketResult = {
+          contextString: `SUJET MORT : aucune vidéo récente ni suggestion YouTube pour "${query}".`,
+          marketStatus: 'DEAD',
+          avgViews: 0,
+        };
       }
     }
 
-    // 3. Sauvegarder dans le cache
+    // 3. Sauvegarder dans le cache (JSON stringifié du nouvel objet)
     await supabaseClient
       .from('youtube_search_cache')
       .upsert({
         query,
-        result_data: resultData,
+        result_data: JSON.stringify(marketResult),
         updated_at: new Date().toISOString(),
       });
 
     console.log('MARKET API CALL:', query);
-    return resultData;
+    return marketResult;
 
   } catch (error) {
-    console.error('fetchMarketContext error:',
-      error);
-    return `SUJET MORT : impossible de récupérer des tendances ou suggestions pour "${query}".`;
+    console.error('fetchMarketContext error:', error);
+    return {
+      contextString: `SUJET MORT : impossible de récupérer des tendances ou suggestions pour "${query}".`,
+      marketStatus: 'DEAD',
+      avgViews: 0,
+    };
   }
 }

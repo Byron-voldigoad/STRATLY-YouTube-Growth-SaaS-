@@ -549,12 +549,13 @@ export async function generateNextDecision(
     version: "v3",
     auth: process.env.YOUTUBE_API_KEY,
   });
-  const marketContext = await fetchMarketContext(
+  const marketData = await fetchMarketContext(
     channelNiche,
     supabase,
     youtubeClient,
     ai,
   );
+  const marketContext = marketData.contextString;
 
   // 1. Vérifier le protocole REBOOT
   const rebootStatus = await checkRebootEligibility(userId, channelId);
@@ -771,7 +772,7 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
     verdict: "PENDING" as DecisionVerdict,
     resistance_count: 0,
     is_resistance_confirmed: false,
-    market_snapshot: marketContext,
+    market_snapshot: marketData.contextString,
     engine_version: "v1.0-llama3.3",
   };
 
@@ -787,7 +788,7 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
   logAiInteraction(
     userId,
     channelId,
-    null,
+    channelNiche,
     "decision_generation",
     promptText,
     output,
@@ -845,12 +846,13 @@ export async function generateVideoConcepts(
     version: 'v3',
     auth: process.env.YOUTUBE_API_KEY
   });
-  const marketContext = await fetchMarketContext(
+  const marketData = await fetchMarketContext(
     channelNiche,
     supabase,
     youtubeClient,
     ai
   );
+  const marketContext = marketData.contextString;
 
   const ConceptOutputSchema = z.object({
     concepts: z.array(z.object({
@@ -955,16 +957,21 @@ export async function evaluateVideoConcept(
   });
   // ON CHERCHE LES TENDANCES SUR L'IDÉE DE L'UTILISATEUR, PAS SUR LA TECHNIQUE
   const trendQuery = concept;
-  const marketContext = await fetchMarketContext(
+  const marketData = await fetchMarketContext(
     trendQuery,
     supabase,
     youtubeClient,
     ai
   );
 
+  // ─── Schéma Zod déterministe (enums stricts) ───────────────────────
   const EvalSchema = z.object({
-    score: z.number().min(1).max(10).describe("Note de 1 à 10"),
-    feedback: z.string().describe("Feedback constructif en 2-3 phrases max, incluant l'analyse marché"),
+    niche_alignment: z.enum(["hors_niche", "limite", "dans_niche"])
+      .describe("Distance sémantique entre l'idée et la niche de la chaîne"),
+    concept_clarity: z.enum(["vague", "precis"])
+      .describe("L'idée est-elle concrète et actionnable ?"),
+    feedback: z.string()
+      .describe("Avis stratégique assumé en 2-3 phrases. Mentionne le signal marché (vues similaires ou OCÉAN BLEU), la saturation, et ce qui manque."),
   });
 
   const startTime = Date.now();
@@ -981,33 +988,64 @@ ${globalNiches.length > 0 ? `NICHE GLOBALE DE LA CHAÎNE : ${globalNiches.join("
 Autorise toutes les variations thématiques au sein de cette niche.
 
 ` : ""}TENDANCES YOUTUBE (Top 3 vidéos récentes sur ce sujet, 90 derniers jours) :
-${marketContext}
+${marketData.contextString}
 
 L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stratégie ?`;
 
   const { output } = await ai.generate({
     model: "openai/llama-3.3-70b-versatile",
     system: `Tu es NERRA, un producteur stratégique YouTube.
-On te soumet une idée de vidéo. Tu dois l'évaluer en fonction de la stratégie ET des données de marché.
+On te soumet une idée de vidéo. Classe-la selon des critères STRICTS.
 
 RÈGLES :
 0. Tu as accès aux tendances réelles du marché ci-dessus. Base ton évaluation UNIQUEMENT sur ces données. NE DIS JAMAIS que tu n'as pas accès aux tendances ou à internet. Agis en stratège assumé.
-1. Note de 1 à 10 (10 = idée avec fort potentiel marché et alignée avec la stratégie).
-2. Si le contexte marché contient "OCÉAN BLEU DÉTECTÉ", considère que la demande existe. N'exige pas des vidéos existantes pour conclure. Évalue surtout si l'utilisateur peut exploiter cette demande selon sa niche et son positionnement.
-3. ALIGNEMENT NICHE (CRITIQUE) : Évalue la distance sémantique entre l'idée et la NICHE GLOBALE de la chaîne. Si l'idée est beaucoup trop éloignée de la niche, sois catégorique et recadre l'utilisateur avec une note MAXIMALE de 4.5/10, même si le potentiel marché est énorme (ne tente pas de justifier des liens artificiels). En revanche, si l'idée est proche, connexe, ou une variation au sein de la même macro-niche, évalue-la normalement.
-4. Dans ton feedback, mentionne OBLIGATOIREMENT :
-   - Si le sujet est demandé (vues des vidéos similaires dans les tendances, ou signal d'autocomplétion si OCÉAN BLEU)
-   - Si le sujet est saturé ou peu couvert
+1. ALIGNEMENT NICHE (CRITIQUE) : Compare l'idée à la NICHE GLOBALE de la chaîne.
+   - "dans_niche" : l'idée est directement dans la niche ou une variation naturelle.
+   - "limite" : l'idée est adjacente mais pas évidente pour l'audience habituelle.
+   - "hors_niche" : l'idée est clairement déconnectée. Si c'est le cas, tu DOIS donner une note maximale de 3/10 dans le score ALIGNEMENT NICHE (CRITIQUE), même si le potentiel marché est énorme.
+2. CLARTÉ DU CONCEPT :
+   - "precis" : l'idée cite un sujet, un format, un angle concret.
+   - "vague" : l'idée est trop générale ou floue (ex: "une vidéo sur l'anime").
+3. Dans ton feedback, mentionne OBLIGATOIREMENT :
+   - Le signal marché (vues des vidéos similaires, ou "OCÉAN BLEU" si applicable)
+   - Si le sujet est saturé ou sous-couvert
    - Ce qui manque pour maximiser les chances
-5. Sois direct et constructif.
-6. Vérifie que l'idée correspond au FORMAT attendu (clip/Short vs vidéo longue).
-7. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
+4. RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
     output: { format: "json", schema: EvalSchema },
     config: { temperature: 0.3 },
   });
 
   const latencyMs = Date.now() - startTime;
+
+  if (!output) throw new Error("Échec de l'évaluation");
+
+  // ─── Calculatrice déterministe backend ────────────────────────────
+  let totalScore = 0;
+
+  // CRITÈRE A — Alignement Niche (LLM, 30 pts max)
+  if (output.niche_alignment === "dans_niche") totalScore += 30;
+  else if (output.niche_alignment === "limite") totalScore += 10;
+  // "hors_niche" → 0 pts
+
+  // CRITÈRES B & C — Signal Marché & Vues (Data réelle, 40 pts max)
+  if (marketData.marketStatus === 'OCEAN_BLUE') {
+    totalScore += 35;
+  } else if (marketData.marketStatus === 'FOUND') {
+    totalScore += 20;
+    if (marketData.avgViews > 100_000) totalScore += 20;
+    else if (marketData.avgViews > 10_000) totalScore += 10;
+    else if (marketData.avgViews > 0) totalScore += 5;
+  }
+  // "DEAD" → 0 pts
+
+  // CRITÈRE D — Clarté du concept (LLM, 15 pts max)
+  if (output.concept_clarity === "precis") totalScore += 15;
+
+  // Mise à l'échelle /10 (arrondi à 1 décimale), minimum 1
+  let finalScore10 = Math.round((totalScore / 10) * 10) / 10;
+  if (finalScore10 < 1) finalScore10 = 1;
+
   logAiInteraction(
     decision.user_id,
     decision.channel_id,
@@ -1020,8 +1058,7 @@ RÈGLES :
     decisionId,
   );
 
-  if (!output) throw new Error("Échec de l'évaluation");
-  return { score: output.score, feedback: output.feedback };
+  return { score: finalScore10, feedback: output.feedback };
 }
 
 // ─── Post-Acceptance: Brainstorm Workshop ───────────────────────────

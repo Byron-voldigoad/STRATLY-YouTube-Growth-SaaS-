@@ -26,7 +26,11 @@ vi.mock("../youtubeAnalytics.js", () => ({
     { title: "Benchmark Video 1", views: 1000000 },
     { title: "Benchmark Video 2", views: 500000 },
   ]),
-  fetchMarketContext: vi.fn().mockResolvedValue("OCÉAN BLEU DÉTECTÉ : test marché anime."),
+  fetchMarketContext: vi.fn().mockResolvedValue({
+    contextString: "OCÉAN BLEU DÉTECTÉ : test marché anime.",
+    marketStatus: "OCEAN_BLUE",
+    avgViews: 0,
+  }),
   analyzeThumbnail: vi.fn(),
   fetchChannelStats: vi.fn(),
   fetchRecentVideos: vi.fn(),
@@ -170,7 +174,7 @@ describe("evaluateVideoConcept", () => {
   it("doit inclure la règle critique d'alignement de niche dans le prompt système", async () => {
     const mockAi = {
       generate: vi.fn().mockResolvedValue({
-        output: { score: 2, feedback: "Hors niche." },
+        output: { niche_alignment: "hors_niche", concept_clarity: "precis", feedback: "Hors niche." },
       }),
     } as any;
 
