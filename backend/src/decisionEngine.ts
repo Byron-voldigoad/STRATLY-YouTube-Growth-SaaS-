@@ -950,6 +950,7 @@ export async function evaluateVideoConcept(
       ? JSON.parse(nicheData.selected_niches)
       : nicheData.selected_niches;
   }
+  const channelNiche = globalNiches.length > 0 ? globalNiches.join(", ") : null;
 
   const youtubeClient = google.youtube({
     version: 'v3',
@@ -1049,13 +1050,14 @@ RÈGLES :
   logAiInteraction(
     decision.user_id,
     decision.channel_id,
-    null,
+    channelNiche, // Notre correctif précédent !
     "workshop_concept",
     promptText,
     output,
     "openai/llama-3.3-70b-versatile",
     latencyMs,
     decisionId,
+    finalScore10, // <-- LE NOUVEAU PARAMÈTRE
   );
 
   return { score: finalScore10, feedback: output.feedback };
@@ -1183,7 +1185,7 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
   logAiInteraction(
     decision.user_id,
     decision.channel_id,
-    null,
+    channelNiche,
     "workshop_brainstorm",
     promptText,
     output,

@@ -9,7 +9,8 @@ export function logAiInteraction(
   response: any,
   modelUsed: string,
   latencyMs: number,
-  decisionId?: string
+  decisionId?: string,
+  score?: number | null
 ) {
   console.log(`[LOGGER] Attempting to log interaction: ${logType} for user ${userId}`);
   
@@ -28,7 +29,8 @@ export function logAiInteraction(
         response: cleanResponse,
         model_used: modelUsed,
         latency_ms: latencyMs,
-        decision_id: decisionId || null
+        decision_id: decisionId || null,
+        score: score ?? null
       });
       
       if (error) {
