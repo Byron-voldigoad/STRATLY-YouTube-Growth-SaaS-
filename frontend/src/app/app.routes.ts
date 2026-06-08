@@ -41,6 +41,7 @@ export const routes: Routes = [
             { path: 'ai-insights', loadComponent: () => import('./features/dashboard/ai-insights/ai-insights.component').then(m => m.AiInsightsComponent) },
             { path: 'connect', loadComponent: () => import('./features/dashboard/connect/connect.component').then(m => m.ConnectComponent) },
             { path: 'niche-detector', loadComponent: () => import('./shared/components/niche-detector/niche-detector.component').then(m => m.NicheDetectorComponent) },
+            { path: 'logs', loadComponent: () => import('./features/dashboard/ai-logs/ai-logs.component').then(m => m.AiLogsComponent) },
         ],
     },
     { path: '**', redirectTo: '' },

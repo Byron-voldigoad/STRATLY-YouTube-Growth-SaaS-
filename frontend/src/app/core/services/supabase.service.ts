@@ -107,4 +107,28 @@ export class SupabaseService {
     if (error) throw error;
     return data;
   }
+
+  // ─── AI Logs (Dev / Observability) ──────────────────────
+
+  async getRecentAiLogs(limit = 50) {
+    const { data, error } = await this.supabase
+      .from('ai_logs')
+      .select('id, log_type, model_used, latency_ms, score, created_at, prompt, response')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data as AiLog[];
+  }
+}
+
+export interface AiLog {
+  id: string;
+  log_type: string;
+  model_used: string;
+  latency_ms: number | null;
+  score: number | null;
+  created_at: string;
+  prompt: string;
+  response: any;
 }

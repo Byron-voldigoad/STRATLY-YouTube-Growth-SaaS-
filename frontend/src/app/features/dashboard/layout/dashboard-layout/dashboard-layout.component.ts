@@ -16,6 +16,7 @@ import {
   lucideMenu,
   lucideTarget,
   lucideZap,
+  lucideBug,
 } from '@ng-icons/lucide';
 import { NicheDetectorComponent } from '../../../../shared/components/niche-detector/niche-detector.component';
 
@@ -47,6 +48,7 @@ interface NavItem {
       lucideMenu,
       lucideTarget,
       lucideZap,
+      lucideBug,
     }),
   ],
   templateUrl: './dashboard-layout.component.html',
@@ -82,6 +84,12 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
       icon: 'lucideYoutube',
       exact: false,
     },
+    {
+      label: '🛠️ AI Logs (Dev)',
+      path: '/dashboard/logs',
+      icon: 'lucideBug',
+      exact: false,
+    },
   ];
 
   constructor(
@@ -114,6 +122,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
     if (path.startsWith('/dashboard/ai-insights')) return 'Analyse IA';
     if (path.startsWith('/dashboard/connect')) return 'Connexion YouTube';
     if (path.startsWith('/dashboard/niche-detector')) return 'Niche Detector';
+    if (path.startsWith('/dashboard/logs')) return '🛠️ AI Logs (Dev)';
     return 'Tableau de bord';
   }
 
