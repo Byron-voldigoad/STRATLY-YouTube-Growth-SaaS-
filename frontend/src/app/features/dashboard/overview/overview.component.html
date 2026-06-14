@@ -44,10 +44,99 @@
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- KPI Cards Grid                                         -->
+  <!-- Section 1 : Tension Stratégique + KPIs                -->
   <!-- ═══════════════════════════════════════════════════════ -->
-  <section id="kpi-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-    @for (kpi of kpis; track kpi.label) {
+  <section id="tension-kpi-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <!-- ── Carte Tension Stratégique ───────────────────────── -->
+    <div class="tension-card relative overflow-hidden rounded-2xl border bg-white shadow-sm
+                hover:shadow-lg transition-all duration-300 p-6 flex flex-col justify-between min-h-[170px]"
+         [class.border-rose-200]="(tensionScore?.score ?? 0) > 50"
+         [class.border-amber-200]="(tensionScore?.score ?? 0) > 25 && (tensionScore?.score ?? 0) <= 50"
+         [class.border-emerald-200]="(tensionScore?.score ?? 0) <= 25 && tensionScore !== null"
+         [class.border-slate-200]="tensionScore === null">
+
+      <!-- Glow arrière-plan dynamique -->
+      <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full blur-3xl pointer-events-none transition-all duration-500"
+           [class.bg-rose-400]="(tensionScore?.score ?? 0) > 50"
+           [class.opacity-10]="(tensionScore?.score ?? 0) > 50"
+           [class.bg-amber-400]="(tensionScore?.score ?? 0) > 25 && (tensionScore?.score ?? 0) <= 50"
+           [class.opacity-8]="(tensionScore?.score ?? 0) > 25 && (tensionScore?.score ?? 0) <= 50"
+           [class.bg-emerald-400]="(tensionScore?.score ?? 0) <= 25"
+           [class.opacity-8]="(tensionScore?.score ?? 0) <= 25">
+      </div>
+
+      <!-- Accent barre top -->
+      <div class="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+           [class.bg-gradient-to-r]="true"
+           [class.from-rose-500]="(tensionScore?.score ?? 0) > 50"
+           [class.to-rose-400]="(tensionScore?.score ?? 0) > 50"
+           [class.from-amber-500]="(tensionScore?.score ?? 0) > 25 && (tensionScore?.score ?? 0) <= 50"
+           [class.to-amber-400]="(tensionScore?.score ?? 0) > 25 && (tensionScore?.score ?? 0) <= 50"
+           [class.from-emerald-500]="(tensionScore?.score ?? 0) <= 25 && tensionScore !== null"
+           [class.to-emerald-400]="(tensionScore?.score ?? 0) <= 25 && tensionScore !== null">
+      </div>
+
+      <!-- En-tête -->
+      <div class="flex items-center justify-between relative z-10">
+        <h3 class="text-xs font-bold text-slate-400 tracking-widest uppercase">Tension Stratégique</h3>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300"
+             [class.bg-rose-100]="(tensionScore?.score ?? 0) > 50"
+             [class.text-rose-600]="(tensionScore?.score ?? 0) > 50"
+             [class.bg-amber-100]="(tensionScore?.score ?? 0) > 25 && (tensionScore?.score ?? 0) <= 50"
+             [class.text-amber-600]="(tensionScore?.score ?? 0) > 25 && (tensionScore?.score ?? 0) <= 50"
+             [class.bg-emerald-100]="(tensionScore?.score ?? 0) <= 25 && tensionScore !== null"
+             [class.text-emerald-600]="(tensionScore?.score ?? 0) <= 25 && tensionScore !== null"
+             [class.bg-slate-100]="tensionScore === null"
+             [class.text-slate-400]="tensionScore === null">
+          <ng-icon name="lucideZap" class="text-base"></ng-icon>
+        </div>
+      </div>
+
+      <!-- Score -->
+      <div class="relative z-10 mt-auto">
+        @if (isLoadingDecisions) {
+          <div class="space-y-3 animate-pulse">
+            <div class="h-9 w-3/4 rounded-lg bg-slate-100"></div>
+            <div class="h-4 w-1/2 rounded-md bg-slate-50"></div>
+          </div>
+        } @else if (tensionScore) {
+          <div class="text-4xl font-black tracking-tight leading-none"
+               [class.text-rose-600]="tensionScore.score > 50"
+               [class.text-amber-600]="tensionScore.score > 25 && tensionScore.score <= 50"
+               [class.text-emerald-600]="tensionScore.score <= 25">
+            {{ tensionScore.score }}<span class="text-xl font-bold ml-1 opacity-60">/100</span>
+          </div>
+          <div class="mt-2.5 flex items-center gap-2">
+            @if (tensionScore.score > 50) {
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 text-xs font-bold">
+                <ng-icon name="lucideAlertTriangle" class="text-[11px]"></ng-icon>
+                Résistance élevée
+              </span>
+            } @else if (tensionScore.score > 25) {
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-xs font-bold">
+                <ng-icon name="lucideTarget" class="text-[11px]"></ng-icon>
+                Modérée
+              </span>
+            } @else {
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold">
+                <ng-icon name="lucideCheckCircle" class="text-[11px]"></ng-icon>
+                Fluide
+              </span>
+            }
+            <span class="text-slate-400 font-medium text-[11px]">{{ tensionScore.totalDecisions }} décisions</span>
+          </div>
+        } @else {
+          <div class="text-3xl font-black text-slate-300 tracking-tight">--</div>
+          <div class="mt-2.5">
+            <span class="text-slate-400 font-medium text-[11px] px-1.5 py-0.5 bg-slate-50 rounded-md">Aucune donnée</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── 2 KPI Cards (Abonnés + Vues) ──────────────────── -->
+    @for (kpi of kpis.slice(0, 2); track kpi.label) {
       <div class="kpi-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm
                   hover:shadow-lg hover:border-slate-300/80 transition-all duration-300 flex flex-col justify-between min-h-[170px]">
         <!-- Gradient accent top border -->
@@ -117,7 +206,127 @@
 
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- Charts Section                                         -->
+  <!-- Section 2 : Laboratoire — Vidéos EN ÉVALUATION         -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section id="lab-section">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+          <ng-icon name="lucideBeaker" class="text-base"></ng-icon>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 tracking-tight">Laboratoire</h2>
+          <p class="text-xs font-medium text-slate-400">Vidéos publiées — résultats en attente</p>
+        </div>
+      </div>
+      <!-- Badge compteur -->
+      @if (!isLoadingDecisions && labDecisions.length > 0) {
+        <span class="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+          {{ labDecisions.length }} en cours
+        </span>
+      }
+    </div>
+
+    @if (isLoadingDecisions) {
+      <!-- Skeleton -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @for (i of [1, 2]; track i) {
+          <div class="lab-skeleton rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm animate-pulse">
+            <div class="flex items-start gap-4">
+              <div class="w-24 aspect-video rounded-xl bg-slate-100 shrink-0"></div>
+              <div class="flex-1 space-y-2 pt-1">
+                <div class="h-4 bg-slate-100 rounded-md w-3/4"></div>
+                <div class="h-3 bg-slate-50 rounded w-1/2"></div>
+                <div class="h-6 bg-blue-50 rounded-lg w-1/3 mt-3"></div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (labDecisions.length > 0) {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @for (decision of labDecisions; track decision.id) {
+          <div class="lab-card group relative overflow-hidden rounded-2xl border border-blue-200/70 bg-white shadow-sm
+                      hover:shadow-lg hover:border-blue-300/80 transition-all duration-300 p-5">
+            <!-- Glow top accent -->
+            <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 rounded-t-2xl"></div>
+            <!-- Ambient glow -->
+            <div class="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-400/8 blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex items-start gap-4">
+              <!-- Icône type expérience -->
+              <div class="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center shadow-sm">
+                <ng-icon name="lucideBeaker" class="text-blue-500 text-lg"></ng-icon>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <!-- Titre de la vidéo -->
+                <p class="font-bold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
+                  {{ decision.video_title || decision.hypothesis }}
+                </p>
+
+                <!-- Type d'expérience -->
+                <p class="text-xs font-medium text-slate-400 mt-1">
+                  Test en cours :
+                  <span class="text-slate-600 font-semibold">{{ getExperimentLabel(decision.experiment_type) }}</span>
+                </p>
+
+                <!-- Variable testée -->
+                @if (decision.variable) {
+                  <p class="text-xs text-slate-400 mt-0.5 line-clamp-1">
+                    <span class="font-medium text-indigo-600">→</span> {{ decision.variable }}
+                  </p>
+                }
+
+                <!-- Badges -->
+                <div class="mt-3 flex items-center gap-2 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200/60">
+                    EN ÉVALUATION
+                  </span>
+                  @if (decision.accepted_at) {
+                    <span class="text-[11px] text-slate-400 font-medium">
+                      Publiée le {{ decision.accepted_at | date: 'dd MMM' }}
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Lien YouTube si disponible -->
+            @if (decision.video_id) {
+              <a
+                [href]="'https://youtube.com/watch?v=' + decision.video_id"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="relative z-10 mt-4 flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors group/link">
+                <div class="w-6 h-6 rounded-lg bg-slate-100 group-hover/link:bg-blue-50 flex items-center justify-center transition-colors">
+                  <ng-icon name="lucidePlay" class="text-[10px]"></ng-icon>
+                </div>
+                Voir sur YouTube
+                <ng-icon name="lucideArrowRight" class="text-[10px] group-hover/link:translate-x-0.5 transition-transform"></ng-icon>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Empty state laboratoire -->
+      <div class="rounded-2xl border border-dashed border-blue-200 bg-blue-50/30 p-8 text-center">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-3">
+          <ng-icon name="lucideBeaker" class="text-blue-500 text-xl"></ng-icon>
+        </div>
+        <p class="text-sm font-bold text-slate-700 mb-1">Aucune vidéo en évaluation</p>
+        <p class="text-xs font-medium text-slate-400 max-w-xs mx-auto">
+          Publiez une vidéo depuis l'Atelier pour la voir apparaître ici avec son badge bleu.
+        </p>
+      </div>
+    }
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Charts Section (inchangée)                            -->
   <!-- ═══════════════════════════════════════════════════════ -->
   @if (isLoading) {
     <!-- Loading Skeleton for charts -->
@@ -198,10 +407,16 @@
         </div>
       </div>
     </section>
+  }
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- Recent Videos Table                                    -->
-    <!-- ═══════════════════════════════════════════════════════ -->
+
+
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Recent Videos (si données YouTube disponibles)        -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  @if (hasData && recentVideos.length > 0) {
     <section id="recent-videos" class="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
       <!-- Table Header -->
       <div class="px-6 md:px-8 py-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -291,11 +506,13 @@
         </table>
       </div>
     </section>
+  }
 
-  } @else {
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- Empty State                                            -->
-    <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Empty State (aucune donnée YouTube)                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  @if (!isLoading && !hasData) {
     <section id="empty-state"
       class="flex flex-col items-center justify-center min-h-[480px] rounded-2xl border border-slate-200/80 bg-white text-center p-10 shadow-sm relative overflow-hidden">
       <!-- Dotted background -->
@@ -330,5 +547,6 @@
       </button>
     </section>
   }
+
 
 </div>

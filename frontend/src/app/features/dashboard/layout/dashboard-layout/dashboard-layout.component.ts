@@ -17,6 +17,7 @@ import {
   lucideTarget,
   lucideZap,
   lucideBug,
+  lucideHistory,
 } from '@ng-icons/lucide';
 import { NicheDetectorComponent } from '../../../../shared/components/niche-detector/niche-detector.component';
 
@@ -49,6 +50,7 @@ interface NavItem {
       lucideTarget,
       lucideZap,
       lucideBug,
+      lucideHistory,
     }),
   ],
   templateUrl: './dashboard-layout.component.html',
@@ -70,6 +72,12 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
       label: 'Prochaine Décision',
       path: '/dashboard/decision',
       icon: 'lucideZap',
+      exact: false,
+    },
+    {
+      label: 'Mémoire',
+      path: '/dashboard/memory',
+      icon: 'lucideHistory',
       exact: false,
     },
     {
@@ -118,6 +126,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   getPageTitle(): string {
     const path = this.router.url;
     if (path.startsWith('/dashboard/decision')) return 'Prochaine Décision';
+    if (path.startsWith('/dashboard/memory')) return 'Mémoire';
     if (path.startsWith('/dashboard/overview')) return 'Tableau de bord';
     if (path.startsWith('/dashboard/ai-insights')) return 'Analyse IA';
     if (path.startsWith('/dashboard/connect')) return 'Connexion YouTube';

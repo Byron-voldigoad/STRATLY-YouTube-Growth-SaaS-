@@ -37,6 +37,7 @@ export const routes: Routes = [
         canActivate: [authGuard],
         children: [
             { path: '', loadComponent: () => import('./features/dashboard/overview/overview.component').then(m => m.OverviewComponent) },
+            { path: 'memory', loadComponent: () => import('./features/dashboard/memory/memory.component').then(m => m.MemoryComponent), title: 'Mémoire | Nerra' },
             { path: 'decision', loadComponent: () => import('./features/dashboard/decision/decision.component').then(m => m.DecisionComponent), canActivate: [onboardingGuard] },
             { path: 'ai-insights', loadComponent: () => import('./features/dashboard/ai-insights/ai-insights.component').then(m => m.AiInsightsComponent) },
             { path: 'connect', loadComponent: () => import('./features/dashboard/connect/connect.component').then(m => m.ConnectComponent) },

@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
@@ -173,6 +173,7 @@ export class DecisionComponent implements OnInit {
     private decisionService: DecisionService,
     private supabase: SupabaseService,
     private route: ActivatedRoute,
+    private router: Router,
   ) {}
 
   async ngOnInit() {
@@ -253,24 +254,36 @@ export class DecisionComponent implements OnInit {
       this.tensionScore = tensionScore;
       this.decisionHistory = history;
 
-      // Vérifier s'il y a une décision PENDING
-      const pending = history.find((d) => d.verdict === 'PENDING');
-      if (pending) {
-        this.currentDecision = pending;
-        if (pending.accepted_at && pending.workshop_step && pending.workshop_step > 1) {
-          this.workshopStep = pending.workshop_step;
-          this.selectedConcept = pending.selected_concept || '';
-          this.customConcept = pending.selected_concept || '';
-          this.brainstormData = pending.brainstorm_data || null;
-          this.selectedTitle = pending.selected_title || '';
-          this.customTitle = pending.selected_title || '';
-          this.thumbnailBrief = pending.thumbnail_brief || null;
-        }
-      } else {
-        // Chercher la dernière décision évaluée pour l'afficher
-        const lastEvaluated = history.find((d) => d.verdict === 'VALIDATED' || d.verdict === 'FAILED');
-        if (lastEvaluated && !this.currentDecision) {
-          this.currentDecision = lastEvaluated;
+      // Étape 1 — Ne charger que les décisions EN ATELIER (PENDING sans video_id)
+      // Les décisions avec video_id sont déjà publiées → elles appartiennent à la Vue d'ensemble
+      const profile = await this.supabase.getProfile();
+      if (profile) {
+        const { data: pending } = await this.supabase.client
+          .from('decisions')
+          .select('*')
+          .eq('user_id', profile.id)
+          .eq('channel_id', profile.youtube_channel_id)
+          .eq('verdict', 'PENDING')
+          .is('video_id', null) // CRITIQUE : Exclut les vidéos déjà publiées
+          .maybeSingle();
+
+        if (pending) {
+          this.currentDecision = pending as Decision;
+          if (pending.accepted_at && pending.workshop_step && pending.workshop_step > 1) {
+            this.workshopStep = pending.workshop_step;
+            this.selectedConcept = pending.selected_concept || '';
+            this.customConcept = pending.selected_concept || '';
+            this.brainstormData = pending.brainstorm_data || null;
+            this.selectedTitle = pending.selected_title || '';
+            this.customTitle = pending.selected_title || '';
+            this.thumbnailBrief = pending.thumbnail_brief || null;
+          }
+        } else {
+          // Chercher la dernière décision évaluée pour l'afficher
+          const lastEvaluated = history.find((d) => d.verdict === 'VALIDATED' || d.verdict === 'FAILED');
+          if (lastEvaluated && !this.currentDecision) {
+            this.currentDecision = lastEvaluated;
+          }
         }
       }
     } catch (err) {
@@ -770,6 +783,12 @@ export class DecisionComponent implements OnInit {
       if (refreshed) {
         this.currentDecision = refreshed;
       }
+
+      // Étape 2 — Redirection vers la Vue d'ensemble après liaison réussie
+      // La vidéo est maintenant en ligne → l'atelier est terminé
+      setTimeout(() => {
+        this.router.navigate(['/dashboard/overview']); // Redirection vers le suivi
+      }, 1500);
     } catch (err) {
       console.error('[NERRA] Link video error:', err);
       this.linkMessage = 'Erreur lors de la liaison de la vidéo.';

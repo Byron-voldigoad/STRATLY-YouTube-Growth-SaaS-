@@ -15,12 +15,20 @@ import {
   lucideHeart,
   lucideSparkles,
   lucideArrowRight,
+  lucideBeaker,
+  lucideZap,
+  lucideCheckCircle,
+  lucideTarget,
+  lucideAlertTriangle,
 } from '@ng-icons/lucide';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { curveBasis } from 'd3-shape';
 import { YouTubeService } from '../../../core/services/youtube.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { DecisionService } from '../../../core/services/decision.service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { getDecisionUIStatus, DecisionUIStatus } from '../../../shared/utils/decision-status.util';
+import { TensionScore, EXPERIMENT_LABELS, ExperimentType } from '../../../core/models/decision.model';
 
 @Component({
   selector: 'app-overview',
@@ -41,6 +49,11 @@ import { ActivatedRoute, Router } from '@angular/router';
       lucideVideo,
       lucideSparkles,
       lucideArrowRight,
+      lucideBeaker,
+      lucideZap,
+      lucideCheckCircle,
+      lucideTarget,
+      lucideAlertTriangle,
     }),
   ],
   templateUrl: './overview.component.html',
@@ -67,9 +80,28 @@ export class OverviewComponent implements OnInit {
   viewsData: any[] = [];
   recentVideos: any[] = [];
 
+  // ─── Tension Stratégique ───────────────────────────────────
+  tensionScore: TensionScore | null = null;
+
+  // ─── Décisions ────────────────────────────────────────────
+  /** Liste des décisions enrichies avec leur statut visuel */
+  decisions: (any & { uiStatus: DecisionUIStatus })[] = [];
+  isLoadingDecisions = false;
+
+  /** Décisions EN ÉVALUATION : vidéo publiée, résultats en attente */
+  get labDecisions() {
+    return this.decisions.filter(d => d.uiStatus.label === 'EN ÉVALUATION');
+  }
+
+
+  getExperimentLabel(type: ExperimentType | string): string {
+    return EXPERIMENT_LABELS[type as ExperimentType] || type;
+  }
+
   constructor(
     private youtubeService: YouTubeService,
     private supabase: SupabaseService,
+    private decisionService: DecisionService,
     private route: ActivatedRoute,
     private router: Router,
   ) {}
@@ -103,8 +135,10 @@ export class OverviewComponent implements OnInit {
   async loadData() {
     this.isLoading = true;
     try {
-      const stats = await this.youtubeService.getChannelAnalytics();
-      const videos = await this.youtubeService.getVideoAnalytics();
+      const [stats, videos] = await Promise.all([
+        this.youtubeService.getChannelAnalytics(),
+        this.youtubeService.getVideoAnalytics(),
+      ]);
 
       if (stats && stats.length > 0) {
         this.hasData = true;
@@ -118,6 +152,53 @@ export class OverviewComponent implements OnInit {
       console.error('Error loading analytics:', err);
     } finally {
       this.isLoading = false;
+    }
+
+    // Charger les décisions en parallèle (non bloquant)
+    this.loadDecisions();
+  }
+
+  /**
+   * Étape 4 — Charge toutes les décisions de l'utilisateur et leur attache
+   * un statut visuel via getDecisionUIStatus().
+   * Les données seront affichées dans la Vue d'ensemble lors du prochain sprint.
+   */
+  async loadDecisions() {
+    this.isLoadingDecisions = true;
+    try {
+      const profile = await this.supabase.getProfile();
+      if (!profile?.youtube_channel_id) return;
+
+      // Charger décisions + tension en parallèle
+      const [tensionScore, decisionsResult] = await Promise.all([
+        this.decisionService.getTensionScore(profile.id, profile.youtube_channel_id),
+        this.supabase.client
+          .from('decisions')
+          .select('*')
+          .eq('user_id', profile.id)
+          .eq('channel_id', profile.youtube_channel_id)
+          .order('created_at', { ascending: false })
+          .limit(30),
+      ]);
+
+      this.tensionScore = tensionScore;
+
+      if (decisionsResult.error) {
+        console.error('[OVERVIEW] Error loading decisions:', decisionsResult.error);
+        return;
+      }
+
+      // Attacher le statut visuel à chaque décision
+      this.decisions = (decisionsResult.data || []).map((d) => ({
+        ...d,
+        uiStatus: getDecisionUIStatus(d),
+      }));
+
+      console.log('[OVERVIEW] Decisions loaded:', this.decisions.length, '| Tension:', this.tensionScore?.score);
+    } catch (err) {
+      console.error('[OVERVIEW] loadDecisions error:', err);
+    } finally {
+      this.isLoadingDecisions = false;
     }
   }
 
