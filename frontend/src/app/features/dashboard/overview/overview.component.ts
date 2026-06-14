@@ -342,4 +342,17 @@ export class OverviewComponent implements OnInit {
     if (!data || data.length < 2) return false;
     return true;
   }
+
+  async forceEvaluate(decisionId: string) {
+    try {
+      this.isLoadingDecisions = true;
+      await this.decisionService.evaluateDecisionFinal(decisionId);
+      await this.loadDecisions();
+    } catch (err: any) {
+      console.error('[OVERVIEW] Error force evaluating decision:', err);
+      alert('Erreur lors de la force évaluation : ' + (err?.error?.error || err?.message || err));
+    } finally {
+      this.isLoadingDecisions = false;
+    }
+  }
 }

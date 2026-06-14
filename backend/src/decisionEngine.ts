@@ -425,6 +425,84 @@ export async function evaluateDecision(
 }
 
 /**
+ * Évalue la décision finale en utilisant les données actuelles de video_analytics.
+ * Compare baseline_value vs stat actuelle.
+ * Si stat actuelle > baseline_value -> VALIDATED, sinon FAILED.
+ */
+export async function evaluateDecisionFinal(decisionId: string): Promise<any> {
+  const supabase = getSupabase();
+
+  // 1. Lire la décision dans Supabase
+  const { data: decision, error: decisionError } = await supabase
+    .from("decisions")
+    .select("*")
+    .eq("id", decisionId)
+    .single();
+
+  if (decisionError || !decision) {
+    throw new Error("Décision introuvable");
+  }
+
+  const videoId = decision.video_id;
+  if (!videoId) {
+    throw new Error("Cette décision n'est pas liée à une vidéo");
+  }
+
+  // 2. Lire les statistiques actuelles de cette vidéo dans video_analytics
+  const { data: existingVideo, error: videoError } = await supabase
+    .from("video_analytics")
+    .select("*")
+    .eq("video_id", videoId)
+    .maybeSingle();
+
+  if (videoError || !existingVideo) {
+    throw new Error("Statistiques de la vidéo introuvables");
+  }
+
+  // Calcul du taux d'engagement
+  const engagementRate = existingVideo.views > 0
+    ? ((existingVideo.likes || 0) + (existingVideo.comments || 0)) / existingVideo.views * 100
+    : 0;
+
+  // Récupérer la valeur de la stat actuelle selon le type de target_metric
+  const resultValue = getMetricValueForDecision(decision, existingVideo, engagementRate);
+  if (resultValue === null) {
+    throw new Error("Impossible de déterminer la métrique pour cette décision");
+  }
+
+  const baseline = decision.baseline_value || 0;
+
+  // 3. Comparer : Si la stat actuelle de la vidéo est strictement supérieure à la baseline_value
+  const verdict: DecisionVerdict = resultValue > baseline ? "VALIDATED" : "FAILED";
+
+  // Ajuster le confidence_score
+  const currentConfidence = decision.confidence_score || 0.5;
+  const newConfidence =
+    verdict === "VALIDATED"
+      ? Math.min(1.0, currentConfidence + 0.05)
+      : Math.max(0.1, currentConfidence - 0.03);
+
+  // 4. Mettre à jour la table decisions
+  const { data: updatedDecision, error: updateError } = await supabase
+    .from("decisions")
+    .update({
+      verdict,
+      result_value: resultValue,
+      confidence_score: newConfidence,
+      evaluated_at: new Date().toISOString(),
+    })
+    .eq("id", decisionId)
+    .select("*")
+    .single();
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  return updatedDecision;
+}
+
+/**
  * Vérifie si la chaîne est éligible au protocole REBOOT
  * (inactive > 90 jours)
  */

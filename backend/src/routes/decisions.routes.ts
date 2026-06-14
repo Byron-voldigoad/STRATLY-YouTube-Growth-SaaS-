@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   generateNextDecision,
   evaluateDecision,
+  evaluateDecisionFinal,
   acceptDecision,
   handleResistance,
   getDecisionHistory,
@@ -55,6 +56,18 @@ export function createDecisionRoutes(ai: any): Router {
     } catch (error: any) {
       console.error("[NERRA] Evaluate decision error:", error?.message);
       res.status(500).json({ error: error?.message || "Erreur évaluation" });
+    }
+  });
+
+  // Évalue une décision finale de manière forcée (test)
+  router.post("/:id/evaluate-final", authMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const decision = await evaluateDecisionFinal(id as string);
+      res.json({ success: true, decision });
+    } catch (error: any) {
+      console.error("[NERRA] Evaluate final decision error:", error?.message);
+      res.status(500).json({ error: error?.message || "Erreur évaluation finale" });
     }
   });
 

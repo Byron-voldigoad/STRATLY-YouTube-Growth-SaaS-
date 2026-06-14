@@ -96,6 +96,19 @@ export class DecisionService {
   }
 
   /**
+   * Évalue une décision finale de manière forcée (test)
+   */
+  async evaluateDecisionFinal(decisionId: string): Promise<any> {
+    const response = await lastValueFrom(
+      this.http.post<{ success: boolean; decision: any }>(
+        `${this.apiUrl}/decisions/${decisionId}/evaluate-final`,
+        {}
+      ),
+    );
+    return response.decision;
+  }
+
+  /**
    * Récupère l'historique des décisions
    */
   async getHistory(
