@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { lastValueFrom } from 'rxjs';
+import { SupabaseService } from './supabase.service';
 import {
   Decision,
   TensionScore,
@@ -18,7 +19,10 @@ import {
 export class DecisionService {
   private apiUrl = environment.genkitApiUrl || 'http://localhost:3400';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private supabaseService: SupabaseService
+  ) {}
 
   /**
    * Génère la prochaine décision stratégique.
@@ -99,10 +103,20 @@ export class DecisionService {
    * Évalue une décision finale de manière forcée (test)
    */
   async evaluateDecisionFinal(decisionId: string): Promise<any> {
+    const { data: { session } } = await this.supabaseService.client.auth.getSession();
+    const token = session?.access_token;
+    
+    if (!token) throw new Error("Non authentifié");
+
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`
+    });
+
     const response = await lastValueFrom(
       this.http.post<{ success: boolean; decision: any }>(
         `${this.apiUrl}/decisions/${decisionId}/evaluate-final`,
-        {}
+        {},
+        { headers }
       ),
     );
     return response.decision;
