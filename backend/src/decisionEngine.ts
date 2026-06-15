@@ -117,6 +117,14 @@ const EXPERIMENT_METRICS: Record<ExperimentType, string> = {
 
 // ─── Helper ─────────────────────────────────────────────────────────
 
+function extractYouTubeId(urlOrId: string): string {
+  if (!urlOrId) return "";
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|\/shorts\/)([^#&?]*).*/;
+  const match = urlOrId.match(regExp);
+  return match && match[2].length === 11 ? match[2] : urlOrId;
+}
+
 function getSupabase(): SupabaseClient {
   return supabase;
 }
@@ -125,10 +133,7 @@ function getSupabase(): SupabaseClient {
  * Calcule la baseline à partir des 3 dernières vidéos de même format / type.
  * Retourne null si pas assez de données exploitables.
  */
-function calculateBaseline(
-  videos: any[],
-  targetMetric: string,
-): number | null {
+function calculateBaseline(videos: any[], targetMetric: string): number | null {
   if (!videos || videos.length < 2) return null;
 
   // Prendre les 3 dernières vidéos (les plus récentes)
@@ -142,18 +147,18 @@ function calculateBaseline(
     case "engagement_rate": {
       const rates = recentVideos
         .filter((v) => v.views > 0)
-        .map((v) => ((v.likes || 0) + (v.comments || 0)) / v.views * 100);
+        .map((v) => (((v.likes || 0) + (v.comments || 0)) / v.views) * 100);
       if (rates.length === 0) return null;
       const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
       return Math.round(avg * 100) / 100; // Ex: 4.52 (%)
     }
     case "views_7days":
     case "avg_views": {
-      const views = recentVideos
-        .filter((v) => v.views > 0)
-        .map((v) => v.views);
+      const views = recentVideos.filter((v) => v.views > 0).map((v) => v.views);
       if (views.length === 0) return null;
-      return Math.round(views.reduce((a: number, b: number) => a + b, 0) / views.length);
+      return Math.round(
+        views.reduce((a: number, b: number) => a + b, 0) / views.length,
+      );
     }
     case "watch_time_30s": {
       // watch_time_30s n'est pas directement disponible via l'API publique
@@ -274,9 +279,7 @@ export async function calculateStrategicTensionScore(
   const validatedCount = allDecisions.filter(
     (d) => d.verdict === "VALIDATED",
   ).length;
-  const failedCount = allDecisions.filter(
-    (d) => d.verdict === "FAILED",
-  ).length;
+  const failedCount = allDecisions.filter((d) => d.verdict === "FAILED").length;
   const skippedCount = allDecisions.filter(
     (d) => d.verdict === "SKIPPED",
   ).length;
@@ -366,8 +369,7 @@ export async function handleResistance(
   if (currentCount === 1) {
     return {
       level: 1,
-      message:
-        "Nerra reformule la recommandation avec un angle différent.",
+      message: "Nerra reformule la recommandation avec un angle différent.",
     };
   }
 
@@ -443,37 +445,63 @@ export async function evaluateDecisionFinal(decisionId: string): Promise<any> {
     throw new Error("Décision introuvable");
   }
 
-  const videoId = decision.video_id;
-  if (!videoId) {
-    throw new Error("Cette décision n'est pas liée à une vidéo");
+  // 1. Nettoyer l'ID
+  const cleanVideoId = extractYouTubeId(decision.video_id);
+
+  // 2. Appel YouTube en direct (Live Fetch)
+  const ytClient = await getValidYouTubeClient(decision.user_id);
+  const ytRes = await ytClient.videos.list({
+    part: ["statistics", "snippet", "contentDetails"],
+    id: [cleanVideoId],
+  });
+
+  if (!ytRes.data.items || ytRes.data.items.length === 0) {
+    throw new Error(
+      "Vidéo introuvable sur YouTube (elle est peut-être privée ou supprimée).",
+    );
   }
 
-  // 2. Lire les statistiques actuelles de cette vidéo dans video_analytics
-  const { data: existingVideo, error: videoError } = await supabase
-    .from("video_analytics")
-    .select("*")
-    .eq("video_id", videoId)
-    .maybeSingle();
+  const ytVideo = ytRes.data.items[0];
 
-  if (videoError || !existingVideo) {
-    throw new Error("Statistiques de la vidéo introuvables");
-  }
+  // Extraire les stats fraîches
+  const freshStats = {
+    views: Number(ytVideo.statistics?.viewCount || 0),
+    likes: Number(ytVideo.statistics?.likeCount || 0),
+    comments: Number(ytVideo.statistics?.commentCount || 0),
+    // Calcul de l'engagement : (likes + comments) / views * 100
+  };
+  const engagementRate =
+    freshStats.views > 0
+      ? ((freshStats.likes + freshStats.comments) / freshStats.views) * 100
+      : 0;
 
-  // Calcul du taux d'engagement
-  const engagementRate = existingVideo.views > 0
-    ? ((existingVideo.likes || 0) + (existingVideo.comments || 0)) / existingVideo.views * 100
-    : 0;
+  // 3. Mettre à jour la Base de données pour garder le SaaS synchronisé
+  await supabase.from("video_analytics").upsert(
+    {
+      user_id: decision.user_id,
+      channel_id: decision.channel_id,
+      video_id: cleanVideoId,
+      video_title: ytVideo.snippet?.title || "Vidéo évaluée",
+      views: freshStats.views,
+      likes: freshStats.likes,
+      comments: freshStats.comments,
+      thumbnail_url:
+        ytVideo.snippet?.thumbnails?.high?.url ||
+        ytVideo.snippet?.thumbnails?.default?.url,
+      published_at: ytVideo.snippet?.publishedAt,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "video_id" },
+  );
 
-  // Récupérer la valeur de la stat actuelle selon le type de target_metric
-  const resultValue = getMetricValueForDecision(decision, existingVideo, engagementRate);
-  if (resultValue === null) {
-    throw new Error("Impossible de déterminer la métrique pour cette décision");
-  }
+  // 4. Reprendre le code existant : Comparer les freshStats avec decision.baseline_value pour définir le 'verdict'
+  // Attention à bien mapper la target_metric (ex: si target_metric === 'engagement_rate', utiliser engagementRate).
 
   const baseline = decision.baseline_value || 0;
 
   // 3. Comparer : Si la stat actuelle de la vidéo est strictement supérieure à la baseline_value
-  const verdict: DecisionVerdict = resultValue > baseline ? "VALIDATED" : "FAILED";
+  const verdict: DecisionVerdict =
+    engagementRate > baseline ? "VALIDATED" : "FAILED";
 
   // Ajuster le confidence_score
   const currentConfidence = decision.confidence_score || 0.5;
@@ -487,7 +515,7 @@ export async function evaluateDecisionFinal(decisionId: string): Promise<any> {
     .from("decisions")
     .update({
       verdict,
-      result_value: resultValue,
+      result_value: engagementRate,
       confidence_score: newConfidence,
       evaluated_at: new Date().toISOString(),
     })
@@ -617,9 +645,10 @@ export async function generateNextDecision(
 
   let niches: string[] = [];
   if (nicheData?.selected_niches) {
-    niches = typeof nicheData.selected_niches === "string"
-      ? JSON.parse(nicheData.selected_niches)
-      : nicheData.selected_niches;
+    niches =
+      typeof nicheData.selected_niches === "string"
+        ? JSON.parse(nicheData.selected_niches)
+        : nicheData.selected_niches;
   }
   const channelNiche = niches.length > 0 ? niches.join(" ") : "youtube video";
 
@@ -667,8 +696,7 @@ export async function generateNextDecision(
       ? history
           .slice(0, 10)
           .map(
-            (d) =>
-              `- [${d.experiment_type}] "${d.hypothesis}" → ${d.verdict}`,
+            (d) => `- [${d.experiment_type}] "${d.hypothesis}" → ${d.verdict}`,
           )
           .join("\n")
       : "Aucun historique — première décision.";
@@ -679,9 +707,13 @@ export async function generateNextDecision(
       ? videos
           .slice(0, 15)
           .map((v: any) => {
-            const engRate = v.views > 0
-              ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(2)
-              : "0";
+            const engRate =
+              v.views > 0
+                ? (
+                    (((v.likes || 0) + (v.comments || 0)) / v.views) *
+                    100
+                  ).toFixed(2)
+                : "0";
             return `- "${v.video_title}" | ${v.views} vues | ${v.likes || 0} likes | ${v.comments || 0} commentaires | engagement: ${engRate}% | publié: ${v.published_at}`;
           })
           .join("\n")
@@ -750,11 +782,21 @@ IMPORTANT : Adapte ta décision pour qu'elle puisse s'appliquer à cette vidéo 
     hypothesis: z.string(),
     variable: z.string(),
     target_metric: z.string(),
-    cited_videos: z.array(z.object({
-      title: z.string().describe("Titre exact de la vidéo depuis l'audit"),
-      metric: z.string().describe("Ex: 20% d'engagement, 100 vues"),
-    })).describe("Tu DOIS extraire ici au moins 2 vidéos spécifiques de l'audit pour justifier ta décision."),
-    ai_reasoning: z.string().describe("Raisonnement qui INCLUT OBLIGATOIREMENT le nom et chiffre des vidéos extraites dans cited_videos."),
+    cited_videos: z
+      .array(
+        z.object({
+          title: z.string().describe("Titre exact de la vidéo depuis l'audit"),
+          metric: z.string().describe("Ex: 20% d'engagement, 100 vues"),
+        }),
+      )
+      .describe(
+        "Tu DOIS extraire ici au moins 2 vidéos spécifiques de l'audit pour justifier ta décision.",
+      ),
+    ai_reasoning: z
+      .string()
+      .describe(
+        "Raisonnement qui INCLUT OBLIGATOIREMENT le nom et chiffre des vidéos extraites dans cited_videos.",
+      ),
   });
 
   const startTime = Date.now();
@@ -862,7 +904,9 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
 
   if (error) throw error;
 
-  console.log(`[DEBUG] generateNextDecision: Attempting log for userId=${userId}, channelId=${channelId}`);
+  console.log(
+    `[DEBUG] generateNextDecision: Attempting log for userId=${userId}, channelId=${channelId}`,
+  );
   logAiInteraction(
     userId,
     channelId,
@@ -891,8 +935,11 @@ ${rebootStatus.eligible ? `⚠️ PROTOCOLE REBOOT ACTIVÉ : Chaîne inactive de
 export async function generateVideoConcepts(
   ai: ReturnType<typeof genkit>,
   decisionId: string,
-  userNotes?: string
-): Promise<{ concepts: { idea: string; marketInsight: string }[]; reasoning: string }> {
+  userNotes?: string,
+): Promise<{
+  concepts: { idea: string; marketInsight: string }[];
+  reasoning: string;
+}> {
   const supabase = getSupabase();
 
   const { data: decision, error } = await supabase
@@ -902,7 +949,10 @@ export async function generateVideoConcepts(
     .single();
 
   if (error || !decision) {
-    console.error("[NERRA] generateVideoConcepts DB Error:", { decisionId, error });
+    console.error("[NERRA] generateVideoConcepts DB Error:", {
+      decisionId,
+      error,
+    });
     throw new Error("Décision introuvable");
   }
 
@@ -914,30 +964,41 @@ export async function generateVideoConcepts(
 
   let niches: string[] = [];
   if (nicheData?.selected_niches) {
-    niches = typeof nicheData.selected_niches === "string"
-      ? JSON.parse(nicheData.selected_niches)
-      : nicheData.selected_niches;
+    niches =
+      typeof nicheData.selected_niches === "string"
+        ? JSON.parse(nicheData.selected_niches)
+        : nicheData.selected_niches;
   }
   const channelNiche = niches.length > 0 ? niches.join(" ") : "youtube video";
 
   const youtubeClient = google.youtube({
-    version: 'v3',
-    auth: process.env.YOUTUBE_API_KEY
+    version: "v3",
+    auth: process.env.YOUTUBE_API_KEY,
   });
   const marketData = await fetchMarketContext(
     channelNiche,
     supabase,
     youtubeClient,
-    ai
+    ai,
   );
   const marketContext = marketData.contextString;
 
   const ConceptOutputSchema = z.object({
-    concepts: z.array(z.object({
-      idea: z.string().describe("L'idée de vidéo concrète et spécifique"),
-      marketInsight: z.string().describe("Pourquoi c'est une opportunité. Ex: 'Ce format fait d'excellentes vues sur d'autres animes, mais aucune chaîne n'a encore appliqué cet angle précis sur ce personnage.' NE JAMAIS INVENTER DE VOLUME DE RECHERCHES CHIFFRÉ."),
-    })).length(3),
-    reasoning: z.string().describe("Raisonnement global sur les opportunités de la niche"),
+    concepts: z
+      .array(
+        z.object({
+          idea: z.string().describe("L'idée de vidéo concrète et spécifique"),
+          marketInsight: z
+            .string()
+            .describe(
+              "Pourquoi c'est une opportunité. Ex: 'Ce format fait d'excellentes vues sur d'autres animes, mais aucune chaîne n'a encore appliqué cet angle précis sur ce personnage.' NE JAMAIS INVENTER DE VOLUME DE RECHERCHES CHIFFRÉ.",
+            ),
+        }),
+      )
+      .length(3),
+    reasoning: z
+      .string()
+      .describe("Raisonnement global sur les opportunités de la niche"),
   });
 
   const startTime = Date.now();
@@ -1011,7 +1072,10 @@ export async function evaluateVideoConcept(
     .single();
 
   if (error || !decision) {
-    console.error("[NERRA] evaluateVideoConcept DB Error:", { decisionId, error });
+    console.error("[NERRA] evaluateVideoConcept DB Error:", {
+      decisionId,
+      error,
+    });
     throw new Error("Décision introuvable");
   }
 
@@ -1024,15 +1088,16 @@ export async function evaluateVideoConcept(
 
   let globalNiches: string[] = [];
   if (nicheData?.selected_niches) {
-    globalNiches = typeof nicheData.selected_niches === "string"
-      ? JSON.parse(nicheData.selected_niches)
-      : nicheData.selected_niches;
+    globalNiches =
+      typeof nicheData.selected_niches === "string"
+        ? JSON.parse(nicheData.selected_niches)
+        : nicheData.selected_niches;
   }
   const channelNiche = globalNiches.length > 0 ? globalNiches.join(", ") : null;
 
   const youtubeClient = google.youtube({
-    version: 'v3',
-    auth: process.env.YOUTUBE_API_KEY
+    version: "v3",
+    auth: process.env.YOUTUBE_API_KEY,
   });
   // ON CHERCHE LES TENDANCES SUR L'IDÉE DE L'UTILISATEUR, PAS SUR LA TECHNIQUE
   const trendQuery = concept;
@@ -1040,17 +1105,22 @@ export async function evaluateVideoConcept(
     trendQuery,
     supabase,
     youtubeClient,
-    ai
+    ai,
   );
 
   // ─── Schéma Zod déterministe (enums stricts) ───────────────────────
   const EvalSchema = z.object({
-    niche_alignment: z.enum(["hors_niche", "limite", "dans_niche"])
+    niche_alignment: z
+      .enum(["hors_niche", "limite", "dans_niche"])
       .describe("Distance sémantique entre l'idée et la niche de la chaîne"),
-    concept_clarity: z.enum(["vague", "precis"])
+    concept_clarity: z
+      .enum(["vague", "precis"])
       .describe("L'idée est-elle concrète et actionnable ?"),
-    feedback: z.string()
-      .describe("Avis stratégique assumé en 2-3 phrases. Mentionne le signal marché (vues similaires ou OCÉAN BLEU), la saturation, et ce qui manque."),
+    feedback: z
+      .string()
+      .describe(
+        "Avis stratégique assumé en 2-3 phrases. Mentionne le signal marché (vues similaires ou OCÉAN BLEU), la saturation, et ce qui manque.",
+      ),
   });
 
   const startTime = Date.now();
@@ -1063,10 +1133,14 @@ DÉCISION STRATÉGIQUE :
 - Type : ${decision.experiment_type}
 - Variable : ${decision.variable}
 
-${globalNiches.length > 0 ? `NICHE GLOBALE DE LA CHAÎNE : ${globalNiches.join(", ")}
+${
+  globalNiches.length > 0
+    ? `NICHE GLOBALE DE LA CHAÎNE : ${globalNiches.join(", ")}
 Autorise toutes les variations thématiques au sein de cette niche.
 
-` : ""}TENDANCES YOUTUBE (Top 3 vidéos récentes sur ce sujet, 90 derniers jours) :
+`
+    : ""
+}TENDANCES YOUTUBE (Top 3 vidéos récentes sur ce sujet, 90 derniers jours) :
 ${marketData.contextString}
 
 L'idée est-elle une bonne opportunité marché ? Est-elle alignée avec la stratégie ?`;
@@ -1108,9 +1182,9 @@ RÈGLES :
   // "hors_niche" → 0 pts
 
   // CRITÈRES B & C — Signal Marché & Vues (Data réelle, 40 pts max)
-  if (marketData.marketStatus === 'OCEAN_BLUE') {
+  if (marketData.marketStatus === "OCEAN_BLUE") {
     totalScore += 35;
-  } else if (marketData.marketStatus === 'FOUND') {
+  } else if (marketData.marketStatus === "FOUND") {
     totalScore += 20;
     if (marketData.avgViews > 100_000) totalScore += 20;
     else if (marketData.avgViews > 10_000) totalScore += 10;
@@ -1160,9 +1234,19 @@ export async function brainstormConcept(
   hookSuggestion: string;
   refinedConcept: string;
   narrativeStructure: { act: string; purpose: string; visualCue: string }[];
-  audioVibe: { genre: string; mood: string; bpmRange: string; referenceStyle: string };
+  audioVibe: {
+    genre: string;
+    mood: string;
+    bpmRange: string;
+    referenceStyle: string;
+  };
   visualCues: string[];
-  resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[];
+  resourceVideos: {
+    title: string;
+    url: string;
+    thumbnailUrl: string;
+    why: string;
+  }[];
   tutorialVideos: { title: string; url: string; thumbnailUrl: string }[];
   notesEvaluation: { score: number; feedback: string } | null;
 }> {
@@ -1180,35 +1264,113 @@ export async function brainstormConcept(
   }
 
   const baseFields: Record<string, any> = {
-    narrativeStructure: z.array(z.object({
-      act: z.string().describe("Nom de l'acte narratif (ex: 'Ouverture', 'Montée', 'Climax', 'Résolution')"),
-      purpose: z.string().describe("L'objectif émotionnel de cet acte (ex: 'Créer le mystère', 'Monter la tension')"),
-      visualCue: z.string().describe("Description abstraite du type de visuel (ex: 'Plans rapides et saccadés', 'Ralenti dramatique')"),
-    })).min(3).max(5).describe("Structure narrative en 3-5 actes. NE JAMAIS citer de timestamps, épisodes ou scènes spécifiques."),
+    narrativeStructure: z
+      .array(
+        z.object({
+          act: z
+            .string()
+            .describe(
+              "Nom de l'acte narratif (ex: 'Ouverture', 'Montée', 'Climax', 'Résolution')",
+            ),
+          purpose: z
+            .string()
+            .describe(
+              "L'objectif émotionnel de cet acte (ex: 'Créer le mystère', 'Monter la tension')",
+            ),
+          visualCue: z
+            .string()
+            .describe(
+              "Description abstraite du type de visuel (ex: 'Plans rapides et saccadés', 'Ralenti dramatique')",
+            ),
+        }),
+      )
+      .min(3)
+      .max(5)
+      .describe(
+        "Structure narrative en 3-5 actes. NE JAMAIS citer de timestamps, épisodes ou scènes spécifiques.",
+      ),
     style: z.string().describe("Style de montage recommandé"),
     duration: z.string().describe("Durée recommandée"),
-    musicDirection: z.string().describe("Analyse du genre musical : identifier le sous-genre exact et le mood"),
-    audioVibe: z.object({
-      genre: z.string().describe("Genre/sous-genre musical (ex: 'Lo-fi hip-hop', 'Orchestral épique')"),
-      mood: z.string().describe("Ambiance sonore (ex: 'Mélancolique et lent', 'Intense et rapide')"),
-      bpmRange: z.string().describe("Fourchette de BPM recommandée (ex: '80-100 BPM', '140-160 BPM')"),
-      referenceStyle: z.string().describe("Style de référence SANS citer de titre exact (ex: 'Dans le style des musiques de trailer cinématiques')"),
-    }).describe("Direction audio abstraite. INTERDICTION de citer des titres de musique spécifiques."),
-    visualCues: z.array(z.string()).min(3).max(5).describe(
-      "3-5 indications visuelles abstraites (type de plans, transitions, effets). Ex: 'Utiliser des jump cuts rapides', 'Transition en fondu noir entre les actes'. NE JAMAIS citer de timestamps ou de scènes précises d'une œuvre."
-    ),
-    hookSuggestion: z.string().describe("Comment capter l'attention dans les 3 premières secondes — une technique de montage, PAS une scène spécifique"),
-    refinedConcept: z.string().describe("Le concept reformulé et enrichi en une phrase"),
-    searchQueries: z.array(z.string()).min(2).max(3).describe("2 ou 3 requêtes YouTube (mots-clés COURTS) pour trouver le matériel source brut. Adapte le vocabulaire à la niche (ex Anime: 'veldra tempest twixtor 4k', ex Cuisine: 'tarte pommes recette')."),
-    tutorialQueries: z.array(z.string()).min(1).max(2).describe("1 ou 2 requêtes YouTube pour trouver des tutoriels de montage liés EXACTEMENT au style demandé (ex: 'tuto montage phonk capcut', 'premiere pro transition fluide')."),
+    musicDirection: z
+      .string()
+      .describe(
+        "Analyse du genre musical : identifier le sous-genre exact et le mood",
+      ),
+    audioVibe: z
+      .object({
+        genre: z
+          .string()
+          .describe(
+            "Genre/sous-genre musical (ex: 'Lo-fi hip-hop', 'Orchestral épique')",
+          ),
+        mood: z
+          .string()
+          .describe(
+            "Ambiance sonore (ex: 'Mélancolique et lent', 'Intense et rapide')",
+          ),
+        bpmRange: z
+          .string()
+          .describe(
+            "Fourchette de BPM recommandée (ex: '80-100 BPM', '140-160 BPM')",
+          ),
+        referenceStyle: z
+          .string()
+          .describe(
+            "Style de référence SANS citer de titre exact (ex: 'Dans le style des musiques de trailer cinématiques')",
+          ),
+      })
+      .describe(
+        "Direction audio abstraite. INTERDICTION de citer des titres de musique spécifiques.",
+      ),
+    visualCues: z
+      .array(z.string())
+      .min(3)
+      .max(5)
+      .describe(
+        "3-5 indications visuelles abstraites (type de plans, transitions, effets). Ex: 'Utiliser des jump cuts rapides', 'Transition en fondu noir entre les actes'. NE JAMAIS citer de timestamps ou de scènes précises d'une œuvre.",
+      ),
+    hookSuggestion: z
+      .string()
+      .describe(
+        "Comment capter l'attention dans les 3 premières secondes — une technique de montage, PAS une scène spécifique",
+      ),
+    refinedConcept: z
+      .string()
+      .describe("Le concept reformulé et enrichi en une phrase"),
+    searchQueries: z
+      .array(z.string())
+      .min(2)
+      .max(3)
+      .describe(
+        "2 ou 3 requêtes YouTube (mots-clés COURTS) pour trouver le matériel source brut. Adapte le vocabulaire à la niche (ex Anime: 'veldra tempest twixtor 4k', ex Cuisine: 'tarte pommes recette').",
+      ),
+    tutorialQueries: z
+      .array(z.string())
+      .min(1)
+      .max(2)
+      .describe(
+        "1 ou 2 requêtes YouTube pour trouver des tutoriels de montage liés EXACTEMENT au style demandé (ex: 'tuto montage phonk capcut', 'premiere pro transition fluide').",
+      ),
   };
 
   // Ajouter l'évaluation des notes si l'utilisateur en a fourni
   if (userNotes) {
-    baseFields.notesEvaluation = z.object({
-      score: z.number().min(1).max(10).describe("Note /10 sur la pertinence des suggestions de l'utilisateur"),
-      feedback: z.string().describe("Avis en 2-3 phrases : ce qui est pertinent, ce qui peut être amélioré"),
-    }).describe("Évaluation des notes/suggestions de l'utilisateur");
+    baseFields.notesEvaluation = z
+      .object({
+        score: z
+          .number()
+          .min(1)
+          .max(10)
+          .describe(
+            "Note /10 sur la pertinence des suggestions de l'utilisateur",
+          ),
+        feedback: z
+          .string()
+          .describe(
+            "Avis en 2-3 phrases : ce qui est pertinent, ce qui peut être amélioré",
+          ),
+      })
+      .describe("Évaluation des notes/suggestions de l'utilisateur");
   }
 
   const BrainstormSchema = z.object(baseFields);
@@ -1248,10 +1410,14 @@ RÈGLES VISUELLES :
 9. Fournis des indications de montage abstraites (types de plans, transitions, effets) sans référencer de scènes précises.
 10. POUR LES REQUÊTES YOUTUBE (searchQueries et tutorialQueries) : Tu ne génères que les MOTS-CLÉS de recherche (max 5 mots par requête). Pense comme un monteur vidéo qui cherche ses ressources. Ne génère aucune URL et aucun titre de vidéo.
 
-${userNotes ? `RÈGLES ÉVALUATION DES NOTES :
+${
+  userNotes
+    ? `RÈGLES ÉVALUATION DES NOTES :
 11. L'utilisateur a fourni des suggestions. ÉVALUE-les avec une note /10 et un feedback.
 12. Dis ce qui est pertinent et ce qui peut être amélioré.
-13. INTÈGRE ses suggestions dans le plan raffiné.` : ""}
+13. INTÈGRE ses suggestions dans le plan raffiné.`
+    : ""
+}
 
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
@@ -1280,8 +1446,14 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
 
   // Rechercher les vidéos sources et tutoriels sur YouTube
   const apiKey = process.env.YOUTUBE_API_KEY;
-  let resourceVideos: { title: string; url: string; thumbnailUrl: string; why: string }[] = [];
-  let tutorialVideos: { title: string; url: string; thumbnailUrl: string }[] = [];
+  let resourceVideos: {
+    title: string;
+    url: string;
+    thumbnailUrl: string;
+    why: string;
+  }[] = [];
+  let tutorialVideos: { title: string; url: string; thumbnailUrl: string }[] =
+    [];
 
   if (apiKey) {
     // Vidéos sources (rushes)
@@ -1292,20 +1464,27 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
         const res = await fetch(searchUrl);
         const data = await res.json();
         if (data.items) {
-          allResults.push(...data.items.map((item: any) => ({
-            title: item.snippet?.title || "",
-            url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
-            thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
-            why: query,
-          })));
+          allResults.push(
+            ...data.items.map((item: any) => ({
+              title: item.snippet?.title || "",
+              url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
+              thumbnailUrl:
+                item.snippet?.thumbnails?.high?.url ||
+                item.snippet?.thumbnails?.medium?.url ||
+                "",
+              why: query,
+            })),
+          );
         }
       }
       const seen = new Set<string>();
-      resourceVideos = allResults.filter((v) => {
-        if (seen.has(v.url)) return false;
-        seen.add(v.url);
-        return true;
-      }).slice(0, 6);
+      resourceVideos = allResults
+        .filter((v) => {
+          if (seen.has(v.url)) return false;
+          seen.add(v.url);
+          return true;
+        })
+        .slice(0, 6);
     } catch (err) {
       console.error("[NERRA] Resource video search error:", err);
     }
@@ -1318,19 +1497,26 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
         const res = await fetch(searchUrl);
         const data = await res.json();
         if (data.items) {
-          tutResults.push(...data.items.map((item: any) => ({
-            title: item.snippet?.title || "",
-            url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
-            thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "",
-          })));
+          tutResults.push(
+            ...data.items.map((item: any) => ({
+              title: item.snippet?.title || "",
+              url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
+              thumbnailUrl:
+                item.snippet?.thumbnails?.high?.url ||
+                item.snippet?.thumbnails?.medium?.url ||
+                "",
+            })),
+          );
         }
       }
       const seen = new Set<string>();
-      tutorialVideos = tutResults.filter((v) => {
-        if (seen.has(v.url)) return false;
-        seen.add(v.url);
-        return true;
-      }).slice(0, 4);
+      tutorialVideos = tutResults
+        .filter((v) => {
+          if (seen.has(v.url)) return false;
+          seen.add(v.url);
+          return true;
+        })
+        .slice(0, 4);
     } catch (err) {
       console.error("[NERRA] Tutorial search error:", err);
     }
@@ -1376,7 +1562,8 @@ export async function generateTitleSuggestions(
   // Récupérer le BENCHMARK GLOBAL YouTube sur ce sujet plutôt que l'historique de la chaîne
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) throw new Error("YOUTUBE_API_KEY non configurée");
-  const searchQuery = userContext?.topic || decision.video_title || decision.hypothesis;
+  const searchQuery =
+    userContext?.topic || decision.video_title || decision.hypothesis;
   const benchmarkVideos = await fetchNicheTrends(searchQuery, apiKey);
 
   const TitleOutputSchema = z.object({
@@ -1398,10 +1585,15 @@ ${userContext?.topic ? `- Sujet de la vidéo : "${userContext.topic}"` : "- Suje
 ${userContext?.notes ? `- Notes supplémentaires : "${userContext.notes}"` : ""}
 
 BENCHMARK YOUTUBE (Vidéos globales les plus performantes sur ce sujet) :
-${benchmarkVideos.map((v: any) => {
-  const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-  return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
-}).join("\n")}
+${benchmarkVideos
+  .map((v: any) => {
+    const eng =
+      v.views > 0
+        ? ((((v.likes || 0) + (v.comments || 0)) / v.views) * 100).toFixed(1)
+        : "0";
+    return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
+  })
+  .join("\n")}
 
 Génère 3 titres qui appliquent l'expérience décidée tout en s'inspirant fortement de la structure des titres du BENCHMARK et en respectant le contexte utilisateur.`;
 
@@ -1431,7 +1623,7 @@ RÈGLES :
     promptText,
     output,
     "openai/llama-3.3-70b-versatile",
-    latencyMs
+    latencyMs,
   );
 
   if (!output) throw new Error("Échec de la génération de titres");
@@ -1461,12 +1653,17 @@ export async function evaluateCustomTitle(
   // Trouver les meilleures vidéos mondiales pour évaluer la concurrence
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) throw new Error("YOUTUBE_API_KEY non configurée");
-  const searchQuery = userContext?.topic || decision.video_title || decision.hypothesis;
+  const searchQuery =
+    userContext?.topic || decision.video_title || decision.hypothesis;
   const benchmarkVideos = await fetchNicheTrends(searchQuery, apiKey);
 
   const EvalOutputSchema = z.object({
     score: z.number().describe("Score sur 10 de la pertinence du titre"),
-    feedback: z.string().describe("Avis stratégique court et constructif sur le titre, et pourquoi il marche ou comment l'améliorer."),
+    feedback: z
+      .string()
+      .describe(
+        "Avis stratégique court et constructif sur le titre, et pourquoi il marche ou comment l'améliorer.",
+      ),
   });
 
   const startTime = Date.now();
@@ -1512,7 +1709,7 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     promptText,
     output,
     "openai/llama-3.3-70b-versatile",
-    latencyMs
+    latencyMs,
   );
 
   if (!output) throw new Error("Échec de l'évaluation du titre");
@@ -1528,7 +1725,7 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
 export async function generateThumbnailBrief(
   ai: ReturnType<typeof genkit>,
   decisionId: string,
-  passedVideoTitle?: string
+  passedVideoTitle?: string,
 ): Promise<{
   visualElements: string[];
   colorPalette: string[];
@@ -1536,7 +1733,12 @@ export async function generateThumbnailBrief(
   composition: string;
   inspiration: string;
   generationPrompt: string;
-  referencedVideos: { title: string; thumbnailUrl: string; views: number; engagement: string }[];
+  referencedVideos: {
+    title: string;
+    thumbnailUrl: string;
+    views: number;
+    engagement: string;
+  }[];
 }> {
   const supabase = getSupabase();
 
@@ -1556,23 +1758,44 @@ export async function generateThumbnailBrief(
     .eq("channel_id", decision.channel_id)
     .limit(10);
 
-  const allVideoTitles = (videos || []).map((v: any) => v.video_title).join(", ");
+  const allVideoTitles = (videos || [])
+    .map((v: any) => v.video_title)
+    .join(", ");
 
   // Récupérer le TOP 5 GLOBAL YouTube sur ce sujet pour l'inspiration
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) throw new Error("YOUTUBE_API_KEY non configurée");
 
-  const searchQuery = passedVideoTitle || decision.video_title || decision.hypothesis;
+  const searchQuery =
+    passedVideoTitle || decision.video_title || decision.hypothesis;
   const videoTitleContext = passedVideoTitle || decision.video_title;
   const benchmarkVideos = await fetchNicheTrends(searchQuery, apiKey);
 
   const BriefOutputSchema = z.object({
-    visualElements: z.array(z.string()).describe("3-4 éléments visuels clés à inclure"),
-    colorPalette: z.array(z.string()).describe("3 couleurs dominantes recommandées (noms en français)"),
-    textOverlay: z.string().describe("Texte court à mettre sur la miniature, ou 'Aucun' si non recommandé. Analyse le BENCHMARK YOUTUBE pour décider (ex: nom de la musique, nom de l'anime, ou courte phrase d'accroche)."),
-    composition: z.string().describe("Description de la composition visuelle recommandée"),
-    inspiration: z.string().describe("Pourquoi ce brief fonctionne, basé sur le BENCHMARK YOUTUBE. IMPORTANT : cite les vidéos par leur titre EXACT. Ne modifie PAS les titres."),
-    generationPrompt: z.string().describe("Un prompt en anglais détaillé pour générer cette image avec Midjourney ou DALL-E. Le prompt DOIT inclure les dimensions YouTube standard : 1280x720 pixels, ratio 16:9, orientation paysage (landscape). Si un texte est recommandé dans 'textOverlay', demande EXPLICITEMENT de l'intégrer à l'image (ex: with the text 'YOUR TEXT' written in bold typography). Le prompt doit correspondre au STYLE et à l'AMBIANCE réelle du contenu, PAS à une interprétation littérale du titre."),
+    visualElements: z
+      .array(z.string())
+      .describe("3-4 éléments visuels clés à inclure"),
+    colorPalette: z
+      .array(z.string())
+      .describe("3 couleurs dominantes recommandées (noms en français)"),
+    textOverlay: z
+      .string()
+      .describe(
+        "Texte court à mettre sur la miniature, ou 'Aucun' si non recommandé. Analyse le BENCHMARK YOUTUBE pour décider (ex: nom de la musique, nom de l'anime, ou courte phrase d'accroche).",
+      ),
+    composition: z
+      .string()
+      .describe("Description de la composition visuelle recommandée"),
+    inspiration: z
+      .string()
+      .describe(
+        "Pourquoi ce brief fonctionne, basé sur le BENCHMARK YOUTUBE. IMPORTANT : cite les vidéos par leur titre EXACT. Ne modifie PAS les titres.",
+      ),
+    generationPrompt: z
+      .string()
+      .describe(
+        "Un prompt en anglais détaillé pour générer cette image avec Midjourney ou DALL-E. Le prompt DOIT inclure les dimensions YouTube standard : 1280x720 pixels, ratio 16:9, orientation paysage (landscape). Si un texte est recommandé dans 'textOverlay', demande EXPLICITEMENT de l'intégrer à l'image (ex: with the text 'YOUR TEXT' written in bold typography). Le prompt doit correspondre au STYLE et à l'AMBIANCE réelle du contenu, PAS à une interprétation littérale du titre.",
+      ),
   });
 
   const startTime = Date.now();
@@ -1587,10 +1810,15 @@ TOUS LES TITRES DE LA CHAÎNE (pour identifier la niche générale) :
 ${allVideoTitles}
 
 BENCHMARK YOUTUBE (Meilleures vidéos globales pour ce sujet) :
-${benchmarkVideos.map((v: any) => {
-  const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-  return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
-}).join("\n")}
+${benchmarkVideos
+  .map((v: any) => {
+    const eng =
+      v.views > 0
+        ? ((((v.likes || 0) + (v.comments || 0)) / v.views) * 100).toFixed(1)
+        : "0";
+    return `- "${v.title}" (${v.views} vues, ${eng}% engagement)`;
+  })
+  .join("\n")}
 
 INSTRUCTIONS (SUIS CET ORDRE) :
 1. Identifie la NICHE de la chaîne à partir de tous les titres
@@ -1650,15 +1878,20 @@ RÈGLES DE BRIEF :
   if (!output) throw new Error("Échec de la génération du brief miniature");
 
   // Construire la liste des vidéos de référence avec leurs miniatures depuis le benchmark
-  const referencedVideos = benchmarkVideos.map((v: any) => {
-    const eng = v.views > 0 ? (((v.likes || 0) + (v.comments || 0)) / v.views * 100).toFixed(1) : "0";
-    return {
-      title: v.title,
-      thumbnailUrl: v.thumbnailUrl || "",
-      views: v.views,
-      engagement: `${eng}%`,
-    };
-  }).filter((v: any) => v.thumbnailUrl); // Ne garder que celles avec une miniature
+  const referencedVideos = benchmarkVideos
+    .map((v: any) => {
+      const eng =
+        v.views > 0
+          ? ((((v.likes || 0) + (v.comments || 0)) / v.views) * 100).toFixed(1)
+          : "0";
+      return {
+        title: v.title,
+        thumbnailUrl: v.thumbnailUrl || "",
+        views: v.views,
+        engagement: `${eng}%`,
+      };
+    })
+    .filter((v: any) => v.thumbnailUrl); // Ne garder que celles avec une miniature
 
   return { ...output, referencedVideos };
 }
@@ -1684,8 +1917,14 @@ export async function evaluateThumbnailBase64(
   if (error || !decision) throw new Error("Décision introuvable");
 
   const EvalOutputSchema = z.object({
-    score: z.number().describe("Score sur 10 de la qualité/cohérence de la miniature"),
-    feedback: z.string().describe("Avis stratégique très pertinent fondé sur les éléments visuels de l'image (composition, texte, couleurs, ambiance) par rapport à l'hypothèse"),
+    score: z
+      .number()
+      .describe("Score sur 10 de la qualité/cohérence de la miniature"),
+    feedback: z
+      .string()
+      .describe(
+        "Avis stratégique très pertinent fondé sur les éléments visuels de l'image (composition, texte, couleurs, ambiance) par rapport à l'hypothèse",
+      ),
   });
 
   const mimeType = (() => {
@@ -1740,7 +1979,10 @@ RENVOIE UNIQUEMENT DU JSON VALIDE.`,
       decisionId,
     );
 
-    if (!output) throw new Error("Échec de l'évaluation de la miniature par Gemini (pas de réponse)");
+    if (!output)
+      throw new Error(
+        "Échec de l'évaluation de la miniature par Gemini (pas de réponse)",
+      );
 
     return output;
   } catch (error) {
@@ -1790,11 +2032,18 @@ export async function linkVideoToDecision(
 
   if (existingVideo && existingVideo.views > 0) {
     // La vidéo a déjà des stats → on peut évaluer immédiatement
-    const engagementRate = existingVideo.views > 0
-      ? ((existingVideo.likes || 0) + (existingVideo.comments || 0)) / existingVideo.views * 100
-      : 0;
+    const engagementRate =
+      existingVideo.views > 0
+        ? (((existingVideo.likes || 0) + (existingVideo.comments || 0)) /
+            existingVideo.views) *
+          100
+        : 0;
 
-    const metricValue = getMetricValueForDecision(decision, existingVideo, engagementRate);
+    const metricValue = getMetricValueForDecision(
+      decision,
+      existingVideo,
+      engagementRate,
+    );
 
     if (metricValue !== null) {
       const result = await evaluateDecision(decisionId, metricValue);
@@ -1807,7 +2056,8 @@ export async function linkVideoToDecision(
 
   return {
     linked: true,
-    message: "Vidéo liée avec succès. Nerra évaluera automatiquement les résultats lorsque suffisamment de données seront disponibles.",
+    message:
+      "Vidéo liée avec succès. Nerra évaluera automatiquement les résultats lorsque suffisamment de données seront disponibles.",
   };
 }
 
@@ -1839,11 +2089,13 @@ export async function discoverRecentVideos(decisionId: string) {
 
     const activities = res.data.items || [];
     const candidates = activities
-      .filter(a => a.snippet?.type === "upload")
-      .map(a => {
+      .filter((a) => a.snippet?.type === "upload")
+      .map((a) => {
         const title = a.snippet?.title || "";
         const videoId = a.contentDetails?.upload?.videoId;
-        const thumbnail = a.snippet?.thumbnails?.high?.url || a.snippet?.thumbnails?.default?.url;
+        const thumbnail =
+          a.snippet?.thumbnails?.high?.url ||
+          a.snippet?.thumbnails?.default?.url;
 
         // Score de correspondance basique (insensible à la casse, inclusion)
         const expected = (decision.video_title || "").toLowerCase();
@@ -1859,7 +2111,7 @@ export async function discoverRecentVideos(decisionId: string) {
           title,
           thumbnail,
           isMatch,
-          publishedAt: a.snippet?.publishedAt
+          publishedAt: a.snippet?.publishedAt,
         };
       });
 
