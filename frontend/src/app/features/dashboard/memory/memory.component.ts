@@ -7,6 +7,8 @@ import {
   lucideXCircle,
   lucideSkipForward,
   lucideTarget,
+  lucideBarChart2,
+  lucideRefreshCw,
 } from '@ng-icons/lucide';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { DecisionService } from '../../../core/services/decision.service';
@@ -24,6 +26,8 @@ import { EXPERIMENT_LABELS, ExperimentType } from '../../../core/models/decision
       lucideXCircle,
       lucideSkipForward,
       lucideTarget,
+      lucideBarChart2,
+      lucideRefreshCw,
     }),
   ],
   templateUrl: './memory.component.html',
@@ -32,6 +36,7 @@ import { EXPERIMENT_LABELS, ExperimentType } from '../../../core/models/decision
 export class MemoryComponent implements OnInit {
   decisions: (any & { uiStatus: DecisionUIStatus })[] = [];
   isLoadingDecisions = false;
+  reEvaluatingId: string | null = null;
 
   get historyDecisions() {
     return this.decisions.filter(d => d.uiStatus.label !== 'EN ÉVALUATION');
@@ -66,6 +71,18 @@ export class MemoryComponent implements OnInit {
       console.error('[MEMORY] loadDecisions error:', err);
     } finally {
       this.isLoadingDecisions = false;
+    }
+  }
+
+  async reEvaluate(decisionId: string) {
+    this.reEvaluatingId = decisionId;
+    try {
+      await this.decisionService.evaluateDecisionFinal(decisionId);
+      await this.loadDecisions();
+    } catch (error) {
+      console.error('Erreur lors de la ré-évaluation', error);
+    } finally {
+      this.reEvaluatingId = null;
     }
   }
 }

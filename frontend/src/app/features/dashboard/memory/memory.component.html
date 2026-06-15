@@ -84,6 +84,30 @@
                 @if (decision.variable) {
                   <p class="text-xs text-slate-400 font-medium mt-0.5 line-clamp-1">{{ decision.variable }}</p>
                 }
+                <div class="mt-2 flex flex-wrap items-center gap-4 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-md w-fit">
+                  <span class="flex items-center gap-1">
+                    <ng-icon name="lucideTarget" class="text-slate-400"></ng-icon>
+                    Objectif : <span class="font-medium text-slate-700">{{ decision.baseline_value | number:'1.0-2' }}</span>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <ng-icon name="lucideBarChart2" class="text-slate-400"></ng-icon>
+                    Résultat :
+                    <span class="font-bold"
+                          [class.text-red-600]="decision.verdict === 'FAILED'"
+                          [class.text-green-600]="decision.verdict === 'VALIDATED'">
+                      {{ decision.result_value !== null ? (decision.result_value | number:'1.0-2') : 'N/A' }}
+                    </span>
+                  </span>
+                  @if (decision.video_id) {
+                    <button
+                      (click)="reEvaluate(decision.id)"
+                      [disabled]="reEvaluatingId === decision.id"
+                      class="flex items-center gap-1 text-sky-600 hover:text-sky-800 transition-colors ml-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                      <ng-icon name="lucideRefreshCw" class="text-[10px]" [class.animate-spin]="reEvaluatingId === decision.id"></ng-icon>
+                      Actualiser
+                    </button>
+                  }
+                </div>
                 <!-- Type sur mobile -->
                 <span class="text-xs font-bold text-slate-500 md:hidden">{{ getExperimentLabel(decision.experiment_type) }}</span>
               </div>
