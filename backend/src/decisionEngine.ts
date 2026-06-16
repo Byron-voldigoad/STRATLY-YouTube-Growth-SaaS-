@@ -119,10 +119,16 @@ const EXPERIMENT_METRICS: Record<ExperimentType, string> = {
 
 function extractYouTubeId(urlOrId: string): string {
   if (!urlOrId) return "";
-  const regExp =
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|\/shorts\/)([^#&?]*).*/;
+  
+  // Si c'est déjà un ID brut de 11 caractères
+  if (urlOrId.length === 11 && !urlOrId.includes("youtube") && !urlOrId.includes("youtu.be")) {
+    return urlOrId;
+  }
+
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|\/shorts\/|\/live\/)([^#\&\?]*).*/;
   const match = urlOrId.match(regExp);
-  return match && match[2].length === 11 ? match[2] : urlOrId;
+  
+  return (match && match[2].length === 11) ? match[2] : urlOrId;
 }
 
 function getSupabase(): SupabaseClient {
