@@ -1,79 +1,76 @@
-<div class="min-h-screen flex selection:bg-indigo-500/30 font-sans bg-white relative">
+<div class="min-h-screen flex selection:bg-violet-500/30 font-sans bg-zinc-950 text-zinc-50 relative overflow-x-hidden">
 
     <!-- LEFT PANEL: Marketing / Product Features -->
     <div
-        class="hidden lg:flex w-[55%] bg-slate-50 flex-col justify-between p-12 lg:p-16 relative overflow-hidden border-r border-slate-200">
+        class="hidden lg:flex w-[55%] bg-zinc-900/40 flex-col justify-between p-12 lg:p-16 relative overflow-hidden border-r border-zinc-800/80">
         <!-- BACKGROUND DECORATION -->
         <div
-            class="absolute -top-40 -right-40 w-[600px] h-[600px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none -z-0">
+            class="absolute -top-40 -right-40 w-[600px] h-[600px] bg-violet-600/[0.04] blur-[120px] rounded-full pointer-events-none -z-0">
         </div>
         <div
-            class="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none -z-0">
+            class="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-violet-500/[0.03] blur-[100px] rounded-full pointer-events-none -z-0">
         </div>
         <div
-            class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none -z-0">
+            class="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] opacity-35 pointer-events-none -z-0">
         </div>
 
         <div class="relative z-10 max-w-[480px] w-full mx-auto flex-1 flex flex-col justify-center">
 
             <!-- Brand Logo -->
-            <a routerLink="/" class="inline-flex items-center gap-3 group mb-12 w-fit">
-                <div
-                    class="size-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                    <img src="/assets/images/nerra_ligth.png" alt="Nerra" class="h-6 w-auto brightness-0 invert">
-                </div>
-                <span class="text-2xl font-black text-slate-900 tracking-tight">Nerra</span>
+            <a routerLink="/" class="inline-flex items-center gap-2.5 group mb-12 w-fit">
+                <img src="/assets/images/nerra_dark.png" alt="Nerra Logo" class="h-6.5 object-contain group-hover:scale-105 transition-transform">
+                <span class="text-xl font-bold text-zinc-50 tracking-tight font-heading">Nerra</span>
             </a>
 
             <!-- Value Prop & Title -->
             <div class="space-y-4 mb-10">
-                <h2 class="text-[40px] font-black text-slate-900 tracking-tight leading-[1.15]">
-                    Faites exploser votre <span class="text-indigo-600">croissance</span> YouTube avec l'IA.
+                <h2 class="text-[38px] font-black text-zinc-50 tracking-tight leading-[1.15] font-heading">
+                    Arrête de publier <span class="text-violet-400">à l'aveugle</span> sur YouTube.
                 </h2>
-                <p class="text-[17px] text-slate-600 font-medium leading-relaxed">
-                    Des insights actionnables chaque mois pour optimiser votre contenu et fidéliser votre audience.
+                <p class="text-[16px] text-zinc-400 font-medium leading-relaxed">
+                    Rejoins le moteur de décision stratégique. Analyse ta chaîne, tes expériences et prends la bonne décision.
                 </p>
             </div>
 
             <!-- Dashboard Mockup (CSS) -->
             <div
-                class="relative w-full h-[220px] bg-white rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] border border-slate-200 overflow-hidden mb-12 group">
+                class="relative w-full h-[220px] bg-zinc-900 rounded-2xl shadow-2xl shadow-black/40 border border-zinc-800 overflow-hidden mb-12 group">
                 <div
-                    class="h-9 border-b border-slate-100 bg-slate-50/80 flex items-center px-4 gap-1.5 backdrop-blur-sm">
-                    <div class="size-2.5 rounded-full bg-rose-400"></div>
-                    <div class="size-2.5 rounded-full bg-amber-400"></div>
-                    <div class="size-2.5 rounded-full bg-emerald-400"></div>
+                    class="h-9 border-b border-zinc-800 bg-zinc-950/60 flex items-center px-4 gap-1.5 backdrop-blur-sm">
+                    <div class="size-2.5 rounded-full bg-zinc-700/80"></div>
+                    <div class="size-2.5 rounded-full bg-zinc-700/80"></div>
+                    <div class="size-2.5 rounded-full bg-zinc-700/80"></div>
                 </div>
-                <div class="p-5 flex gap-5 h-full bg-slate-50/30">
+                <div class="p-5 flex gap-5 h-full bg-zinc-900">
                     <div
-                        class="w-[72px] bg-white rounded-xl h-full p-2.5 space-y-3 border border-slate-100 shadow-sm flex flex-col items-center">
-                        <div class="size-8 rounded-lg bg-indigo-50 border border-indigo-100 mb-2"></div>
-                        <div class="h-2 bg-indigo-200 rounded-full w-4/5"></div>
-                        <div class="h-2 bg-slate-200 rounded-full w-full"></div>
-                        <div class="h-2 bg-slate-200 rounded-full w-full"></div>
+                        class="w-[72px] bg-zinc-950 rounded-xl h-full p-2.5 space-y-3 border border-zinc-800 shadow-sm flex flex-col items-center">
+                        <div class="size-8 rounded-lg bg-violet-950/20 border border-violet-800/40 mb-2"></div>
+                        <div class="h-2 bg-violet-500/20 rounded-full w-4/5"></div>
+                        <div class="h-2 bg-zinc-800 rounded-full w-full"></div>
+                        <div class="h-2 bg-zinc-800 rounded-full w-full"></div>
                     </div>
                     <div class="flex-1 space-y-4">
                         <div class="flex justify-between items-center">
-                            <div class="h-4 bg-slate-200 rounded-full w-1/3"></div>
+                            <div class="h-4 bg-zinc-800 rounded-full w-1/3"></div>
                             <div
-                                class="h-7 w-20 bg-emerald-50 border border-emerald-100 flex items-center justify-center rounded-full">
-                                <div class="h-1.5 w-8 bg-emerald-400 rounded-full"></div>
+                                class="h-6 w-20 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center rounded-full">
+                                <div class="h-1.5 w-8 bg-emerald-400/80 rounded-full"></div>
                             </div>
                         </div>
                         <div class="flex gap-4 h-[84px]">
                             <div
-                                class="flex-2 w-[60%] bg-white rounded-xl border border-slate-100 flex items-end p-2.5 gap-2 shadow-sm relative overflow-hidden group-hover:bg-slate-50 transition-colors">
-                                <div class="w-1/4 h-[30%] bg-indigo-100 rounded-t-sm"></div>
-                                <div class="w-1/4 h-[60%] bg-indigo-200 rounded-t-sm"></div>
-                                <div class="w-1/4 h-[40%] bg-indigo-100 rounded-t-sm"></div>
-                                <div class="w-1/4 h-[90%] bg-indigo-600 rounded-t-sm relative">
+                                class="flex-2 w-[60%] bg-zinc-950 rounded-xl border border-zinc-800 flex items-end p-2.5 gap-2 shadow-sm relative overflow-hidden group-hover:bg-zinc-900/60 transition-colors">
+                                <div class="w-1/4 h-[30%] bg-violet-900/20 rounded-t-sm"></div>
+                                <div class="w-1/4 h-[60%] bg-violet-900/35 rounded-t-sm"></div>
+                                <div class="w-1/4 h-[40%] bg-violet-900/20 rounded-t-sm"></div>
+                                <div class="w-1/4 h-[90%] bg-violet-600 rounded-t-sm relative">
                                     <div
                                         class="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-1.5 bg-emerald-400 rounded-full">
                                     </div>
                                 </div>
                             </div>
                             <div
-                                class="flex-1 w-[40%] bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl border border-indigo-500 p-4 shadow-sm flex flex-col justify-center">
+                                class="flex-1 w-[40%] bg-gradient-to-br from-violet-600 to-purple-700 rounded-xl border border-violet-600 p-4 shadow-sm flex flex-col justify-center">
                                 <div class="h-2 bg-white/40 rounded-full w-1/2 mb-3"></div>
                                 <div class="h-6 bg-white rounded-md w-3/4"></div>
                             </div>
@@ -83,18 +80,16 @@
             </div>
 
             <!-- Social Proof / Testimonial -->
-            <div class="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200 shadow-sm">
+            <div class="bg-zinc-900/80 backdrop-blur-md rounded-2xl p-5 border border-zinc-800/60 shadow-sm">
                 <div class="flex gap-1 mb-3 text-amber-400 text-sm">★★★★★</div>
-                <p class="text-slate-700 text-[13px] font-medium italic leading-relaxed mb-4">"Nerra m'a aidé à doubler
-                    le nombre de mes abonnés en 3 mois. Les recommandations IA ciblées sont devenues indispensables à ma
-                    préparation de vidéos."</p>
+                <p class="text-zinc-300 text-[13px] font-medium italic leading-relaxed mb-4">"Nerra m'a aidé à doubler le nombre de mes abonnés en 3 mois. Les recommandations de décisions ciblées sont devenues indispensables à ma préparation de vidéos."</p>
                 <div class="flex items-center gap-3">
                     <div
-                        class="size-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-[13px] ring-2 ring-white shadow-sm">
+                        class="size-9 rounded-full bg-gradient-to-tr from-violet-600 to-purple-700 flex items-center justify-center text-zinc-50 font-bold text-[13px] ring-2 ring-zinc-800 shadow-sm">
                         MD</div>
                     <div>
-                        <p class="text-[13px] font-bold text-slate-900 leading-tight">Marie D.</p>
-                        <p class="text-[11px] font-medium text-slate-500">45K abonnés YouTube</p>
+                        <p class="text-[13px] font-bold text-zinc-100 leading-tight">Marie D.</p>
+                        <p class="text-[11px] font-medium text-zinc-500">45K abonnés YouTube</p>
                     </div>
                 </div>
             </div>
@@ -102,16 +97,16 @@
     </div> <!-- END LEFT PANEL -->
 
     <!-- RIGHT PANEL: Auth Form -->
-    <div class="w-full lg:w-[45%] flex items-center justify-center bg-white p-6 relative overflow-y-auto min-h-screen">
+    <div class="w-full lg:w-[45%] flex items-center justify-center bg-zinc-950 p-6 relative overflow-y-auto min-h-screen">
 
         <!-- Return Link Mobile -->
         <a routerLink="/"
-            class="absolute top-6 left-6 lg:hidden flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900">
+            class="absolute top-6 left-6 lg:hidden flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-zinc-100">
             ← Accueil
         </a>
         <!-- Return Link Desktop -->
         <a routerLink="/"
-            class="hidden lg:flex absolute top-8 right-8 items-center gap-2 text-[13px] font-bold text-slate-500 hover:text-slate-900 transition-colors">
+            class="hidden lg:flex absolute top-8 right-8 items-center gap-2 text-[13px] font-bold text-zinc-400 hover:text-zinc-100 transition-colors">
             Retour à l'accueil
         </a>
 
@@ -119,20 +114,20 @@
 
             <!-- Mobile Brand (Hidden on Desktop) -->
             <div class="lg:hidden flex justify-center mb-8">
-                <div class="flex items-center justify-center gap-3">
-                    <img src="/assets/images/nerra_ligth.png" alt="Nerra Logo" class="h-10 w-auto">
-                    <span class="text-2xl font-black text-slate-900 tracking-tight">Nerra</span>
+                <div class="flex items-center justify-center gap-2.5">
+                    <img src="/assets/images/nerra_dark.png" alt="Nerra Logo" class="h-8.5 w-auto">
+                    <span class="text-xl font-bold text-zinc-50 tracking-tight font-heading">Nerra</span>
                 </div>
             </div>
 
             <div class="mb-8 text-center lg:text-left">
-                <h1 class="text-[28px] font-black text-slate-900 tracking-tight mb-2">Connexion</h1>
-                <p class="text-[15px] font-medium text-slate-500">Accédez à votre dashboard.</p>
+                <h1 class="text-[28px] font-black text-zinc-50 tracking-tight mb-2 font-heading">Connexion</h1>
+                <p class="text-[15px] font-medium text-zinc-400">Accédez à votre dashboard.</p>
             </div>
 
             <!-- Error Message -->
             @if (errorMessage) {
-            <div class="bg-rose-50 border border-rose-100 text-rose-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-start gap-3"
+            <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-3 rounded-xl mb-6 text-sm flex items-start gap-3"
                 role="alert" aria-live="assertive">
                 <span class="font-medium leading-relaxed">⚠️ {{ errorMessage }}</span>
             </div>
@@ -140,7 +135,7 @@
 
             <!-- Google Login -->
             <button (click)="handleGoogleLogin()" [disabled]="loading"
-                class="w-full flex items-center justify-center gap-3 h-[46px] bg-white border border-slate-200 rounded-xl text-[14px] font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm focus:ring-2 focus:ring-slate-100 disabled:opacity-50">
+                class="w-full flex items-center justify-center gap-3 h-[46px] bg-zinc-900 border border-zinc-800 rounded-xl text-[14px] font-bold text-zinc-300 hover:bg-zinc-800/80 hover:text-zinc-100 transition-all shadow-lg shadow-black/20 focus:ring-2 focus:ring-zinc-800 disabled:opacity-50 cursor-pointer">
                 <svg class="w-4 h-4" viewBox="0 0 24 24">
                     <path
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
@@ -161,10 +156,10 @@
             <!-- Divider -->
             <div class="relative my-6">
                 <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-slate-100"></div>
+                    <div class="w-full border-t border-zinc-800"></div>
                 </div>
                 <div class="relative flex justify-center text-[11px] font-bold">
-                    <span class="px-3 bg-white text-slate-400 uppercase tracking-widest">ou e-mail</span>
+                    <span class="px-3 bg-zinc-950 text-zinc-500 uppercase tracking-widest">ou e-mail</span>
                 </div>
             </div>
 
@@ -172,35 +167,33 @@
             <form (ngSubmit)="handleEmailLogin()">
                 <div class="space-y-4">
                     <div class="space-y-1.5">
-                        <label for="email" class="block text-[13px] font-bold text-slate-700">Adresse e-mail</label>
+                        <label for="email" class="block text-[13px] font-bold text-zinc-300">Adresse e-mail</label>
                         <input id="email" type="email" [(ngModel)]="email" name="email" placeholder="nom@exemple.com"
-                            class="w-full px-4 h-[46px] bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-[14px] font-medium text-slate-900 placeholder:text-slate-400"
+                            class="w-full px-4 h-[46px] bg-zinc-900 border border-zinc-800 rounded-xl focus:bg-zinc-900 focus:ring-2 focus:ring-violet-500/25 focus:border-violet-500 outline-none transition-all text-[14px] font-medium text-zinc-100 placeholder:text-zinc-600"
                             [disabled]="loading" required />
                     </div>
 
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <label for="password" class="block text-[13px] font-bold text-slate-700">Mot de
-                                passe</label>
+                            <label for="password" class="block text-[13px] font-bold text-zinc-300">Mot de passe</label>
                             <a href="#"
-                                class="text-[12px] font-bold text-indigo-600 hover:text-indigo-700 hover:underline transition-all">Oublié
-                                ?</a>
+                                class="text-[12px] font-bold text-violet-400 hover:text-violet-300 hover:underline transition-all">Oublié ?</a>
                         </div>
                         <div class="relative flex items-center">
                             <input id="password" [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password"
                                 name="password" placeholder="••••••••"
-                                class="w-full pl-4 pr-[70px] h-[46px] bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-[14px] font-medium text-slate-900 placeholder:text-slate-400 font-mono tracking-widest"
+                                class="w-full pl-4 pr-[70px] h-[46px] bg-zinc-900 border border-zinc-800 rounded-xl focus:bg-zinc-900 focus:ring-2 focus:ring-violet-500/25 focus:border-violet-500 outline-none transition-all text-[14px] font-medium text-zinc-100 placeholder:text-zinc-600 font-mono tracking-widest"
                                 [disabled]="loading" required />
 
                             <button type="button" (click)="togglePassword()" tabindex="-1"
-                                class="absolute right-3 p-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 focus:outline-none transition-colors rounded-lg">
+                                class="absolute right-3 p-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-300 focus:outline-none transition-colors rounded-lg cursor-pointer">
                                 @if(showPassword) { Masquer } @else { Afficher }
                             </button>
                         </div>
                     </div>
 
                     <button type="submit" [disabled]="loading"
-                        class="w-full h-[46px] mt-2 bg-slate-900 text-white rounded-xl text-[14px] font-bold hover:bg-indigo-600 transition-all shadow-[0_4px_14px_0_rgba(15,23,42,0.1)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.25)] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group">
+                        class="w-full h-[46px] mt-2 bg-violet-600 text-zinc-50 rounded-xl text-[14px] font-bold hover:bg-violet-500 transition-all hover:shadow-xl hover:shadow-violet-600/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group cursor-pointer">
                         @if (loading) {
                         <span>Connexion...</span>
                         } @else {
@@ -211,11 +204,10 @@
                 </div>
             </form>
 
-            <p class="text-center mt-6 text-[14px] font-medium text-slate-500">
+            <p class="text-center mt-6 text-[14px] font-medium text-zinc-500">
                 Pas encore de compte ?
                 <a routerLink="/signup"
-                    class="text-indigo-600 hover:text-indigo-700 font-bold hover:underline transition-all">Créer un
-                    compte</a>
+                    class="text-violet-400 hover:text-violet-300 font-bold hover:underline transition-all">Créer un compte</a>
             </p>
         </div>
     </div>
