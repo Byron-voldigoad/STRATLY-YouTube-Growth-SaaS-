@@ -55,6 +55,13 @@
     --sidebar-accent-foreground: 0 0% 9%;
     --sidebar-border: 0 0% 90%;
     --sidebar-ring: 0 0% 63%;
+
+    /* Nerra loader tokens */
+    --nerra-accent: #7C5CFC;
+    --nerra-accent-glow: rgba(124, 92, 252, 0.3);
+    --nerra-loader-bg: #09090b;
+    --nerra-loader-stroke: #18181b;
+    --nerra-loader-text: #71717a;
 }
 
 :root.dark {
@@ -84,6 +91,10 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 100% / 0.1;
     --sidebar-ring: 0 0% 32%;
+
+    /* Nerra loader tokens — dark mode */
+    --nerra-loader-stroke: #d4d4d8;
+    --nerra-loader-text: #a1a1aa;
 }
 
 @layer base {

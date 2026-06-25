@@ -2,52 +2,49 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { YouTubeService } from '../../../../core/services/youtube.service';
-import { HlmCardImports } from '@spartan-ng/helm/card';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { lucideLoader2, lucideAlertCircle, lucideCheckCircle } from '@ng-icons/lucide';
+import { lucideAlertCircle, lucideCheckCircle } from '@ng-icons/lucide';
+import { NerraLoaderComponent } from '../../../../shared/components/nerra-loader/nerra-loader.component';
 
 @Component({
     selector: 'app-connect-callback',
     standalone: true,
-    imports: [CommonModule, HlmCardImports, NgIconComponent],
+    imports: [CommonModule, NgIconComponent, NerraLoaderComponent],
     providers: [
-        provideIcons({ lucideLoader2, lucideAlertCircle, lucideCheckCircle })
+        provideIcons({ lucideAlertCircle, lucideCheckCircle })
     ],
     template: `
-    <div class="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-heading">
-      <div class="w-full max-w-sm mx-auto text-center animate-in fade-in zoom-in duration-500">
-        @if (status === 'loading') {
-          <div class="relative w-20 h-20 mx-auto mb-6">
-            <div class="absolute inset-0 border-4 border-slate-100 rounded-2xl"></div>
-            <div class="absolute inset-0 border-4 border-indigo-600 rounded-2xl border-t-transparent animate-spin"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <span class="text-indigo-600 text-xl font-black">N</span>
-            </div>
+    <div class="min-h-screen bg-zinc-950 flex flex-col items-center justify-center font-heading">
+      @if (status === 'loading') {
+        <nerra-loader
+          variant="fullpage"
+          [message]="'Sécurisation de votre connexion…'"
+        />
+      }
+
+      @if (status === 'success') {
+        <div class="text-center animate-in fade-in zoom-in duration-500">
+          <div class="w-20 h-20 bg-emerald-950/50 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <ng-icon name="lucideCheckCircle" class="w-10 h-10 text-emerald-400"></ng-icon>
           </div>
-          <h3 class="text-xl font-bold text-slate-900 mb-2">Authentification...</h3>
-          <p class="text-sm text-slate-500">Sécurisation de la connexion avec Google</p>
-        }
-        
-        @if (status === 'success') {
-          <div class="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-            <ng-icon name="lucideCheckCircle" class="w-10 h-10 text-emerald-600"></ng-icon>
+          <h3 class="text-xl font-bold text-zinc-50 mb-2">Canal sécurisé</h3>
+          <p class="text-sm text-zinc-500">Redirection vers l'analyse…</p>
+        </div>
+      }
+
+      @if (status === 'error') {
+        <div class="text-center animate-in fade-in zoom-in duration-500">
+          <div class="w-20 h-20 bg-rose-950/50 border border-rose-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <ng-icon name="lucideAlertCircle" class="w-10 h-10 text-rose-400"></ng-icon>
           </div>
-          <h3 class="text-xl font-bold text-slate-900 mb-2">Canal sécurisé</h3>
-          <p class="text-sm text-slate-500">Redirection vers l'analyse...</p>
-        }
-        
-        @if (status === 'error') {
-          <div class="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <ng-icon name="lucideAlertCircle" class="w-10 h-10 text-rose-600"></ng-icon>
-          </div>
-          <h3 class="text-xl font-bold text-slate-900 mb-2">Échec de connexion</h3>
-          <p class="text-sm text-rose-600 mb-6">{{ errorMessage }}</p>
-          <button class="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg"
+          <h3 class="text-xl font-bold text-zinc-50 mb-2">Échec de connexion</h3>
+          <p class="text-sm text-rose-400 mb-6">{{ errorMessage }}</p>
+          <button class="px-6 py-3 bg-violet-600 text-white font-bold rounded-xl hover:bg-violet-500 transition-all shadow-lg shadow-violet-600/20 cursor-pointer"
                   (click)="retry()">
             Réessayer
           </button>
-        }
-      </div>
+        </div>
+      }
     </div>
   `
 })
@@ -102,3 +99,4 @@ export class CallbackComponent implements OnInit {
         this.router.navigate(['/dashboard/connect']);
     }
 }
+

@@ -104,6 +104,32 @@
   </script>
 </head>
 <body>
-  <app-root></app-root>
+  <app-root>
+    <!-- ═══ Pre-bootstrap loader — destroyed when Angular mounts ═══ -->
+    <style>
+      .nerra-pre{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#09090b}
+      .nerra-pre__inner{display:flex;flex-direction:column;align-items:center;gap:24px}
+      .nerra-pre__n{width:72px;height:auto;overflow:visible}
+      .nerra-pre__s{stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none;stroke-dasharray:65;stroke-dashoffset:65}
+      .nerra-pre__s--1,.nerra-pre__s--3{stroke:#fafafa}
+      .nerra-pre__s--a{stroke:#7C5CFC;filter:drop-shadow(0 0 3px rgba(124,92,252,.3))}
+      .nerra-pre__s--1{animation:nde 1.4s cubic-bezier(.4,0,.2,1) infinite}
+      .nerra-pre__s--a{animation:nde 1.4s cubic-bezier(.4,0,.2,1) .08s infinite}
+      .nerra-pre__s--3{animation:nde 1.4s cubic-bezier(.4,0,.2,1) .16s infinite}
+      @keyframes nde{0%{stroke-dashoffset:65}30%{stroke-dashoffset:0}55%{stroke-dashoffset:0}85%{stroke-dashoffset:-65}100%{stroke-dashoffset:-65}}
+      .nerra-pre__msg{font-family:'Outfit','Inter',system-ui,sans-serif;font-size:14px;font-weight:500;letter-spacing:.01em;color:#71717a;text-align:center;animation:npf .4s ease-out}
+      @keyframes npf{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div class="nerra-pre">
+      <div class="nerra-pre__inner">
+        <svg class="nerra-pre__n" viewBox="0 0 64 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path class="nerra-pre__s nerra-pre__s--1" d="M14,64 L24,8"/>
+          <path class="nerra-pre__s nerra-pre__s--a" d="M22,8 L44,64"/>
+          <path class="nerra-pre__s nerra-pre__s--3" d="M42,64 L54,8"/>
+        </svg>
+        <p class="nerra-pre__msg">Préparation de votre espace stratégique…</p>
+      </div>
+    </div>
+  </app-root>
 </body>
 </html>
