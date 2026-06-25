@@ -1,11 +1,107 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="utf-8">
-  <title>Nerra</title>
+  <title>Nerra — Le Moteur de Décision YouTube</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Nerra analyse ta chaîne YouTube et te propose exactement quoi publier ensuite. Arrête de publier à l'aveugle. Le moteur de décision des créateurs YouTube.">
+  <meta name="theme-color" content="#09090b">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Nerra — Le Moteur de Décision YouTube">
+  <meta property="og:description" content="Nerra analyse ta chaîne YouTube et te propose exactement quoi publier ensuite. Arrête de publier à l'aveugle.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="Nerra">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Nerra — Le Moteur de Décision YouTube">
+  <meta name="twitter:description" content="Nerra analyse ta chaîne YouTube et te propose exactement quoi publier ensuite.">
+
+  <!-- Google Fonts — preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- JSON-LD: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Nerra",
+    "description": "Le moteur de décision YouTube. Analyse ta chaîne et te propose exactement quoi publier ensuite.",
+    "url": "https://nerra.app",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    }
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Est-ce que Nerra accède à mes vidéos ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Non. Nerra utilise l'API officielle YouTube en lecture seule. Nous analysons vos données de performance (CTR, rétention, vues) pour nourrir le moteur de décision. Nous ne pouvons rien modifier, uploader ou supprimer sur votre chaîne."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Est-ce que l'IA publie à ma place ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Non. Nerra te propose une décision stratégique. Tu choisis si tu l'exécutes. L'autorité créative reste entièrement entre tes mains."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Pour quel type de créateur Nerra est-il fait ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nerra est conçu pour les créateurs YouTube qui publient régulièrement mais stagnent, qui ne savent plus quoi tester, ou qui passent trop de temps à décider quoi publier. Que tu aies 500 ou 500 000 abonnés."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Quelle est la différence avec vidIQ ou TubeBuddy ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "vidIQ et TubeBuddy sont des outils d'analytics et d'optimisation. Ils te montrent ce qui s'est passé. Nerra va plus loin : il analyse ton historique, tes expériences et tes résultats pour te proposer quoi faire ensuite. C'est un moteur de décision, pas un tableau de bord."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Comment Nerra apprend de mes résultats ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Chaque vidéo que tu publies via une recommandation Nerra devient une expérience. Le système mesure les résultats (CTR, rétention, vues) et en tire des leçons qui affinent les décisions suivantes. Ta chaîne développe une mémoire stratégique unique."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "C'est vraiment gratuit ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Oui. Le plan gratuit inclut l'accès au moteur de décision et aux fonctionnalités essentielles, sans carte bancaire. Tu peux rester sur le plan gratuit aussi longtemps que tu veux."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <app-root></app-root>

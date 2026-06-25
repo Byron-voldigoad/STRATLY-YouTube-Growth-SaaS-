@@ -1273,28 +1273,14 @@ export async function brainstormConcept(
     narrativeStructure: z
       .array(
         z.object({
-          act: z
-            .string()
-            .describe(
-              "Nom de l'acte narratif (ex: 'Ouverture', 'Montée', 'Climax', 'Résolution')",
-            ),
-          purpose: z
-            .string()
-            .describe(
-              "L'objectif émotionnel de cet acte (ex: 'Créer le mystère', 'Monter la tension')",
-            ),
-          visualCue: z
-            .string()
-            .describe(
-              "Description abstraite du type de visuel (ex: 'Plans rapides et saccadés', 'Ralenti dramatique')",
-            ),
+          act: z.string().describe("Nom de l'acte narratif"),
+          purpose: z.string().describe("Objectif émotionnel de l'acte"),
+          visualCue: z.string().describe("Type de visuel recommandé"),
         }),
       )
       .min(3)
       .max(5)
-      .describe(
-        "Structure narrative en 3-5 actes. NE JAMAIS citer de timestamps, épisodes ou scènes spécifiques.",
-      ),
+      .describe("Structure narrative en 3-5 actes sans références précises."),
     style: z.string().describe("Style de montage recommandé"),
     duration: z.string().describe("Durée recommandée"),
     musicDirection: z
@@ -1304,30 +1290,12 @@ export async function brainstormConcept(
       ),
     audioVibe: z
       .object({
-        genre: z
-          .string()
-          .describe(
-            "Genre/sous-genre musical (ex: 'Lo-fi hip-hop', 'Orchestral épique')",
-          ),
-        mood: z
-          .string()
-          .describe(
-            "Ambiance sonore (ex: 'Mélancolique et lent', 'Intense et rapide')",
-          ),
-        bpmRange: z
-          .string()
-          .describe(
-            "Fourchette de BPM recommandée (ex: '80-100 BPM', '140-160 BPM')",
-          ),
-        referenceStyle: z
-          .string()
-          .describe(
-            "Style de référence SANS citer de titre exact (ex: 'Dans le style des musiques de trailer cinématiques')",
-          ),
+        genre: z.string().describe("Genre musical recommandé"),
+        mood: z.string().describe("Ambiance sonore souhaitée"),
+        bpmRange: z.string().describe("Fourchette BPM recommandée"),
+        referenceStyle: z.string().describe("Style de référence sans titre précis"),
       })
-      .describe(
-        "Direction audio abstraite. INTERDICTION de citer des titres de musique spécifiques.",
-      ),
+      .describe("Direction audio abstraite sans citations de titres."),
     visualCues: z
       .array(z.string())
       .min(3)
@@ -1348,14 +1316,14 @@ export async function brainstormConcept(
       .min(2)
       .max(3)
       .describe(
-        "2 ou 3 requêtes YouTube (mots-clés COURTS) pour trouver le matériel source brut. Adapte le vocabulaire à la niche (ex Anime: 'veldra tempest twixtor 4k', ex Cuisine: 'tarte pommes recette').",
+        "2-3 requêtes YouTube de mots-clés courts pour trouver le matériel source.",
       ),
     tutorialQueries: z
       .array(z.string())
       .min(1)
       .max(2)
       .describe(
-        "1 ou 2 requêtes YouTube pour trouver des tutoriels de montage liés EXACTEMENT au style demandé (ex: 'tuto montage phonk capcut', 'premiere pro transition fluide').",
+        "1-2 requêtes YouTube pour trouver des tutoriels de montage adaptés.",
       ),
   };
 
@@ -1425,10 +1393,16 @@ ${
     : ""
 }
 
+⚠️ RÈGLE DE FORMAT STRICTE : Tu DOIS obligatoirement renvoyer un OBJET JSON (commençant par des accolades {), et non un tableau [. N'oublie aucune des clés requises (style, duration, searchQueries, etc.).
+
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
     output: { format: "json", schema: BrainstormSchema },
-    config: { temperature: 0.7 },
+    config: {
+      temperature: 0.7,
+      // @ts-ignore
+      response_format: { type: "json_object" },
+    },
   });
 
   const latencyMs = Date.now() - startTime;
@@ -1614,7 +1588,8 @@ RÈGLES :
 3. Analyse attentivement la structure et les "Click Triggers" du BENCHMARK YOUTUBE fourni, ce sont les vidéos les plus performantes globalement sur ce sujet précis.
 4. TU DOIS IMPÉRATIVEMENT CITER LES TITRES EXACTS du benchmark dans ton champ 'reasoning' pour justifier pourquoi tes propositions fonctionneront (ex: "J'ai utilisé la structure de la vidéo X qui a fait 1M vues...").
 5. Intègre impérativement le contexte spécifique fourni par l'utilisateur.
-6. RENVOIE UNIQUEMENT DU JSON VALIDE`,
+6. RÈGLE DE FORMAT (CRITIQUE) : Adapte le titre au type de contenu. Si l'utilisateur prépare un format court, musical ou esthétique (Short, Clip, Edit, AMV), propose des titres TRÈS COURTS et percutants basés sur l'émotion visuelle (exemples de structure : '[Sujet] - Incroyable', 'Le meilleur [Sujet] 🔥', '[Sujet] Intense'). TU AS L'INTERDICTION FORMELLE de proposer des titres longs, narratifs ou de type Guide/Tutoriel (ex: 'Découvrez pourquoi...', 'Comment faire...') sur un format court et visuel.
+7. RENVOIE UNIQUEMENT DU JSON VALIDE`,
     prompt: promptText,
     output: { format: "json", schema: TitleOutputSchema },
     config: { temperature: 0.7 },
@@ -1699,7 +1674,8 @@ RÈGLES D'AUDIT :
 3. BENCHMARK GLOBAL : Compare le titre à ce qui fonctionne ACTUELLEMENT sur YouTube dans cette niche. TU DOIS IMPÉRATIVEMENT CITER des titres exacts du benchmark pour appuyer ton argumentaire (ex: "La vidéo 'X' a fait 800k vues en utilisant cette structure...").
 4. PSYCHOLOGIE : Cherche le "Click Trigger" (curiosité, émotion, urgence). S'il manque, le score doit être sévère mais le conseil doit être précis.
 5. TON : Direct, pro, exigeant mais orienté résultats.
-6. RÈGLE DE SATISFACTION (CRUCIAL) : Si le titre est déjà excellent (score 9 ou 10), ton feedback doit être uniquement un encouragement (ex: "Titre parfait, prêt à publier"). NE PROPOSE AUCUNE modification ou optimisation si le score est >= 9. Si le score est 8, le conseil doit être optionnel, très court et ne pas remettre en cause la structure globale.
+6. RÈGLE D'ÉVALUATION (CRITIQUE) : Prends en compte le FORMAT de la vidéo. Si c'est un format de pur divertissement visuel ou court (Edit, AMV, Clip, Short), un titre très court et brut (ex: '[Sujet] monstrueux') est PARFAIT (9-10/10). Ne pénalise JAMAIS un titre court sous prétexte qu'il n'est pas 'assez informatif' ou ne ressemble pas à un Tutoriel.
+7. RÈGLE DE SATISFACTION (CRUCIAL) : Si le titre est déjà excellent (score 9 ou 10), ton feedback doit être uniquement un encouragement (ex: "Titre parfait, prêt à publier"). NE PROPOSE AUCUNE modification ou optimisation si le score est >= 9. Si le score est 8, le conseil doit être optionnel, très court et ne pas remettre en cause la structure globale.
 RENVOIE UNIQUEMENT DU JSON VALIDE.`,
     prompt: promptText,
     output: { format: "json", schema: EvalOutputSchema },

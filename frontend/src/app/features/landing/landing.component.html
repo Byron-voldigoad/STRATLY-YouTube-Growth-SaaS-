@@ -1,557 +1,957 @@
-<div class="min-h-screen bg-slate-50 selection:bg-indigo-500/30 font-sans">
+<div class="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-orange-500/30 overflow-x-hidden">
 
-    <!-- Navbar -->
-    <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-slate-200 z-50 transition-all">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                <img src="/assets/images/nerra_ligth.png" alt="Nerra Logo"
-                    class="h-6 sm:h-8 object-contain drop-shadow-sm">
-                <span class="text-xl sm:text-2xl font-black tracking-tight text-slate-900">Nerra</span>
+    <!-- ============================================ -->
+    <!-- NAVBAR                                       -->
+    <!-- ============================================ -->
+    <nav class="fixed top-0 w-full z-50 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6 h-16 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-2.5 shrink-0">
+                <img src="/assets/images/nerra_dark.png" alt="Nerra Logo" class="h-6 sm:h-7 object-contain">
+                <span class="text-lg font-bold text-zinc-50 tracking-tight font-heading">Nerra</span>
             </div>
 
+            <!-- Desktop nav links -->
             <div class="hidden md:flex items-center gap-8">
-                <a href="#features"
-                    class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Fonctionnalités</a>
-                <a href="#pricing"
-                    class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Tarifs</a>
-                <a href="#faq"
-                    class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">FAQ</a>
+                <button (click)="scrollTo('problem')"
+                    class="text-sm text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer bg-transparent border-none">Le
+                    problème</button>
+                <button (click)="scrollTo('how')"
+                    class="text-sm text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer bg-transparent border-none">Fonctionnement</button>
+                <button (click)="scrollTo('difference')"
+                    class="text-sm text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer bg-transparent border-none">Différence</button>
+                <button (click)="scrollTo('faq')"
+                    class="text-sm text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer bg-transparent border-none">FAQ</button>
             </div>
 
-            <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+            <!-- CTAs -->
+            <div class="flex items-center gap-3 shrink-0">
                 <a routerLink="/login"
-                    class="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 transition-colors px-1 sm:px-2">
-                    <span class="hidden sm:inline">Se connecter</span>
-                    <span class="sm:hidden">Connexion</span>
-                </a>
+                    class="hidden sm:block text-sm text-zinc-400 hover:text-zinc-50 transition-colors">Connexion</a>
                 <a routerLink="/signup"
-                    class="bg-slate-900 text-white text-xs sm:text-sm font-bold px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 whitespace-nowrap">
-                    <span class="hidden sm:inline">Commencer gratuitement</span>
-                    <span class="sm:hidden">Démarrer</span>
+                    class="bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-semibold px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg transition-all hover:shadow-lg hover:shadow-orange-500/25">
+                    <span class="hidden sm:inline">Essayer Nerra</span>
+                    <span class="sm:hidden">Essayer</span>
                 </a>
+                <!-- Mobile hamburger -->
+                <button (click)="toggleMobileMenu()"
+                    class="md:hidden flex flex-col gap-1.5 p-2 bg-transparent border-none cursor-pointer"
+                    aria-label="Menu mobile">
+                    <span class="block w-5 h-0.5 bg-zinc-400 transition-all"
+                        [class.rotate-45]="mobileMenuOpen()"
+                        [class.translate-y-2]="mobileMenuOpen()"></span>
+                    <span class="block w-5 h-0.5 bg-zinc-400 transition-all"
+                        [class.opacity-0]="mobileMenuOpen()"></span>
+                    <span class="block w-5 h-0.5 bg-zinc-400 transition-all"
+                        [class.-rotate-45]="mobileMenuOpen()"
+                        [class.-translate-y-2]="mobileMenuOpen()"></span>
+                </button>
             </div>
         </div>
     </nav>
 
-    <!-- 1. HERO SPLIT -->
-    <section class="pt-40 pb-24 px-6 relative overflow-hidden">
-        <!-- Decoration background -->
-        <div class="absolute inset-x-0 top-0 -z-10 transform-gpu overflow-hidden blur-3xl opacity-30"
-            aria-hidden="true">
-            <div class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-indigo-500 to-purple-500 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-                style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)">
-            </div>
-        </div>
+    <!-- Mobile menu overlay -->
+    @if (mobileMenuOpen()) {
+    <div class="fixed inset-0 z-40 bg-zinc-950/98 backdrop-blur-xl md:hidden flex flex-col items-center justify-center gap-8"
+        role="dialog" aria-label="Menu de navigation">
+        <button (click)="scrollTo('problem')"
+            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">Le
+            problème</button>
+        <button (click)="scrollTo('how')"
+            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">Fonctionnement</button>
+        <button (click)="scrollTo('difference')"
+            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">Différence</button>
+        <button (click)="scrollTo('faq')"
+            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">FAQ</button>
+        <div class="h-px w-16 bg-zinc-800"></div>
+        <a routerLink="/login" (click)="closeMobileMenu()" class="text-lg text-zinc-400 hover:text-zinc-50 transition-colors">Connexion</a>
+        <a routerLink="/signup" (click)="closeMobileMenu()"
+            class="bg-orange-500 text-zinc-950 text-lg font-semibold px-8 py-3 rounded-xl hover:bg-orange-400 transition-colors">Essayer
+            Nerra</a>
+    </div>
+    }
 
-        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
 
-            <!-- Hero Left -->
-            <div class="max-w-2xl">
-                <div
-                    class="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold px-4 py-1.5 rounded-full mb-8 shadow-sm">
-                    <span class="flex h-2 w-2 relative">
-                        <span
-                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+    <!-- ============================================ -->
+    <!-- 1. HERO                                      -->
+    <!-- ============================================ -->
+    <section class="relative pt-28 pb-20 sm:pt-36 sm:pb-28 lg:pt-44 lg:pb-36 px-5 sm:px-6">
+        <!-- Ambient background glow -->
+        <div class="absolute top-32 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-orange-500/[0.04] rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
+        <div class="absolute bottom-20 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-orange-600/[0.03] rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
+
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+
+            <!-- Hero left — Copy -->
+            <div class="max-w-xl lg:max-w-none">
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-orange-400 text-xs font-semibold px-4 py-1.5 rounded-full mb-8">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                     </span>
-                    🚀 Nouveau — Analyse instantanée (IA Groq)
+                    Le moteur de décision YouTube
                 </div>
 
-                <h1 class="text-5xl lg:text-6xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">
-                    La plateforme IA pour dominer <span
-                        class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">YouTube</span>
+                <!-- H1 -->
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-50 leading-[1.08] mb-6 tracking-tight font-heading">
+                    Arrête de chercher quoi publier.
                 </h1>
 
-                <p class="text-lg text-slate-600 mb-10 leading-relaxed font-medium">
-                    Analytics, recommandations personnalisées et idées de contenu générées par l'IA — tout en un seul
-                    endroit pour exploser votre croissance.
+                <!-- Sub -->
+                <p class="text-lg sm:text-xl text-zinc-400 mb-4 leading-relaxed max-w-lg">
+                    Nerra analyse ta chaîne et te propose exactement quoi tester ensuite.
+                </p>
+                <p class="text-base text-zinc-500 mb-10 max-w-lg">
+                    Une seule décision stratégique par semaine. Tu décides si tu l'exécutes.
                 </p>
 
-                <div class="flex flex-col sm:flex-row items-center gap-4">
+                <!-- CTAs -->
+                <div class="flex flex-col sm:flex-row items-start gap-4">
                     <a routerLink="/signup"
-                        class="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-xl hover:bg-slate-800 transition-all font-bold text-base shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 transform hover:-translate-y-1">
-                        Commencer gratuitement — 2min
-                    </a>
-                </div>
-                <div class="mt-4 flex items-center gap-4 text-xs font-semibold text-slate-500">
-                    <span class="flex items-center gap-1"><svg class="w-4 h-4 text-emerald-500" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg> Sans carte bancaire</span>
-                    <span class="flex items-center gap-1"><svg class="w-4 h-4 text-emerald-500" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg> Plan gratuit permanent</span>
-                </div>
-            </div>
-
-            <!-- Hero Right (Dashboard Mockup) -->
-            <div class="relative relative group">
-                <div
-                    class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200">
-                </div>
-                <div class="relative bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
-
-                    <!-- Topbar -->
-                    <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-2">
-                        <div class="flex gap-1.5">
-                            <div class="w-3 h-3 rounded-full bg-slate-300 border border-slate-400/50"></div>
-                            <div class="w-3 h-3 rounded-full bg-slate-300 border border-slate-400/50"></div>
-                            <div class="w-3 h-3 rounded-full bg-slate-300 border border-slate-400/50"></div>
-                        </div>
-                        <span class="text-xs font-semibold text-slate-400 ml-4">Nerra Dashboard · Derniers 30
-                            jours</span>
-                    </div>
-
-                    <!-- Content -->
-                    <div class="p-6">
-                        <!-- KPIs -->
-                        <div class="grid grid-cols-3 gap-4 mb-6">
-                            <div
-                                class="border border-slate-100 bg-slate-50/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                                <div class="text-2xl font-black text-emerald-600 mb-1 flex items-center gap-1">+1 247
-                                    <span class="text-sm">↑</span></div>
-                                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Abonnés</div>
-                            </div>
-                            <div
-                                class="border border-slate-100 bg-slate-50/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                                <div class="text-2xl font-black text-emerald-600 mb-1 flex items-center gap-1">9.3%
-                                    <span class="text-sm">↑</span></div>
-                                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">CTR</div>
-                            </div>
-                            <div
-                                class="border border-slate-100 bg-slate-50/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                                <div class="text-2xl font-black text-emerald-600 mb-1 flex items-center gap-1">5.8K
-                                    <span class="text-sm">↑</span></div>
-                                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Watch Hrs</div>
-                            </div>
-                        </div>
-
-                        <!-- Chart Area -->
-                        <div
-                            class="border border-slate-100 rounded-xl h-32 flex items-end px-4 gap-2 pb-0 opacity-80 mb-6 bg-gradient-to-t from-slate-50 to-white">
-                            <div class="bg-slate-200 w-full h-[20%] rounded-t-sm"></div>
-                            <div class="bg-slate-200 w-full h-[32%] rounded-t-sm"></div>
-                            <div class="bg-slate-200 w-full h-[28%] rounded-t-sm"></div>
-                            <div class="bg-indigo-500 w-full h-[52%] rounded-t-sm"></div>
-                            <div class="bg-indigo-500 w-full h-[64%] rounded-t-sm"></div>
-                            <div class="bg-indigo-500 w-full h-[75%] rounded-t-sm animate-pulse"></div>
-                            <div class="bg-indigo-600 w-full h-[88%] rounded-t-sm animate-pulse"></div>
-                            <div
-                                class="bg-indigo-600 w-full h-[95%] rounded-t-sm shadow-[0_0_15px_rgba(79,70,229,0.5)]">
-                            </div>
-                        </div>
-
-                        <!-- AI Chip -->
-                        <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3 shadow-inner">
-                            <span class="text-xl">✨</span>
-                            <p class="text-sm text-indigo-900 leading-snug">
-                                <span class="font-bold">Insight IA :</span> Publiez le jeudi à 17h30 — vos vidéos
-                                génèrent 2× plus de clics à ce créneau selon notre analyse des 30 derniers jours.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- 2. SOCIAL PROOF SECTION -->
-    <section class="border-y border-slate-200 bg-white py-12 px-6">
-        <div class="max-w-7xl mx-auto flex flex-col items-center">
-
-            <div class="flex flex-col sm:flex-row items-center gap-6 mb-10">
-                <div class="flex -space-x-3">
-                    <img class="w-10 h-10 rounded-full border-2 border-white bg-slate-200 object-cover"
-                        src="https://i.pravatar.cc/150?img=1" alt="Creator">
-                    <img class="w-10 h-10 rounded-full border-2 border-white bg-slate-200 object-cover"
-                        src="https://i.pravatar.cc/150?img=2" alt="Creator">
-                    <img class="w-10 h-10 rounded-full border-2 border-white bg-slate-200 object-cover"
-                        src="https://i.pravatar.cc/150?img=3" alt="Creator">
-                    <img class="w-10 h-10 rounded-full border-2 border-white bg-slate-200 object-cover"
-                        src="https://i.pravatar.cc/150?img=4" alt="Creator">
-                    <div
-                        class="w-10 h-10 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                        +</div>
-                </div>
-                <div class="text-center sm:text-left">
-                    <div class="font-bold text-slate-800 text-lg">Rejoint par +2 000 créateurs YouTube</div>
-                    <div class="text-amber-400 text-sm tracking-widest">★★★★★ <span
-                            class="text-slate-500 font-medium tracking-normal text-xs ml-1">Note moyenne de 4.9/5</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Testimonial Strip -->
-            <div
-                class="max-w-3xl bg-slate-50 border border-slate-200 rounded-2xl p-6 md:p-8 text-center shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                <div class="text-amber-400 text-sm tracking-[0.2em] mb-4">★★★★★</div>
-                <p class="text-lg md:text-xl font-medium italic text-slate-700 mb-4 leading-relaxed">
-                    "J'ai gagné +500 abonnés en 2 semaines depuis que j'applique les recommandations IA générées par
-                    Nerra. C'est comme avoir un manager vidéo privé."
-                </p>
-                <div class="text-sm font-bold text-slate-500 uppercase tracking-wide">— Léa · Chaîne AMV · 12K abonnés
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- 3. BENTO GRID FEATURES -->
-    <section id="features" class="py-24 px-6 bg-slate-50/50">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">Des outils puissants, une
-                    interface claire</h2>
-                <p class="text-lg text-slate-500 font-medium">L'arsenal ultime en structure Bento form pour piloter
-                    votre chaîne.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-6 gap-6 auto-rows-[220px]">
-
-                <!-- [GRAND] Analytics: 3 cols x 2 rows -->
-                <div
-                    class="md:col-span-3 md:row-span-2 bg-white border border-slate-200 hover:border-indigo-300 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
-                    <div
-                        class="w-12 h-12 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 group-hover:bg-indigo-50 transition-transform">
-                        📊</div>
-                    <h4 class="text-2xl font-bold text-slate-900 mb-3">Analytics détaillés</h4>
-                    <p class="text-slate-500 leading-relaxed font-medium mb-4">Abonnés, vues, watch time, CTR — tous vos
-                        KPIs visualisés sur de magnifiques graphiques interactifs en temps réel.</p>
-                    <div class="flex gap-2 mb-auto">
-                        <span
-                            class="text-[10px] font-bold uppercase tracking-wider text-slate-500 border border-slate-200 rounded-md px-2 py-1">Temps
-                            réel</span>
-                        <span
-                            class="text-[10px] font-bold uppercase tracking-wider text-slate-500 border border-slate-200 rounded-md px-2 py-1">Comparatif</span>
-                    </div>
-
-                    <div
-                        class="h-28 border border-slate-100 rounded-xl bg-slate-50 mt-8 flex items-end px-3 gap-1.5 pb-0 opacity-80 pt-4 overflow-hidden relative">
-                        <!-- Tiny chart -->
-                        <div class="w-full h-[30%] bg-slate-200 rounded-t-sm"></div>
-                        <div class="w-full h-[45%] bg-slate-200 rounded-t-sm"></div>
-                        <div
-                            class="w-full h-[60%] bg-indigo-400 rounded-t-sm group-hover:h-[80%] transition-all duration-500">
-                        </div>
-                        <div
-                            class="w-full h-[75%] bg-indigo-500 rounded-t-sm group-hover:h-[90%] transition-all duration-500 delay-75">
-                        </div>
-                        <div
-                            class="w-full h-[90%] bg-indigo-600 rounded-t-sm group-hover:h-[100%] transition-all duration-500 delay-150">
-                        </div>
-                        <div
-                            class="absolute bottom-4 left-4 text-xs font-bold text-emerald-600 bg-white/80 backdrop-blur-sm px-2 py-1 rounded shadow-sm">
-                            📈 +1 247 abs / ce mois</div>
-                    </div>
-                </div>
-
-                <!-- [MOYEN] Recommandations IA: 3 cols x 1 row -->
-                <div
-                    class="md:col-span-3 bg-slate-900 text-white border border-slate-800 hover:border-indigo-500 rounded-3xl p-8 shadow-sm hover:shadow-xl hover:shadow-indigo-500/20 transition-all duration-300 flex flex-col group relative overflow-hidden">
-                    <div
-                        class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500 blur-[60px] opacity-30 group-hover:opacity-60 transition-opacity">
-                    </div>
-                    <div class="flex items-start justify-between mb-2">
-                        <div
-                            class="w-12 h-12 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:rotate-12 transition-transform">
-                            ✨</div>
-                        <div class="flex gap-2">
-                            <span
-                                class="text-[10px] font-bold uppercase tracking-wider text-indigo-200 bg-white/10 rounded-md px-2 py-1">Genkit
-                                AI</span>
-                            <span
-                                class="text-[10px] font-bold uppercase tracking-wider text-indigo-200 bg-white/10 rounded-md px-2 py-1">Groq
-                                Fast</span>
-                        </div>
-                    </div>
-                    <h4 class="text-xl font-bold mb-2 z-10">Recommandations IA Temps Réel</h4>
-                    <p class="text-slate-400 text-sm font-medium z-10 leading-relaxed">Notre IA analyse vos vidéos et
-                        vous guide avec des actions concrètes (titres, tags, horaires) pour booster vos perfs.</p>
-                </div>
-
-                <!-- [MOYEN] Détection Niche: 3 cols x 1 row -->
-                <div
-                    class="md:col-span-3 bg-white border border-slate-200 hover:border-slate-300 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group relative overflow-hidden">
-                    <div
-                        class="absolute -right-4 -bottom-4 text-8xl opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                        🎯</div>
-                    <div class="flex items-start justify-between mb-2">
-                        <div
-                            class="w-12 h-12 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:-translate-y-1 transition-transform">
-                            🎯</div>
-                        <span
-                            class="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 border border-rose-100 rounded-md px-2 py-1">Automatique</span>
-                    </div>
-                    <h4 class="text-xl font-bold text-slate-900 mb-2 z-10">Détection de Niche</h4>
-                    <p class="text-slate-500 text-sm font-medium z-10 leading-relaxed">Trouvez votre positionnement
-                        unique parmi des milliers de créateurs, grâce à notre classificateur de contenu IA.</p>
-                </div>
-
-                <!-- [PETIT] Idées: 2 cols x 1 row -->
-                <div
-                    class="md:col-span-2 bg-white border border-slate-200 hover:border-amber-300 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center group">
-                    <div
-                        class="w-12 h-12 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center text-2xl mb-3 group-hover:animate-bounce">
-                        💡</div>
-                    <h4 class="text-lg font-bold text-slate-900 mb-2">Idées de contenu</h4>
-                    <p class="text-slate-500 text-xs font-medium leading-relaxed">Générez des concepts de vidéos
-                        viral-ready focalisées sur votre niche.</p>
-                </div>
-
-                <!-- [PETIT] Alertes: 2 cols x 1 row -->
-                <div
-                    class="md:col-span-2 bg-white border border-slate-200 hover:border-blue-300 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center group">
-                    <div
-                        class="w-12 h-12 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
-                        🔔</div>
-                    <h4 class="text-lg font-bold text-slate-900 mb-2">Alertes de hausse</h4>
-                    <p class="text-slate-500 text-xs font-medium leading-relaxed">Recevez des notifs dès que vous
-                        frappez l'algorithme.</p>
-                </div>
-
-                <!-- [PETIT] Export PDF: 2 cols x 1 row -->
-                <div
-                    class="md:col-span-2 bg-white border border-slate-200 hover:border-emerald-300 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center group">
-                    <div
-                        class="w-12 h-12 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-center text-2xl mb-3 group-hover:-translate-y-1 transition-transform">
-                        📄</div>
-                    <h4 class="text-lg font-bold text-slate-900 mb-2">Export Sponsor</h4>
-                    <p class="text-slate-500 text-xs font-medium leading-relaxed">Rapports PDF ultra pro pour décrocher
-                        vos ops spéciales.</p>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    <!-- 4. COMPARISON TABLE -->
-    <section class="py-24 px-6 bg-white border-t border-slate-200">
-        <div class="max-w-4xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-black text-slate-900 mb-4 tracking-tight">Avec ou sans Nerra ? Voyez la
-                    différence.</h2>
-                <p class="text-lg text-slate-500 font-medium">L'outil indispensable pour arrêter de stagner et retrouver
-                    l'inspiration.</p>
-            </div>
-
-            <div class="border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <!-- Header -->
-                <div class="bg-slate-900 text-white grid grid-cols-12 text-sm font-bold">
-                    <div class="col-span-4 p-5">Tâche Quotidienne</div>
-                    <div class="col-span-4 p-5 border-l border-white/10 text-center text-emerald-400 bg-white/5">✅ Avec
-                        Nerra</div>
-                    <div class="col-span-4 p-5 border-l border-white/10 text-center text-slate-400">❌ Sans Nerra</div>
-                </div>
-
-                <!-- Row 1 -->
-                <div class="bg-white grid grid-cols-12 border-t border-slate-200">
-                    <div class="col-span-4 p-5 font-bold text-slate-900 flex items-center">Prise de décision</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 bg-emerald-50/30 text-emerald-700 font-semibold text-sm flex justify-center items-center text-center">
-                        30 secs — l'IA analyse</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 text-slate-500 text-sm flex justify-center items-center text-center italic">
-                        5 heures de fouilles</div>
-                </div>
-
-                <!-- Row 2 -->
-                <div class="bg-slate-50 grid grid-cols-12 border-t border-slate-200">
-                    <div class="col-span-4 p-5 font-bold text-slate-900 flex items-center">Optimisation de vidéo</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 bg-emerald-50/30 text-emerald-700 font-semibold text-sm flex justify-center items-center text-center">
-                        Recommandations ciblées</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 text-slate-500 text-sm flex justify-center items-center text-center italic">
-                        À l'aveugle / Intuition</div>
-                </div>
-
-                <!-- Row 3 -->
-                <div class="bg-white grid grid-cols-12 border-t border-slate-200">
-                    <div class="col-span-4 p-5 font-bold text-slate-900 flex items-center">Plan de croissance</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 bg-emerald-50/30 text-emerald-700 font-semibold text-sm flex justify-center items-center text-center">
-                        Données factuelles / Étapes</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 text-slate-500 text-sm flex justify-center items-center text-center italic">
-                        Au hasard des tendances</div>
-                </div>
-
-                <!-- Row 4 Highlighted -->
-                <div class="bg-indigo-50/50 grid grid-cols-12 border-t border-slate-200">
-                    <div
-                        class="col-span-4 p-5 font-bold text-indigo-900 border-l-4 border-indigo-500 flex items-center">
-                        Santé mentale ❤️</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 bg-emerald-100/30 text-emerald-700 font-bold text-sm flex justify-center items-center text-center px-4">
-                        Esprit tranquille, confiance</div>
-                    <div
-                        class="col-span-4 p-5 border-l border-slate-200 text-rose-500 text-sm flex justify-center items-center text-center italic px-4">
-                        Stress permanent et syndrome de l'imposteur</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 5. PRICING TEASER -->
-    <section id="pricing" class="py-24 px-6 bg-slate-50 border-t border-slate-200">
-        <div class="max-w-4xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-black text-slate-900 mb-4 tracking-tight">Simple. Transparent. Accessible.</h2>
-                <p class="text-lg text-slate-500 font-medium">Commencez gratuitement. Mettez le turboboost en Pro.</p>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-8 lg:gap-12 max-w-3xl mx-auto items-center">
-
-                <!-- Free Plan -->
-                <div
-                    class="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm hover:shadow-md transition-shadow relative">
-                    <div class="text-xs font-black text-slate-400 tracking-widest mb-2">GRATUIT</div>
-                    <div class="flex items-baseline gap-1 mb-2">
-                        <span class="text-5xl font-black text-slate-900">0€</span>
-                        <span class="text-slate-500 font-medium">/mois</span>
-                    </div>
-                    <p class="text-sm text-slate-500 mb-8 font-medium">Idéal pour tester l'interface. Sans CB.</p>
-
-                    <ul class="space-y-4 mb-10 text-sm font-medium text-slate-600">
-                        <li class="flex items-center gap-3 border-b border-dashed border-slate-100 pb-3"><span
-                                class="text-emerald-500 text-lg">✓</span> 1 chaîne YouTube</li>
-                        <li class="flex items-center gap-3 border-b border-dashed border-slate-100 pb-3"><span
-                                class="text-emerald-500 text-lg">✓</span> Analytics de base</li>
-                        <li class="flex items-center gap-3 border-b border-dashed border-slate-100 pb-3"><span
-                                class="text-emerald-500 text-lg">✓</span> 5 insights IA générés / mois</li>
-                        <li class="flex items-center gap-3 pb-3"><span class="text-emerald-500 text-lg">✓</span>
-                            Générateur d'idées (limité)</li>
-                    </ul>
-
-                    <a routerLink="/signup"
-                        class="block w-full text-center py-3.5 px-4 bg-white border-2 border-slate-900 text-slate-900 font-bold rounded-xl hover:bg-slate-50 transition-colors">
+                        class="bg-orange-500 hover:bg-orange-400 text-zinc-950 font-bold text-base px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/20 hover:-translate-y-0.5">
                         Créer mon compte
                     </a>
+                    <button (click)="scrollTo('how')"
+                        class="text-zinc-400 hover:text-zinc-50 font-semibold text-base px-6 py-4 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-all bg-transparent cursor-pointer">
+                        Voir comment ça marche ↓
+                    </button>
                 </div>
 
-                <!-- Pro Plan -->
+                <!-- Trust signals -->
+                <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-zinc-500">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Sans carte bancaire
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        30 secondes pour une décision
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Connexion Google en 1 clic
+                    </span>
+                </div>
+            </div>
+
+            <!-- Hero right — Dashboard mockup -->
+            <div class="relative animate-float">
+                <!-- Glow behind -->
+                <div class="absolute -inset-4 bg-gradient-to-b from-orange-500/15 via-orange-500/5 to-transparent rounded-3xl blur-2xl pointer-events-none" aria-hidden="true"></div>
+
+                <!-- Dashboard frame -->
+                <div class="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
+                    <!-- Window chrome -->
+                    <div class="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/80 bg-zinc-950/50">
+                        <div class="flex gap-1.5">
+                            <div class="w-2.5 h-2.5 rounded-full bg-zinc-700"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-zinc-700"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-zinc-700"></div>
+                        </div>
+                        <span class="text-[11px] text-zinc-500 ml-2 font-medium">nerra.app — Decision Engine</span>
+                    </div>
+
+                    <!-- Dashboard content -->
+                    <div class="p-5 sm:p-6 space-y-4">
+                        <!-- Decision card -->
+                        <div class="bg-zinc-800/40 border border-zinc-700/40 rounded-xl p-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                                <span class="text-[10px] font-semibold text-orange-400 uppercase tracking-widest">Décision
+                                    de la semaine</span>
+                            </div>
+                            <p class="text-sm text-zinc-200 font-medium mb-4 leading-relaxed">
+                                "Teste un format court (&lt; 8 min) sur le sujet
+                                <span class="text-orange-400">Design Systems</span>
+                                en ciblant un titre question."
+                            </p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <div class="text-[9px] text-zinc-500 uppercase tracking-widest mb-1.5">Confiance
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                                            <div class="w-[87%] h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full">
+                                            </div>
+                                        </div>
+                                        <span class="text-xs font-bold text-zinc-300">87%</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-[9px] text-zinc-500 uppercase tracking-widest mb-1.5">Variable
+                                    </div>
+                                    <div class="text-xs text-zinc-300 font-medium">Durée</div>
+                                </div>
+                                <div>
+                                    <div class="text-[9px] text-zinc-500 uppercase tracking-widest mb-1.5">Données</div>
+                                    <div class="text-xs text-zinc-300 font-medium">12 vidéos</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active experiment -->
+                        <div class="bg-zinc-800/25 border border-zinc-800/60 rounded-xl p-4 flex items-center gap-3">
+                            <div
+                                class="w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-medium text-zinc-300">Expérience en cours</div>
+                                <div class="text-[11px] text-zinc-500 truncate">Court vs Long · En attente de résultats
+                                </div>
+                            </div>
+                            <div class="ml-auto shrink-0">
+                                <div class="w-16 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                                    <div class="w-[60%] h-full bg-orange-500/50 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mini experiment history -->
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-zinc-800/25 border border-zinc-800/60 rounded-lg p-3 text-center">
+                                <div class="text-lg font-black text-emerald-400 mb-0.5">+34%</div>
+                                <div class="text-[9px] text-zinc-500 uppercase tracking-wider">CTR · Titre question</div>
+                            </div>
+                            <div class="bg-zinc-800/25 border border-zinc-800/60 rounded-lg p-3 text-center">
+                                <div class="text-lg font-black text-red-400 mb-0.5">-12%</div>
+                                <div class="text-[9px] text-zinc-500 uppercase tracking-wider">CTR · Mini. sombre</div>
+                            </div>
+                            <div class="bg-zinc-800/25 border border-zinc-800/60 rounded-lg p-3 text-center">
+                                <div class="text-lg font-black text-emerald-400 mb-0.5">+18%</div>
+                                <div class="text-[9px] text-zinc-500 uppercase tracking-wider">Rétention · Hook 5s</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ============================================ -->
+    <!-- 2. LE PROBLÈME                               -->
+    <!-- ============================================ -->
+    <section id="problem" class="py-20 sm:py-28 lg:py-36 border-t border-zinc-800/40">
+        <div class="max-w-3xl mx-auto px-5 sm:px-6">
+
+            <!-- Section label -->
+            <div class="text-center mb-16 sm:mb-20 animate-on-scroll">
+                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">Le vrai problème</p>
+                <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 tracking-tight font-heading">
+                    Le cycle qui épuise chaque créateur.
+                </h2>
+            </div>
+
+            <!-- Pain timeline -->
+            <div class="space-y-14 sm:space-y-16 mb-20 sm:mb-24">
+                <div class="text-center animate-on-scroll">
+                    <div class="text-[11px] font-bold text-zinc-600 uppercase tracking-[0.25em] mb-3">Lundi</div>
+                    <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-zinc-200 italic">
+                        "Qu'est-ce que je poste cette semaine ?"
+                    </p>
+                </div>
+
+                <div class="text-center animate-on-scroll">
+                    <div class="text-[11px] font-bold text-zinc-600 uppercase tracking-[0.25em] mb-3">Mercredi</div>
+                    <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-zinc-300">
+                        3 heures de recherche sur YouTube.
+                    </p>
+                </div>
+
+                <div class="text-center animate-on-scroll">
+                    <div class="text-[11px] font-bold text-zinc-600 uppercase tracking-[0.25em] mb-3">Vendredi</div>
+                    <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-zinc-300">
+                        Tu publies. Sans conviction.
+                    </p>
+                </div>
+
+                <div class="text-center animate-on-scroll">
+                    <div class="text-[11px] font-bold text-zinc-600 uppercase tracking-[0.25em] mb-3">Une semaine plus
+                        tard</div>
+                    <p class="text-xl sm:text-2xl lg:text-3xl font-black text-zinc-100">
+                        214 vues.
+                    </p>
+                    <p class="text-base sm:text-lg text-zinc-500 mt-3">
+                        Et tu ne sais toujours pas pourquoi.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Separator -->
+            <div class="flex justify-center mb-16 sm:mb-20 animate-on-scroll">
+                <div class="w-px h-16 bg-gradient-to-b from-zinc-800 to-orange-500/50"></div>
+            </div>
+
+            <!-- The Nerra way -->
+            <div class="animate-on-scroll max-w-md mx-auto">
+                <div class="border-l-2 border-orange-500 pl-6 sm:pl-8 space-y-6">
+                    <h3 class="text-xl sm:text-2xl font-bold text-zinc-50 font-heading">Avec Nerra, chaque vidéo devient
+                        un apprentissage.</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <span class="text-orange-500 font-bold mt-0.5 shrink-0">→</span>
+                            <p class="text-zinc-400">Une hypothèse à tester</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="text-orange-500 font-bold mt-0.5 shrink-0">→</span>
+                            <p class="text-zinc-400">Une expérience structurée</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="text-orange-500 font-bold mt-0.5 shrink-0">→</span>
+                            <p class="text-zinc-400">Une leçon qui améliore la suivante</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ============================================ -->
+    <!-- 3. COMMENT NERRA FONCTIONNE                  -->
+    <!-- ============================================ -->
+    <section id="how" class="py-20 sm:py-28 lg:py-36 border-t border-zinc-800/40">
+        <div class="max-w-5xl mx-auto px-5 sm:px-6">
+
+            <!-- Section header -->
+            <div class="text-center mb-16 sm:mb-20 animate-on-scroll">
+                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">Fonctionnement</p>
+                <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 mb-4 tracking-tight font-heading">
+                    Comment Nerra fonctionne
+                </h2>
+                <p class="text-zinc-500 text-base sm:text-lg max-w-xl mx-auto">
+                    Pas un chatbot. Pas un assistant. Un protocole de croissance.
+                </p>
+            </div>
+
+            <!-- 3 steps -->
+            <div class="grid md:grid-cols-3 gap-8 lg:gap-16">
+                <!-- Step 1 -->
+                <div class="animate-on-scroll">
+                    <div class="text-6xl sm:text-7xl font-black text-zinc-800/60 mb-4 font-heading leading-none">01</div>
+                    <h3 class="text-lg sm:text-xl font-bold text-zinc-50 mb-3 font-heading">Connecte ta chaîne</h3>
+                    <p class="text-sm sm:text-base text-zinc-400 leading-relaxed">
+                        Nerra lit ton historique complet. Performances, patterns de réussite, expériences passées.
+                    </p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="animate-on-scroll delay-1">
+                    <div class="text-6xl sm:text-7xl font-black text-zinc-800/60 mb-4 font-heading leading-none">02</div>
+                    <h3 class="text-lg sm:text-xl font-bold text-zinc-50 mb-3 font-heading">Nerra analyse</h3>
+                    <p class="text-sm sm:text-base text-zinc-400 leading-relaxed">
+                        Le moteur identifie ce qui fonctionne, ce qui échoue, et ce qui n'a jamais été testé sur ta chaîne.
+                    </p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="animate-on-scroll delay-2">
+                    <div class="text-6xl sm:text-7xl font-black text-zinc-800/60 mb-4 font-heading leading-none">03</div>
+                    <h3 class="text-lg sm:text-xl font-bold text-zinc-50 mb-3 font-heading">Tu reçois une décision</h3>
+                    <p class="text-sm sm:text-base text-zinc-400 leading-relaxed">
+                        Pas une liste. Pas 50 idées. Une seule recommandation stratégique, prête à exécuter.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ============================================ -->
+    <!-- 4. POURQUOI C'EST DIFFÉRENT                  -->
+    <!-- ============================================ -->
+    <section id="difference" class="py-20 sm:py-28 lg:py-36 border-t border-zinc-800/40">
+        <div class="max-w-5xl mx-auto px-5 sm:px-6">
+
+            <!-- Killer positioning phrase -->
+            <div class="text-center mb-16 sm:mb-20 animate-on-scroll">
+                <div class="space-y-2.5 max-w-2xl mx-auto mb-4">
+                    <p class="text-base sm:text-lg text-zinc-500">Les outils analytics te disent ce qui s'est passé.</p>
+                    <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-500 font-heading">
+                        Nerra te dit quoi faire ensuite.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4 pillar cards -->
+            <div class="grid sm:grid-cols-2 gap-5 sm:gap-6 mb-16 sm:mb-20">
+
+                <!-- Mémoire -->
                 <div
-                    class="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative transform md:-translate-y-4">
+                    class="animate-on-scroll bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
                     <div
-                        class="absolute -top-4 inset-x-0 mx-auto w-max px-4 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-black tracking-widest rounded-full shadow-lg">
-                        ⭐ LE CHOIX DES CRÉATEURS
+                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                        </svg>
                     </div>
-                    <div class="text-xs font-black text-slate-400 tracking-widest mb-2 mt-2">PRO CREATOR</div>
-                    <div class="flex items-baseline gap-1 mb-2">
-                        <span class="text-5xl font-black text-white">19€</span>
-                        <span class="text-slate-400 font-medium">/mois</span>
-                    </div>
-                    <p class="text-sm text-slate-400 mb-8 font-medium">Toute la puissance de Groq AI en illimité.</p>
-
-                    <ul class="space-y-4 mb-10 text-sm font-medium text-slate-300">
-                        <li class="flex items-center gap-3 border-b border-dashed border-slate-700 pb-3"><span
-                                class="text-emerald-400 text-lg font-bold">✓</span> <strong class="text-white">Chaînes
-                                illimitées</strong></li>
-                        <li class="flex items-center gap-3 border-b border-dashed border-slate-700 pb-3"><span
-                                class="text-emerald-400 text-lg font-bold">✓</span> Analytics avancés & exports PDF</li>
-                        <li class="flex items-center gap-3 border-b border-dashed border-slate-700 pb-3"><span
-                                class="text-emerald-400 text-lg font-bold">✓</span> <strong class="text-white">Insights
-                                IA ILLIMITÉS</strong></li>
-                        <li class="flex items-center gap-3 pb-3"><span
-                                class="text-emerald-400 text-lg font-bold">✓</span> Alertes de croissance email</li>
-                    </ul>
-
-                    <a routerLink="/signup"
-                        class="block w-full text-center py-3.5 px-4 bg-white text-slate-900 font-black rounded-xl hover:bg-slate-100 hover:scale-[1.02] transition-transform shadow-lg shadow-white/10">
-                        Passer au niveau Pro
-                    </a>
+                    <h3 class="text-lg font-bold text-zinc-50 mb-2 font-heading">Mémoire</h3>
+                    <p class="text-sm text-zinc-400 leading-relaxed">
+                        Il se souvient de chaque décision, chaque résultat. Ta chaîne développe une mémoire stratégique unique.
+                    </p>
                 </div>
 
+                <!-- Expériences -->
+                <div
+                    class="animate-on-scroll delay-1 bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-zinc-50 mb-2 font-heading">Expériences</h3>
+                    <p class="text-sm text-zinc-400 leading-relaxed">
+                        Chaque vidéo devient un test structuré. Tu ne publies plus au hasard, tu testes une variable à la
+                        fois.
+                    </p>
+                </div>
+
+                <!-- Apprentissage -->
+                <div
+                    class="animate-on-scroll delay-2 bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-zinc-50 mb-2 font-heading">Apprentissage</h3>
+                    <p class="text-sm text-zinc-400 leading-relaxed">
+                        Il apprend de tes échecs, pas seulement de tes succès. Chaque flop a une valeur stratégique.
+                    </p>
+                </div>
+
+                <!-- Décision -->
+                <div
+                    class="animate-on-scroll delay-3 bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-zinc-50 mb-2 font-heading">Décision</h3>
+                    <p class="text-sm text-zinc-400 leading-relaxed">
+                        Il te propose une action. Une seule. Cette semaine. Tu décides si tu l'exécutes.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="animate-on-scroll">
+                <div
+                    class="grid grid-cols-3 divide-x divide-zinc-800 bg-zinc-900/50 border border-zinc-800/60 rounded-2xl py-8 sm:py-10">
+                    <div class="text-center px-4">
+                        <div class="text-2xl sm:text-3xl lg:text-4xl font-black text-zinc-50 mb-1 font-heading">30s
+                        </div>
+                        <div class="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider font-medium">Pour une décision
+                        </div>
+                    </div>
+                    <div class="text-center px-4">
+                        <div class="text-2xl sm:text-3xl lg:text-4xl font-black text-zinc-50 mb-1 font-heading">1</div>
+                        <div class="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider font-medium">Recommandation /
+                            semaine</div>
+                    </div>
+                    <div class="text-center px-4">
+                        <div class="text-2xl sm:text-3xl lg:text-4xl font-black text-zinc-50 mb-1 font-heading">1</div>
+                        <div class="text-[10px] sm:text-xs text-zinc-500 uppercase tracking-wider font-medium">Variable à la
+                            fois</div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- 6. FAQ (Simulated) -->
-    <section id="faq" class="py-24 px-6 bg-white border-t border-slate-200">
-        <div class="max-w-3xl mx-auto">
-            <h2 class="text-3xl font-black text-center text-slate-900 mb-12 tracking-tight">Questions fréquentes</h2>
 
-            <div class="space-y-4">
+    <!-- ============================================ -->
+    <!-- 5. APERÇU DU PRODUIT                         -->
+    <!-- ============================================ -->
+    <section id="preview" class="py-20 sm:py-28 lg:py-36 border-t border-zinc-800/40 overflow-hidden">
+        <div class="max-w-6xl mx-auto px-5 sm:px-6">
+
+            <!-- Section header -->
+            <div class="text-center mb-12 sm:mb-16 animate-on-scroll">
+                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">Aperçu</p>
+                <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 mb-4 tracking-tight font-heading">
+                    Le tableau de bord qui transforme ta chaîne en laboratoire.
+                </h2>
+                <p class="text-zinc-500 text-base sm:text-lg max-w-xl mx-auto">
+                    Décision, expérience, mémoire — tout dans un seul écran.
+                </p>
+            </div>
+
+            <!-- Full dashboard mockup -->
+            <div class="animate-on-scroll relative">
+                <!-- Ambient glow -->
+                <div class="absolute -inset-8 bg-orange-500/[0.04] rounded-[2rem] blur-3xl pointer-events-none" aria-hidden="true"></div>
+
+                <div class="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
+                    <!-- Window chrome -->
+                    <div
+                        class="flex items-center justify-between px-5 py-3 border-b border-zinc-800 bg-zinc-950/60">
+                        <div class="flex items-center gap-4">
+                            <div class="flex gap-1.5">
+                                <div class="w-3 h-3 rounded-full bg-zinc-700/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-zinc-700/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-zinc-700/80"></div>
+                            </div>
+                            <span class="text-xs text-zinc-500 font-medium">nerra.app/dashboard</span>
+                        </div>
+                        <span
+                            class="text-[10px] px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 font-semibold border border-orange-500/20">Score
+                            stratégie : 78/100</span>
+                    </div>
+
+                    <!-- Dashboard body -->
+                    <div class="flex min-h-[420px] sm:min-h-[480px]">
+                        <!-- Sidebar -->
+                        <div class="hidden md:flex flex-col w-52 border-r border-zinc-800 bg-zinc-950/40 p-4">
+                            <div class="flex items-center gap-2 mb-8 px-1">
+                                <img src="/assets/images/nerra_dark.png" alt="" class="h-5 object-contain">
+                                <span class="text-sm font-bold text-zinc-300 tracking-tight">Nerra</span>
+                            </div>
+                            <nav class="space-y-1 flex-1">
+                                <div
+                                    class="flex items-center gap-3 text-sm px-3 py-2.5 rounded-lg bg-zinc-800/60 text-orange-400 font-medium">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                                    </svg>
+                                    Décision
+                                </div>
+                                <div
+                                    class="flex items-center gap-3 text-sm px-3 py-2.5 rounded-lg text-zinc-500">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0" />
+                                    </svg>
+                                    Expériences
+                                </div>
+                                <div
+                                    class="flex items-center gap-3 text-sm px-3 py-2.5 rounded-lg text-zinc-500">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0" />
+                                    </svg>
+                                    Mémoire
+                                </div>
+                                <div
+                                    class="flex items-center gap-3 text-sm px-3 py-2.5 rounded-lg text-zinc-500">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75z" />
+                                    </svg>
+                                    Analytics
+                                </div>
+                            </nav>
+                            <!-- User -->
+                            <div class="flex items-center gap-2 px-2 pt-4 border-t border-zinc-800">
+                                <div class="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] text-zinc-400 font-bold">M</div>
+                                <div>
+                                    <div class="text-xs text-zinc-400 font-medium">Ma chaîne</div>
+                                    <div class="text-[10px] text-zinc-600">Plan gratuit</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main content -->
+                        <div class="flex-1 p-5 sm:p-6 lg:p-8">
+                            <!-- Header -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+                                <div>
+                                    <h3 class="text-base sm:text-lg font-bold text-zinc-100 font-heading">Tableau de bord</h3>
+                                    <p class="text-[11px] text-zinc-500">Semaine du 23 juin 2026</p>
+                                </div>
+                            </div>
+
+                            <div class="grid lg:grid-cols-5 gap-5 sm:gap-6">
+                                <!-- Decision card (spans 3) -->
+                                <div class="lg:col-span-3 bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-5 sm:p-6">
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <div class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                                        <span
+                                            class="text-[10px] font-semibold text-orange-400 uppercase tracking-widest">Décision
+                                            de la semaine</span>
+                                    </div>
+                                    <p class="text-sm sm:text-base text-zinc-100 font-medium mb-5 leading-relaxed">
+                                        Teste un format court (&lt; 8 min) sur le thème <span
+                                            class="text-orange-400 font-semibold">Design Systems</span> en ciblant un
+                                        titre question.
+                                    </p>
+
+                                    <!-- Decision details -->
+                                    <div class="grid grid-cols-3 gap-4 mb-5">
+                                        <div>
+                                            <div class="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">
+                                                Confiance</div>
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        class="w-[87%] h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full">
+                                                    </div>
+                                                </div>
+                                                <span class="text-xs font-bold text-zinc-300">87%</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">
+                                                Variable</div>
+                                            <div class="text-sm text-zinc-300 font-medium">Durée</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">
+                                                Données</div>
+                                            <div class="text-sm text-zinc-300 font-medium">12 vidéos</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-3">
+                                        <div
+                                            class="px-4 py-2 bg-orange-500 text-zinc-950 text-xs font-semibold rounded-lg">
+                                            Accepter cette décision</div>
+                                        <div
+                                            class="px-4 py-2 border border-zinc-700 text-zinc-400 text-xs font-medium rounded-lg">
+                                            Voir le raisonnement</div>
+                                    </div>
+                                </div>
+
+                                <!-- Right sidebar (spans 2) -->
+                                <div class="lg:col-span-2 space-y-4 sm:space-y-5">
+                                    <!-- Active experiment -->
+                                    <div class="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-4 sm:p-5">
+                                        <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-3">
+                                            Expérience active</div>
+                                        <div class="flex items-center gap-3 mb-3">
+                                            <div
+                                                class="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                                                <svg class="w-3.5 h-3.5 text-orange-400" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5" />
+                                                </svg>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-medium text-zinc-200">Court vs Long</div>
+                                                <div class="text-[11px] text-zinc-500">En attente · 3 jours</div>
+                                            </div>
+                                        </div>
+                                        <div class="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                                            <div class="w-[60%] h-full bg-orange-500/50 rounded-full"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Experiment history -->
+                                    <div class="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-4 sm:p-5">
+                                        <div
+                                            class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-4">
+                                            Historique d'expériences</div>
+                                        <div class="space-y-3">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor" stroke-width="3">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </span>
+                                                    <span class="text-xs text-zinc-300">Titre question</span>
+                                                </div>
+                                                <span class="text-[10px] text-emerald-400 font-semibold">+34%
+                                                    CTR</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        class="w-5 h-5 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
+                                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor" stroke-width="3">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </span>
+                                                    <span class="text-xs text-zinc-300">Miniature sombre</span>
+                                                </div>
+                                                <span class="text-[10px] text-red-400 font-semibold">-12% CTR</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor" stroke-width="3">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </span>
+                                                    <span class="text-xs text-zinc-300">Hook 5 secondes</span>
+                                                </div>
+                                                <span class="text-[10px] text-emerald-400 font-semibold">+18%
+                                                    rétention</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor" stroke-width="3">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </span>
+                                                    <span class="text-xs text-zinc-300">Intro sans musique</span>
+                                                </div>
+                                                <span class="text-[10px] text-emerald-400 font-semibold">+22%
+                                                    rétention</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Memory snapshot -->
+                                    <div class="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-4 sm:p-5">
+                                        <div
+                                            class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-3">
+                                            Mémoire stratégique</div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex-1">
+                                                <div class="flex justify-between text-[10px] mb-1.5">
+                                                    <span class="text-zinc-400">Leçons apprises</span>
+                                                    <span class="text-zinc-300 font-semibold">7</span>
+                                                </div>
+                                                <div class="flex justify-between text-[10px]">
+                                                    <span class="text-zinc-400">Expériences terminées</span>
+                                                    <span class="text-zinc-300 font-semibold">4</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ============================================ -->
+    <!-- 6. FAQ                                       -->
+    <!-- ============================================ -->
+    <section id="faq" class="py-20 sm:py-28 lg:py-36 border-t border-zinc-800/40">
+        <div class="max-w-2xl mx-auto px-5 sm:px-6">
+
+            <div class="text-center mb-12 sm:mb-16 animate-on-scroll">
+                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">FAQ</p>
+                <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 tracking-tight font-heading">Questions
+                    fréquentes</h2>
+            </div>
+
+            <div class="space-y-3 sm:space-y-4">
+
+                <!-- FAQ 1 -->
                 <details
-                    class="group bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer shadow-sm [&_svg]:open:-rotate-180">
-                    <summary class="flex items-center justify-between p-6 font-bold text-slate-900 list-none">
-                        Nerra a-t-il accès ou droit de modifier mes vidéos ?
-                        <svg class="w-5 h-5 text-slate-500 transition-transform duration-300" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    class="group border border-zinc-800/80 rounded-xl bg-zinc-900/40 animate-on-scroll [&_svg]:open:rotate-180">
+                    <summary
+                        class="flex items-center justify-between p-5 sm:p-6 cursor-pointer list-none text-zinc-100 font-medium text-sm sm:text-base">
+                        <span>Est-ce que Nerra accède à mes vidéos ?</span>
+                        <svg class="w-5 h-5 text-zinc-500 transition-transform duration-300 shrink-0 ml-4" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
                     </summary>
-                    <div
-                        class="px-6 pb-6 pt-2 text-slate-500 text-sm leading-relaxed border-t border-slate-200/50 mt-2 font-medium">
-                        Non. Nerra utilise l'API officielle de YouTube avec un accès ultra-sécurisé en <strong>lecture
-                            seule</strong>. Nous analysons vos données mathématiques (CTR, retention) pour nourrir l'IA,
-                        mais nous ne pouvons techniquement rien modifier, ni uploader, ni supprimer sur votre chaîne.
+                    <div class="px-5 sm:px-6 pb-5 sm:pb-6 text-sm text-zinc-400 leading-relaxed border-t border-zinc-800/50 pt-4">
+                        Non. Nerra utilise l'API officielle YouTube en <strong class="text-zinc-300">lecture
+                            seule</strong>. Nous analysons tes données de performance (CTR, rétention, vues) pour
+                        nourrir le moteur de décision. Nous ne pouvons rien modifier, uploader ou supprimer sur ta
+                        chaîne.
                     </div>
                 </details>
 
+                <!-- FAQ 2 -->
                 <details
-                    class="group bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer shadow-sm [&_svg]:open:-rotate-180">
-                    <summary class="flex items-center justify-between p-6 font-bold text-slate-900 list-none">
-                        Est-ce vraiment gratuit ?
-                        <svg class="w-5 h-5 text-slate-500 transition-transform duration-300" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    class="group border border-zinc-800/80 rounded-xl bg-zinc-900/40 animate-on-scroll [&_svg]:open:rotate-180">
+                    <summary
+                        class="flex items-center justify-between p-5 sm:p-6 cursor-pointer list-none text-zinc-100 font-medium text-sm sm:text-base">
+                        <span>Est-ce que l'IA publie à ma place ?</span>
+                        <svg class="w-5 h-5 text-zinc-500 transition-transform duration-300 shrink-0 ml-4" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
                     </summary>
-                    <div
-                        class="px-6 pb-6 pt-2 text-slate-500 text-sm leading-relaxed border-t border-slate-200/50 mt-2 font-medium">
-                        Oui, le plan gratuit comprend l'accès au dashboard et un pack d'analyse IA initial sans jamais
-                        demander de carte bancaire. Vous pouvez rester sur le plan gratuit à vie.
+                    <div class="px-5 sm:px-6 pb-5 sm:pb-6 text-sm text-zinc-400 leading-relaxed border-t border-zinc-800/50 pt-4">
+                        Non. Nerra te propose une décision stratégique. <strong class="text-zinc-300">Tu choisis si tu
+                            l'exécutes.</strong> L'autorité créative reste entièrement entre tes mains. Nerra n'est pas
+                        un autopilot — c'est un copilote stratégique.
+                    </div>
+                </details>
+
+                <!-- FAQ 3 -->
+                <details
+                    class="group border border-zinc-800/80 rounded-xl bg-zinc-900/40 animate-on-scroll [&_svg]:open:rotate-180">
+                    <summary
+                        class="flex items-center justify-between p-5 sm:p-6 cursor-pointer list-none text-zinc-100 font-medium text-sm sm:text-base">
+                        <span>Pour quel type de créateur est-ce fait ?</span>
+                        <svg class="w-5 h-5 text-zinc-500 transition-transform duration-300 shrink-0 ml-4" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <div class="px-5 sm:px-6 pb-5 sm:pb-6 text-sm text-zinc-400 leading-relaxed border-t border-zinc-800/50 pt-4">
+                        Pour les créateurs qui publient régulièrement mais stagnent. Qui ne savent plus quoi tester. Qui
+                        passent trop de temps à décider quoi publier. <strong class="text-zinc-300">Que tu aies 500 ou
+                            500 000 abonnés.</strong>
+                    </div>
+                </details>
+
+                <!-- FAQ 4 -->
+                <details
+                    class="group border border-zinc-800/80 rounded-xl bg-zinc-900/40 animate-on-scroll [&_svg]:open:rotate-180">
+                    <summary
+                        class="flex items-center justify-between p-5 sm:p-6 cursor-pointer list-none text-zinc-100 font-medium text-sm sm:text-base">
+                        <span>Quelle est la différence avec vidIQ ou TubeBuddy ?</span>
+                        <svg class="w-5 h-5 text-zinc-500 transition-transform duration-300 shrink-0 ml-4" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <div class="px-5 sm:px-6 pb-5 sm:pb-6 text-sm text-zinc-400 leading-relaxed border-t border-zinc-800/50 pt-4">
+                        vidIQ et TubeBuddy sont des outils d'analytics et d'optimisation. Ils te montrent ce qui s'est
+                        passé. Nerra va plus loin : il analyse ton historique, tes expériences et tes résultats pour
+                        <strong class="text-zinc-300">te proposer quoi faire ensuite</strong>. C'est un moteur de
+                        décision, pas un tableau de bord.
+                    </div>
+                </details>
+
+                <!-- FAQ 5 -->
+                <details
+                    class="group border border-zinc-800/80 rounded-xl bg-zinc-900/40 animate-on-scroll [&_svg]:open:rotate-180">
+                    <summary
+                        class="flex items-center justify-between p-5 sm:p-6 cursor-pointer list-none text-zinc-100 font-medium text-sm sm:text-base">
+                        <span>Comment Nerra apprend de mes résultats ?</span>
+                        <svg class="w-5 h-5 text-zinc-500 transition-transform duration-300 shrink-0 ml-4" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <div class="px-5 sm:px-6 pb-5 sm:pb-6 text-sm text-zinc-400 leading-relaxed border-t border-zinc-800/50 pt-4">
+                        Chaque vidéo publiée via une recommandation Nerra devient une expérience. Le système mesure les
+                        résultats (CTR, rétention, vues) et en tire des leçons qui affinent les décisions suivantes.
+                        <strong class="text-zinc-300">Ta chaîne développe une mémoire stratégique unique.</strong>
+                    </div>
+                </details>
+
+                <!-- FAQ 6 -->
+                <details
+                    class="group border border-zinc-800/80 rounded-xl bg-zinc-900/40 animate-on-scroll [&_svg]:open:rotate-180">
+                    <summary
+                        class="flex items-center justify-between p-5 sm:p-6 cursor-pointer list-none text-zinc-100 font-medium text-sm sm:text-base">
+                        <span>C'est vraiment gratuit ?</span>
+                        <svg class="w-5 h-5 text-zinc-500 transition-transform duration-300 shrink-0 ml-4" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <div class="px-5 sm:px-6 pb-5 sm:pb-6 text-sm text-zinc-400 leading-relaxed border-t border-zinc-800/50 pt-4">
+                        Oui. Le plan gratuit inclut l'accès au moteur de décision et aux fonctionnalités essentielles,
+                        <strong class="text-zinc-300">sans carte bancaire</strong>. Tu peux rester sur le plan gratuit
+                        aussi longtemps que tu veux.
                     </div>
                 </details>
             </div>
         </div>
     </section>
 
-    <!-- 7. CTA FINAL BANNER -->
-    <section class="py-24 px-6 bg-slate-900 relative overflow-hidden">
-        <!-- Glow effect -->
-        <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-indigo-600 rounded-full blur-[120px] opacity-20 pointer-events-none">
-        </div>
 
-        <div class="max-w-4xl mx-auto text-center relative z-10">
-            <h2 class="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">Prêt à hacker l'algorithme ?</h2>
-            <p class="text-xl text-slate-300 mb-10 max-w-2xl mx-auto font-medium">Rejoignez 2 000+ créateurs qui font
-                confiance à notre intelligence artificielle pour accélérer leur croissance et ne plus stagner.</p>
+    <!-- ============================================ -->
+    <!-- 7. CTA FINAL                                 -->
+    <!-- ============================================ -->
+    <section class="py-20 sm:py-28 lg:py-36 border-t border-zinc-800/40 relative overflow-hidden">
+        <!-- Ambient glow -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] bg-orange-500/[0.06] rounded-full blur-[100px] pointer-events-none" aria-hidden="true"></div>
 
-            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+        <div class="max-w-3xl mx-auto px-5 sm:px-6 text-center relative z-10">
+            <div class="animate-on-scroll">
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-50 mb-6 tracking-tight font-heading">
+                    Stop de publier à l'aveugle.
+                </h2>
+                <p class="text-base sm:text-lg text-zinc-400 mb-10 max-w-lg mx-auto">
+                    Rejoins les créateurs qui ont remplacé l'incertitude par un système de décision.
+                </p>
+
                 <a routerLink="/signup"
-                    class="w-full sm:w-auto bg-white text-slate-900 px-10 py-5 rounded-2xl hover:bg-slate-100 hover:scale-105 transition-all font-black text-lg shadow-2xl shadow-white/10">
-                    Démarrez l'analyse gratuite →
+                    class="inline-block bg-orange-500 hover:bg-orange-400 text-zinc-950 font-bold text-base sm:text-lg px-10 py-4 sm:py-5 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/20 hover:-translate-y-0.5">
+                    Essayer Nerra gratuitement →
                 </a>
-            </div>
-            <div class="mt-6 text-sm font-semibold text-slate-400">Installation 1 clic via Google OAuth. C'est immédiat.
+
+                <div class="mt-6 text-sm text-zinc-500 font-medium">
+                    Sans carte bancaire. Connexion Google en 1 clic.
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- FOOTER -->
-    <footer class="border-t border-slate-200 bg-white py-12 px-6">
+
+    <!-- ============================================ -->
+    <!-- FOOTER                                       -->
+    <!-- ============================================ -->
+    <footer class="border-t border-zinc-800/40 py-10 sm:py-12 px-5 sm:px-6">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-            <div
-                class="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity grayscale hover:grayscale-0">
-                <img src="/assets/images/nerra_ligth.png" alt="Nerra" class="h-6 object-contain">
-                <span class="text-xl font-black text-slate-900">Nerra</span>
+            <!-- Logo -->
+            <div class="flex items-center gap-2.5">
+                <img src="/assets/images/nerra_dark.png" alt="Nerra" class="h-5 object-contain opacity-60">
+                <span class="text-base font-bold text-zinc-500 tracking-tight">Nerra</span>
             </div>
 
-            <div class="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm font-bold text-slate-400">
-                <a href="#features" class="hover:text-slate-900 transition-colors">Fonctionnalités</a>
-                <a href="#pricing" class="hover:text-slate-900 transition-colors">Tarifs</a>
-                <a href="#" class="hover:text-slate-900 transition-colors">Confidentialité</a>
-                <a href="#" class="hover:text-slate-900 transition-colors">CGU</a>
+            <!-- Links -->
+            <div class="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-zinc-500">
+                <button (click)="scrollTo('problem')"
+                    class="hover:text-zinc-300 transition-colors bg-transparent border-none cursor-pointer">Le
+                    problème</button>
+                <button (click)="scrollTo('how')"
+                    class="hover:text-zinc-300 transition-colors bg-transparent border-none cursor-pointer">Fonctionnement</button>
+                <button (click)="scrollTo('faq')"
+                    class="hover:text-zinc-300 transition-colors bg-transparent border-none cursor-pointer">FAQ</button>
+                <a href="#" class="hover:text-zinc-300 transition-colors">Confidentialité</a>
+                <a href="#" class="hover:text-zinc-300 transition-colors">CGU</a>
             </div>
 
-            <div class="text-xs font-semibold text-slate-400 text-center md:text-right">
-                © 2026 Nerra.<br class="hidden sm:block"> Propulsé par Genkit AI & Supabase
+            <!-- Copyright -->
+            <div class="text-xs text-zinc-600 text-center md:text-right">
+                © 2026 Nerra. Le moteur de décision YouTube.
             </div>
         </div>
     </footer>
+
 </div>

@@ -30,7 +30,7 @@ export function extractKeywords(idea: string): string {
   // Liste des mots de liaison et de contexte à détruire
   const stopWords = new Set([
     "un", "une", "des", "le", "la", "les", "de", "du", "sur", "qui", "que", "quoi", "dont", "ou", "et", "dans", "pour", "avec", "par", "en", "vs", "contre",
-    "amv", "edit", "video", "vidéo", "clip", "short", "minute", "minutes", "seconde", "secondes", "créer", "réaliser", "faire", "montage",
+    "video", "vidéo", "minute", "minutes", "seconde", "secondes", "créer", "réaliser", "faire", "montage",
     "mettant", "scène", "comparant", "pouvoirs", "capacités", "meilleurs", "moments", "combat", "combats", "transitions", "rapides", "effets", "visuels", "lumière", "intéressants", "musique", "énergique", "spectaculaires", "focus", "thème", "thèmes", "histoire", "analyse", "top", "meilleur", "évolution", "personnages", "dynamiques"
   ]);
 
@@ -408,7 +408,7 @@ export async function extractKeywordsWithAI(
       system: `Tu es un extracteur d'entités SEO. Isole UNIQUEMENT le sujet principal (Nom, œuvre, concept central).
   RÈGLES ABSOLUES :
   1. Renvoie 1 à 4 mots MAXIMUM.
-  2. SUPPRIME tout le vocabulaire YouTube (AMV, edit, vidéo, clip, créer, faire, minute, seconde).
+  2. SUPPRIME le vocabulaire parasite (vidéo, créer, faire, minute, seconde). MAIS CONSERVE OBLIGATOIREMENT les mots qui définissent le format ou le genre artistique (ex: AMV, Edit, Clip, Short, Vlog, Recette, Tuto) car ils sont cruciaux pour le ciblage YouTube.
   3. SUPPRIME les mots de narration (mettant, scène, comparant, pouvoirs, combat).
   4. RENVOIE UNIQUEMENT LES MOTS-CLÉS BRUTS, sans ponctuation.`,
       prompt: `Extrais l'entité de cette idée : "${idea}"`,
