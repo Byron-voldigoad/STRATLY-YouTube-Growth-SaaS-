@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-orange-500/30 overflow-x-hidden">
+<div class="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-violet-500/30 overflow-x-hidden">
 
     <!-- ============================================ -->
     <!-- NAVBAR                                       -->
@@ -29,7 +29,7 @@
                 <a routerLink="/login"
                     class="hidden sm:block text-sm text-zinc-400 hover:text-zinc-50 transition-colors">Connexion</a>
                 <a routerLink="/signup"
-                    class="bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-semibold px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg transition-all hover:shadow-lg hover:shadow-orange-500/25">
+                    class="bg-violet-600 hover:bg-violet-500 text-zinc-50 text-sm font-semibold px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg transition-all hover:shadow-lg hover:shadow-violet-600/25">
                     <span class="hidden sm:inline">Essayer Nerra</span>
                     <span class="sm:hidden">Essayer</span>
                 </a>
@@ -55,18 +55,18 @@
     <div class="fixed inset-0 z-40 bg-zinc-950/98 backdrop-blur-xl md:hidden flex flex-col items-center justify-center gap-8"
         role="dialog" aria-label="Menu de navigation">
         <button (click)="scrollTo('problem')"
-            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">Le
+            class="text-2xl text-zinc-200 font-medium hover:text-violet-400 transition-colors bg-transparent border-none cursor-pointer">Le
             problème</button>
         <button (click)="scrollTo('how')"
-            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">Fonctionnement</button>
+            class="text-2xl text-zinc-200 font-medium hover:text-violet-400 transition-colors bg-transparent border-none cursor-pointer">Fonctionnement</button>
         <button (click)="scrollTo('difference')"
-            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">Différence</button>
+            class="text-2xl text-zinc-200 font-medium hover:text-violet-400 transition-colors bg-transparent border-none cursor-pointer">Différence</button>
         <button (click)="scrollTo('faq')"
-            class="text-2xl text-zinc-200 font-medium hover:text-orange-500 transition-colors bg-transparent border-none cursor-pointer">FAQ</button>
+            class="text-2xl text-zinc-200 font-medium hover:text-violet-400 transition-colors bg-transparent border-none cursor-pointer">FAQ</button>
         <div class="h-px w-16 bg-zinc-800"></div>
         <a routerLink="/login" (click)="closeMobileMenu()" class="text-lg text-zinc-400 hover:text-zinc-50 transition-colors">Connexion</a>
         <a routerLink="/signup" (click)="closeMobileMenu()"
-            class="bg-orange-500 text-zinc-950 text-lg font-semibold px-8 py-3 rounded-xl hover:bg-orange-400 transition-colors">Essayer
+            class="bg-violet-600 text-zinc-50 text-lg font-semibold px-8 py-3 rounded-xl hover:bg-violet-500 transition-colors">Essayer
             Nerra</a>
     </div>
     }
@@ -77,18 +77,18 @@
     <!-- ============================================ -->
     <section class="relative pt-28 pb-20 sm:pt-36 sm:pb-28 lg:pt-44 lg:pb-36 px-5 sm:px-6">
         <!-- Ambient background glow -->
-        <div class="absolute top-32 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-orange-500/[0.04] rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
-        <div class="absolute bottom-20 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-orange-600/[0.03] rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
+        <div class="absolute top-32 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-violet-600/[0.04] rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
+        <div class="absolute bottom-20 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-violet-600/[0.03] rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
 
         <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
 
             <!-- Hero left — Copy -->
             <div class="max-w-xl lg:max-w-none">
                 <!-- Badge -->
-                <div class="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-orange-400 text-xs font-semibold px-4 py-1.5 rounded-full mb-8">
+                <div class="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-violet-400 text-xs font-semibold px-4 py-1.5 rounded-full mb-8">
                     <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
                     </span>
                     Le moteur de décision YouTube
                 </div>
@@ -109,7 +109,7 @@
                 <!-- CTAs -->
                 <div class="flex flex-col sm:flex-row items-start gap-4">
                     <a routerLink="/signup"
-                        class="bg-orange-500 hover:bg-orange-400 text-zinc-950 font-bold text-base px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/20 hover:-translate-y-0.5">
+                        class="bg-violet-600 hover:bg-violet-500 text-zinc-50 font-bold text-base px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-violet-600/20 hover:-translate-y-0.5">
                         Créer mon compte
                     </a>
                     <button (click)="scrollTo('how')"
@@ -121,21 +121,21 @@
                 <!-- Trust signals -->
                 <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-zinc-500">
                     <span class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         Sans carte bancaire
                     </span>
                     <span class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         30 secondes pour une décision
                     </span>
                     <span class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
@@ -147,7 +147,7 @@
             <!-- Hero right — Dashboard mockup -->
             <div class="relative animate-float">
                 <!-- Glow behind -->
-                <div class="absolute -inset-4 bg-gradient-to-b from-orange-500/15 via-orange-500/5 to-transparent rounded-3xl blur-2xl pointer-events-none" aria-hidden="true"></div>
+                <div class="absolute -inset-4 bg-gradient-to-b from-violet-600/15 via-violet-600/5 to-transparent rounded-3xl blur-2xl pointer-events-none" aria-hidden="true"></div>
 
                 <!-- Dashboard frame -->
                 <div class="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
@@ -166,13 +166,13 @@
                         <!-- Decision card -->
                         <div class="bg-zinc-800/40 border border-zinc-700/40 rounded-xl p-5">
                             <div class="flex items-center gap-2 mb-3">
-                                <div class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
-                                <span class="text-[10px] font-semibold text-orange-400 uppercase tracking-widest">Décision
+                                <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                                <span class="text-[10px] font-semibold text-violet-400 uppercase tracking-widest">Décision
                                     de la semaine</span>
                             </div>
                             <p class="text-sm text-zinc-200 font-medium mb-4 leading-relaxed">
                                 "Teste un format court (&lt; 8 min) sur le sujet
-                                <span class="text-orange-400">Design Systems</span>
+                                <span class="text-amber-400">Design Systems</span>
                                 en ciblant un titre question."
                             </p>
                             <div class="grid grid-cols-3 gap-3">
@@ -181,7 +181,7 @@
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <div class="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
-                                            <div class="w-[87%] h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full">
+                                            <div class="w-[87%] h-full bg-gradient-to-r from-amber-600 to-amber-500 rounded-full">
                                             </div>
                                         </div>
                                         <span class="text-xs font-bold text-zinc-300">87%</span>
@@ -202,8 +202,8 @@
                         <!-- Active experiment -->
                         <div class="bg-zinc-800/25 border border-zinc-800/60 rounded-xl p-4 flex items-center gap-3">
                             <div
-                                class="w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-                                <svg class="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24"
+                                class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
@@ -216,7 +216,7 @@
                             </div>
                             <div class="ml-auto shrink-0">
                                 <div class="w-16 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
-                                    <div class="w-[60%] h-full bg-orange-500/50 rounded-full"></div>
+                                    <div class="w-[60%] h-full bg-amber-500/50 rounded-full"></div>
                                 </div>
                             </div>
                         </div>
@@ -251,7 +251,7 @@
 
             <!-- Section label -->
             <div class="text-center mb-16 sm:mb-20 animate-on-scroll">
-                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">Le vrai problème</p>
+                <p class="text-xs font-semibold text-violet-400 uppercase tracking-[0.2em] mb-4">Le vrai problème</p>
                 <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 tracking-tight font-heading">
                     Le cycle qui épuise chaque créateur.
                 </h2>
@@ -294,25 +294,25 @@
 
             <!-- Separator -->
             <div class="flex justify-center mb-16 sm:mb-20 animate-on-scroll">
-                <div class="w-px h-16 bg-gradient-to-b from-zinc-800 to-orange-500/50"></div>
+                <div class="w-px h-16 bg-gradient-to-b from-zinc-800 to-violet-600/50"></div>
             </div>
 
             <!-- The Nerra way -->
             <div class="animate-on-scroll max-w-md mx-auto">
-                <div class="border-l-2 border-orange-500 pl-6 sm:pl-8 space-y-6">
+                <div class="border-l-2 border-violet-600 pl-6 sm:pl-8 space-y-6">
                     <h3 class="text-xl sm:text-2xl font-bold text-zinc-50 font-heading">Avec Nerra, chaque vidéo devient
                         un apprentissage.</h3>
                     <div class="space-y-4">
                         <div class="flex items-start gap-3">
-                            <span class="text-orange-500 font-bold mt-0.5 shrink-0">→</span>
+                            <span class="text-violet-400 font-bold mt-0.5 shrink-0">→</span>
                             <p class="text-zinc-400">Une hypothèse à tester</p>
                         </div>
                         <div class="flex items-start gap-3">
-                            <span class="text-orange-500 font-bold mt-0.5 shrink-0">→</span>
+                            <span class="text-violet-400 font-bold mt-0.5 shrink-0">→</span>
                             <p class="text-zinc-400">Une expérience structurée</p>
                         </div>
                         <div class="flex items-start gap-3">
-                            <span class="text-orange-500 font-bold mt-0.5 shrink-0">→</span>
+                            <span class="text-violet-400 font-bold mt-0.5 shrink-0">→</span>
                             <p class="text-zinc-400">Une leçon qui améliore la suivante</p>
                         </div>
                     </div>
@@ -330,7 +330,7 @@
 
             <!-- Section header -->
             <div class="text-center mb-16 sm:mb-20 animate-on-scroll">
-                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">Fonctionnement</p>
+                <p class="text-xs font-semibold text-violet-400 uppercase tracking-[0.2em] mb-4">Fonctionnement</p>
                 <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 mb-4 tracking-tight font-heading">
                     Comment Nerra fonctionne
                 </h2>
@@ -382,7 +382,7 @@
             <div class="text-center mb-16 sm:mb-20 animate-on-scroll">
                 <div class="space-y-2.5 max-w-2xl mx-auto mb-4">
                     <p class="text-base sm:text-lg text-zinc-500">Les outils analytics te disent ce qui s'est passé.</p>
-                    <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-500 font-heading">
+                    <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-violet-400 font-heading">
                         Nerra te dit quoi faire ensuite.
                     </p>
                 </div>
@@ -395,8 +395,8 @@
                 <div
                     class="animate-on-scroll bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
                     <div
-                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        class="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-600/20 flex items-center justify-center mb-5 group-hover:bg-violet-600/15 transition-colors">
+                        <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
@@ -412,8 +412,8 @@
                 <div
                     class="animate-on-scroll delay-1 bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
                     <div
-                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        class="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-600/20 flex items-center justify-center mb-5 group-hover:bg-violet-600/15 transition-colors">
+                        <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
@@ -430,8 +430,8 @@
                 <div
                     class="animate-on-scroll delay-2 bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
                     <div
-                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        class="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-600/20 flex items-center justify-center mb-5 group-hover:bg-violet-600/15 transition-colors">
+                        <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
@@ -447,8 +447,8 @@
                 <div
                     class="animate-on-scroll delay-3 bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-7 sm:p-8 hover:border-zinc-700 transition-all duration-300 group">
                     <div
-                        class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        class="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-600/20 flex items-center justify-center mb-5 group-hover:bg-violet-600/15 transition-colors">
+                        <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -497,7 +497,7 @@
 
             <!-- Section header -->
             <div class="text-center mb-12 sm:mb-16 animate-on-scroll">
-                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">Aperçu</p>
+                <p class="text-xs font-semibold text-violet-400 uppercase tracking-[0.2em] mb-4">Aperçu</p>
                 <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 mb-4 tracking-tight font-heading">
                     Le tableau de bord qui transforme ta chaîne en laboratoire.
                 </h2>
@@ -509,7 +509,7 @@
             <!-- Full dashboard mockup -->
             <div class="animate-on-scroll relative">
                 <!-- Ambient glow -->
-                <div class="absolute -inset-8 bg-orange-500/[0.04] rounded-[2rem] blur-3xl pointer-events-none" aria-hidden="true"></div>
+                <div class="absolute -inset-8 bg-violet-600/[0.04] rounded-[2rem] blur-3xl pointer-events-none" aria-hidden="true"></div>
 
                 <div class="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
                     <!-- Window chrome -->
@@ -538,7 +538,7 @@
                             </div>
                             <nav class="space-y-1 flex-1">
                                 <div
-                                    class="flex items-center gap-3 text-sm px-3 py-2.5 rounded-lg bg-zinc-800/60 text-orange-400 font-medium">
+                                    class="flex items-center gap-3 text-sm px-3 py-2.5 rounded-lg bg-zinc-800/60 text-violet-400 font-medium">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                         stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -598,14 +598,14 @@
                                 <!-- Decision card (spans 3) -->
                                 <div class="lg:col-span-3 bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-5 sm:p-6">
                                     <div class="flex items-center gap-2 mb-4">
-                                        <div class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                                        <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
                                         <span
-                                            class="text-[10px] font-semibold text-orange-400 uppercase tracking-widest">Décision
+                                            class="text-[10px] font-semibold text-violet-400 uppercase tracking-widest">Décision
                                             de la semaine</span>
                                     </div>
                                     <p class="text-sm sm:text-base text-zinc-100 font-medium mb-5 leading-relaxed">
                                         Teste un format court (&lt; 8 min) sur le thème <span
-                                            class="text-orange-400 font-semibold">Design Systems</span> en ciblant un
+                                            class="text-amber-400 font-semibold">Design Systems</span> en ciblant un
                                         titre question.
                                     </p>
 
@@ -617,7 +617,7 @@
                                             <div class="flex items-center gap-2">
                                                 <div class="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
                                                     <div
-                                                        class="w-[87%] h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full">
+                                                        class="w-[87%] h-full bg-gradient-to-r from-amber-600 to-amber-500 rounded-full">
                                                     </div>
                                                 </div>
                                                 <span class="text-xs font-bold text-zinc-300">87%</span>
@@ -637,7 +637,7 @@
 
                                     <div class="flex flex-wrap gap-3">
                                         <div
-                                            class="px-4 py-2 bg-orange-500 text-zinc-950 text-xs font-semibold rounded-lg">
+                                            class="px-4 py-2 bg-violet-600 text-zinc-50 text-xs font-semibold rounded-lg">
                                             Accepter cette décision</div>
                                         <div
                                             class="px-4 py-2 border border-zinc-700 text-zinc-400 text-xs font-medium rounded-lg">
@@ -653,8 +653,8 @@
                                             Expérience active</div>
                                         <div class="flex items-center gap-3 mb-3">
                                             <div
-                                                class="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-                                                <svg class="w-3.5 h-3.5 text-orange-400" fill="none"
+                                                class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                                                <svg class="w-3.5 h-3.5 text-amber-400" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5" />
@@ -666,7 +666,7 @@
                                             </div>
                                         </div>
                                         <div class="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
-                                            <div class="w-[60%] h-full bg-orange-500/50 rounded-full"></div>
+                                            <div class="w-[60%] h-full bg-amber-500/50 rounded-full"></div>
                                         </div>
                                     </div>
 
@@ -773,7 +773,7 @@
         <div class="max-w-2xl mx-auto px-5 sm:px-6">
 
             <div class="text-center mb-12 sm:mb-16 animate-on-scroll">
-                <p class="text-xs font-semibold text-orange-400 uppercase tracking-[0.2em] mb-4">FAQ</p>
+                <p class="text-xs font-semibold text-violet-400 uppercase tracking-[0.2em] mb-4">FAQ</p>
                 <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 tracking-tight font-heading">Questions
                     fréquentes</h2>
             </div>
@@ -899,7 +899,7 @@
     <!-- ============================================ -->
     <section class="py-20 sm:py-28 lg:py-36 border-t border-zinc-800/40 relative overflow-hidden">
         <!-- Ambient glow -->
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] bg-orange-500/[0.06] rounded-full blur-[100px] pointer-events-none" aria-hidden="true"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] bg-violet-600/[0.06] rounded-full blur-[100px] pointer-events-none" aria-hidden="true"></div>
 
         <div class="max-w-3xl mx-auto px-5 sm:px-6 text-center relative z-10">
             <div class="animate-on-scroll">
@@ -911,7 +911,7 @@
                 </p>
 
                 <a routerLink="/signup"
-                    class="inline-block bg-orange-500 hover:bg-orange-400 text-zinc-950 font-bold text-base sm:text-lg px-10 py-4 sm:py-5 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/20 hover:-translate-y-0.5">
+                    class="inline-block bg-violet-600 hover:bg-violet-500 text-zinc-50 font-bold text-base sm:text-lg px-10 py-4 sm:py-5 rounded-xl transition-all hover:shadow-xl hover:shadow-violet-600/20 hover:-translate-y-0.5">
                     Essayer Nerra gratuitement →
                 </a>
 
