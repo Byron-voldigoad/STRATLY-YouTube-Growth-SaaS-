@@ -65,7 +65,7 @@ table tbody tr::after {
   bottom: 0;
   height: 2px;
   width: 0;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
   transition: width 0.3s ease;
 }
 
@@ -81,9 +81,9 @@ table tbody tr:hover::after {
 
 .animate-pulse > div {
   background: linear-gradient(90deg,
-    #f1f5f9 25%,
-    #e2e8f0 50%,
-    #f1f5f9 75%
+    #27272a 25%,
+    #3f3f46 50%,
+    #27272a 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite ease-in-out;
@@ -113,13 +113,13 @@ ngx-charts-bar-vertical {
 .lab-card:nth-child(3) { animation-delay: 0.19s; }
 .lab-card:nth-child(4) { animation-delay: 0.26s; }
 
-/* Blue pulse border on lab cards */
+/* Violet accent on lab cards */
 .lab-card::before {
   content: '';
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, #60a5fa22, #818cf822, #60a5fa22);
+  background: linear-gradient(135deg, #8b5cf622, #7c3aed22, #8b5cf622);
   background-size: 200% 200%;
   animation: labPulse 3s ease-in-out infinite;
   z-index: 0;
@@ -170,7 +170,7 @@ ngx-charts-bar-vertical {
   bottom: 0;
   height: 1px;
   width: 0;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
   transition: width 0.25s ease;
 }
 

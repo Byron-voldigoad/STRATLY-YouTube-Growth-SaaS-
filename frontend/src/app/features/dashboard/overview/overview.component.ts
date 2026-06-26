@@ -29,11 +29,12 @@ import { DecisionService } from '../../../core/services/decision.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { getDecisionUIStatus, DecisionUIStatus } from '../../../shared/utils/decision-status.util';
 import { TensionScore, EXPERIMENT_LABELS, ExperimentType } from '../../../core/models/decision.model';
+import { NerraLoaderComponent } from '../../../shared/components/nerra-loader/nerra-loader.component';
 
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [CommonModule, NgIconComponent, NgxChartsModule],
+  imports: [CommonModule, NgIconComponent, NgxChartsModule, NerraLoaderComponent],
   providers: [
     provideIcons({
       lucideUsers,
@@ -73,8 +74,12 @@ export class OverviewComponent implements OnInit {
   ];
 
   curve: any = curveBasis;
-  colorScheme = 'cool';
-  colorSchemeViews = 'cool';
+  colorScheme: any = {
+    domain: ['#8b5cf6', '#a78bfa', '#7c3aed'],
+  };
+  colorSchemeViews: any = {
+    domain: ['#8b5cf6', '#a78bfa', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95', '#3b0764'],
+  };
 
   subscribersSeries: any[] = [];
   viewsData: any[] = [];
@@ -323,10 +328,10 @@ export class OverviewComponent implements OnInit {
 
   getKpiIconBg(color: string): string {
     const map: Record<string, string> = {
-      indigo: 'bg-indigo-100 text-indigo-600',
-      violet: 'bg-violet-100 text-violet-600',
-      amber: 'bg-amber-100 text-amber-600',
-      emerald: 'bg-emerald-100 text-emerald-600',
+      indigo: 'bg-zinc-800 text-violet-400',
+      violet: 'bg-violet-500/10 text-violet-400',
+      amber: 'bg-amber-500/10 text-amber-400',
+      emerald: 'bg-emerald-500/10 text-emerald-400',
     };
     return map[color] || map['indigo'];
   }

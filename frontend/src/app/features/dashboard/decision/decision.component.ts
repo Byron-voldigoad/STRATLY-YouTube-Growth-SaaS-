@@ -22,6 +22,7 @@ import {
 } from '@ng-icons/lucide';
 import { DecisionService } from '../../../core/services/decision.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { NerraLoaderComponent } from '../../../shared/components/nerra-loader/nerra-loader.component';
 import {
   Decision,
   TensionScore,
@@ -37,7 +38,7 @@ import {
 @Component({
   selector: 'app-decision',
   standalone: true,
-  imports: [CommonModule, FormsModule, HlmCardImports, NgIconComponent],
+  imports: [CommonModule, FormsModule, HlmCardImports, NgIconComponent, NerraLoaderComponent],
   providers: [
     provideIcons({
       lucideSparkles,
@@ -61,6 +62,7 @@ import {
 export class DecisionComponent implements OnInit {
   isLoading = true;
   isGenerating = false;
+  decisionComplete = false;
   isActioning = false;
   showContextPopup = false;
   hasNicheConfigured = false;
@@ -306,6 +308,7 @@ export class DecisionComponent implements OnInit {
     if (!this.userId || !this.channelId) return;
 
     this.isGenerating = true;
+    this.decisionComplete = false;
     this.resistanceMessage = null;
     this.resistanceLevel = 0;
     this.lastEvaluationImprovement = null;
@@ -327,11 +330,15 @@ export class DecisionComponent implements OnInit {
         this.userId,
         this.channelId,
       );
+
+      this.decisionComplete = true;
+      await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (err) {
       console.error('[NERRA] Generate error:', err);
       alert("Erreur lors de la génération. Le backend est-il lancé ?");
     } finally {
       this.isGenerating = false;
+      this.decisionComplete = false;
     }
   }
 

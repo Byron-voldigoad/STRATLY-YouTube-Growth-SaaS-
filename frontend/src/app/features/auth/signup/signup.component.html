@@ -89,7 +89,7 @@
                         MD</div>
                     <div>
                         <p class="text-[13px] font-bold text-zinc-100 leading-tight">Marie D.</p>
-                        <p class="text-[11px] font-medium text-slate-500">45K abonnés YouTube</p>
+                        <p class="text-[11px] font-medium text-zinc-500">45K abonnés YouTube</p>
                     </div>
                 </div>
             </div>
@@ -213,7 +213,10 @@
                     <button type="submit" [disabled]="loading"
                         class="w-full h-[46px] mt-4 bg-violet-600 text-zinc-50 rounded-xl text-[14px] font-bold hover:bg-violet-500 transition-all hover:shadow-xl hover:shadow-violet-600/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group cursor-pointer">
                         @if (loading) {
-                        <span>Création...</span>
+                        <span class="flex items-center gap-2">
+                          <nerra-loader variant="inline"></nerra-loader>
+                          Création...
+                        </span>
                         } @else {
                         <span>Créer mon compte</span>
                         <span class="group-hover:translate-x-1 transition-transform">→</span>

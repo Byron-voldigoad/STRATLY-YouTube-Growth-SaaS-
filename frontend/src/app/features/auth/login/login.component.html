@@ -195,7 +195,10 @@
                     <button type="submit" [disabled]="loading"
                         class="w-full h-[46px] mt-2 bg-violet-600 text-zinc-50 rounded-xl text-[14px] font-bold hover:bg-violet-500 transition-all hover:shadow-xl hover:shadow-violet-600/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group cursor-pointer">
                         @if (loading) {
-                        <span>Connexion...</span>
+                        <span class="flex items-center gap-2">
+                          <nerra-loader variant="inline"></nerra-loader>
+                          Connexion...
+                        </span>
                         } @else {
                         <span>Se connecter</span>
                         <span class="group-hover:translate-x-1 transition-transform">→</span>

@@ -12,6 +12,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { NerraLoaderComponent } from '../../../shared/components/nerra-loader/nerra-loader.component';
 import {
   lucideSparkles,
   lucideBarChart2,
@@ -28,7 +29,7 @@ import {
 @Component({
   selector: 'app-ai-insights',
   standalone: true,
-  imports: [CommonModule, HlmCardImports, HlmButton, NgIconComponent],
+  imports: [CommonModule, HlmCardImports, HlmButton, NgIconComponent, NerraLoaderComponent],
   providers: [
     provideIcons({
       lucideSparkles,
@@ -57,42 +58,31 @@ import {
       <div class="space-y-6">
         <section
           hlmCard
-          class="border-border/50 shadow-lg min-h-[500px] flex flex-col bg-white overflow-hidden"
+          class="border-zinc-800 min-h-[500px] flex flex-col bg-zinc-900 overflow-hidden"
         >
-          <div hlmCardHeader class="border-b border-border/10 bg-slate-50/50">
+          <div hlmCardHeader class="border-b border-zinc-800 bg-zinc-900">
             <h3 hlmCardTitle>Audit IA de la chaîne</h3>
             <p hlmCardDescription>
               Cette analyse se base sur vos dernières vidéos.
             </p>
 
             @if (isAnalyzing) {
-              <div
-                class="flex flex-col items-center justify-center h-full py-12"
-              >
-                <ng-icon
-                  name="lucideLoader2"
-                  class="size-12 text-blue-600 animate-spin mb-4"
-                ></ng-icon>
-                <p class="font-bold text-slate-900 text-lg animate-pulse">
-                  L'IA parcourt vos données...
-                </p>
-                <p class="text-sm text-muted-foreground mt-2">
-                  Cela peut prendre jusqu'à 20 secondes.
-                </p>
+              <div class="flex-1 flex items-center justify-center py-12">
+                <nerra-loader variant="section" message="L'IA parcourt vos données... Cela peut prendre jusqu'à 20 secondes."></nerra-loader>
               </div>
             } @else if (isGenesisFeatureUnavailable) {
               <div class="flex flex-col items-center justify-center h-full text-center py-12 animate-in fade-in zoom-in duration-500">
-                <div class="size-20 rounded-2xl bg-amber-50 flex items-center justify-center mb-6 shadow-inner rotate-3">
+                <div class="size-20 rounded-2xl bg-zinc-800 border border-dashed border-zinc-800/50 flex items-center justify-center mb-6">
                   <ng-icon name="lucideAlertCircle" class="size-10 text-amber-500"></ng-icon>
                 </div>
-                <h4 class="text-xl font-black text-slate-900 mb-2">
+                <h4 class="text-xl font-black text-zinc-50 mb-2">
                   Aucune vidéo détectée
                 </h4>
-                <p class="text-slate-500 max-w-sm mb-8 font-medium">
+                <p class="text-zinc-500 max-w-sm mb-8 font-medium">
                   Nerra a besoin d'au moins une vidéo pour analyser votre stratégie. 
-                  La fonctionnalité <span class="text-indigo-600 font-bold">Genesis</span> pour les lancements de chaînes est en cours de développement.
+                  La fonctionnalité <span class="text-violet-400 font-bold">Genesis</span> pour les lancements de chaînes est en cours de développement.
                 </p>
-                <div class="px-4 py-2 bg-slate-100 rounded-full text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <div class="px-4 py-2 bg-zinc-800 rounded-full text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                   Coming Soon • MVP v2
                 </div>
               </div>
@@ -115,7 +105,7 @@ import {
                       {{ analysisResult.channelStatus }}
                     </div>
                   </div>
-                  <p class="text-sm text-slate-700">
+                  <p class="text-sm text-zinc-300">
                     {{ analysisResult.statusExplanation }}
                   </p>
                 </div>
@@ -123,34 +113,34 @@ import {
                 <!-- KPIs Section - 3 Columns -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div
-                    class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
+                    class="p-6 rounded-2xl bg-zinc-800/40 border border-zinc-700/50"
                   >
                     <p
-                      class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
+                      class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2"
                     >
                       Réactions audience
                     </p>
-                    <p class="text-2xl font-black text-slate-900 mb-3">
+                    <p class="text-2xl font-black text-zinc-50 mb-3">
                       {{ viewerRatio(analysisResult.metrics.engagement) }}
                     </p>
-                    <p class="text-xs text-slate-500 mb-2">
+                    <p class="text-xs text-zinc-500 mb-2">
                       taux d'engagement:
                       {{ analysisResult.metrics.engagement.toFixed(1) }}%
                     </p>
                   </div>
                   <div
-                    class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
+                    class="p-6 rounded-2xl bg-zinc-800/40 border border-zinc-700/50"
                   >
                     <p
-                      class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
+                      class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2"
                     >
                       Découverte
                     </p>
-                    <p class="text-2xl font-black text-slate-900 mb-3">
+                    <p class="text-2xl font-black text-zinc-50 mb-3">
                       {{ (analysisResult.metrics.views / 1000).toFixed(1) }}k
                       vues
                     </p>
-                    <p class="text-xs text-slate-600">
+                    <p class="text-xs text-zinc-400">
                       tendance :
                       <span class="font-bold capitalize">{{
                         analysisResult.metrics.trend
@@ -158,17 +148,17 @@ import {
                     </p>
                   </div>
                   <div
-                    class="p-6 rounded-2xl bg-slate-50 border border-slate-100"
+                    class="p-6 rounded-2xl bg-zinc-800/40 border border-zinc-700/50"
                   >
                     <p
-                      class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2"
+                      class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2"
                     >
                       Dernière vidéo
                     </p>
-                    <p class="text-2xl font-black text-slate-900 mb-3">
+                    <p class="text-2xl font-black text-zinc-50 mb-3">
                       {{ lastVideoDaysAgo !== null ? lastVideoDaysAgo + ' jours' : '--' }}
                     </p>
-                    <p class="text-xs text-slate-600">
+                    <p class="text-xs text-zinc-400">
                       {{ lastVideoDaysAgo !== null ? 'depuis la dernière publication' : 'Générer une analyse' }}
                     </p>
                   </div>
@@ -188,18 +178,18 @@ import {
                         track pattern.videoTitle
                       ) {
                         <div
-                          class="p-4 rounded-2xl border border-rose-100 bg-rose-50/30"
+                          class="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10"
                         >
-                          <p class="text-sm font-bold text-slate-900 mb-2">
+                          <p class="text-sm font-bold text-zinc-50 mb-2">
                             {{ pattern.videoTitle }}
                           </p>
-                          <p class="text-xs text-rose-600">
+                          <p class="text-xs text-rose-400">
                             {{ pattern.reason }}
                           </p>
                         </div>
                       }
                     } @else {
-                      <p class="text-xs text-slate-400 italic">
+                      <p class="text-xs text-zinc-500 italic">
                         Aucun pattern à éviter
                       </p>
                     }
@@ -217,18 +207,18 @@ import {
                         track pattern.videoTitle
                       ) {
                         <div
-                          class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/30"
+                          class="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10"
                         >
-                          <p class="text-sm font-bold text-slate-900 mb-2">
+                          <p class="text-sm font-bold text-zinc-50 mb-2">
                             {{ pattern.videoTitle }}
                           </p>
-                          <p class="text-xs text-emerald-600">
+                          <p class="text-xs text-emerald-400">
                             {{ pattern.reason }}
                           </p>
                         </div>
                       }
                     } @else {
-                      <p class="text-xs text-slate-400 italic">
+                      <p class="text-xs text-zinc-500 italic">
                         Aucun pattern à multiplier
                       </p>
                     }
@@ -237,33 +227,33 @@ import {
 
                 <!-- Recommendation Block -->
                 <div
-                  class="space-y-6 p-6 rounded-2xl bg-amber-50/50 border border-amber-100"
+                  class="space-y-6 p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30"
                 >
                   <h4
-                    class="text-lg font-black text-slate-900 flex items-center gap-2"
+                    class="text-lg font-black text-zinc-50 flex items-center gap-2"
                   >
                     <div class="size-2 bg-amber-500 rounded-full"></div>
                     Stratégie Recommandée
                   </h4>
 
                   <div class="space-y-4">
-                    <p class="text-base font-bold text-slate-900">
+                    <p class="text-base font-bold text-zinc-50">
                       {{ analysisResult.recommendation.action }}
                     </p>
 
                     <div
-                      class="bg-white p-4 rounded-xl border border-amber-200"
+                      class="bg-zinc-800/40 p-4 rounded-xl border border-amber-500/30"
                     >
                       <span
-                        class="text-xs font-bold text-amber-600 uppercase tracking-wider"
+                        class="text-xs font-bold text-amber-400 uppercase tracking-wider"
                         >Pourquoi</span
                       >
-                      <p class="text-sm text-slate-700 mt-2">
+                      <p class="text-sm text-zinc-300 mt-2">
                         {{ analysisResult.recommendation.proof }}
                       </p>
                     </div>
 
-                    <span class="text-xs text-slate-500 italic">
+                    <span class="text-xs text-zinc-500 italic">
                       {{ analysisResult.recommendation.confidence }}
                     </span>
 
@@ -276,9 +266,9 @@ import {
 
                     @if (showNextStep) {
                       <div
-                        class="p-4 rounded-xl bg-amber-100/30 border border-amber-200 animate-in fade-in slide-in-from-top-2 duration-300"
+                        class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 animate-in fade-in slide-in-from-top-2 duration-300"
                       >
-                        <p class="text-sm text-slate-700">
+                        <p class="text-sm text-zinc-300">
                           {{ analysisResult.recommendation.nextStep }}
                         </p>
                       </div>
@@ -287,26 +277,24 @@ import {
                 </div>
 
                 <!-- CTA : Générer ma décision (chaînage Audit → Decide) -->
-                <div class="mt-10 p-8 rounded-3xl bg-gradient-to-br from-slate-900 to-indigo-900 shadow-2xl shadow-slate-900/20 text-center relative overflow-hidden">
-                  <div class="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-[60px]"></div>
-                  <div class="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/15 rounded-full blur-[60px]"></div>
+                <div class="mt-10 p-8 rounded-3xl bg-zinc-900 border border-violet-500/30 text-center">
                   <div class="relative z-10">
-                    <h4 class="text-xl font-black text-white mb-2">L'audit est terminé. Et maintenant ?</h4>
-                    <p class="text-indigo-200 text-sm mb-6 max-w-md mx-auto">Nerra va transformer ces insights en une décision concrète pour votre prochaine vidéo.</p>
+                    <h4 class="text-xl font-black text-zinc-50 mb-2">L'audit est terminé. Et maintenant ?</h4>
+                    <p class="text-zinc-500 text-sm mb-6 max-w-md mx-auto">Nerra va transformer ces insights en une décision concrète pour votre prochaine vidéo.</p>
                     <button
                       (click)="goToDecision()"
-                      class="px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-sm hover:bg-indigo-50 hover:scale-105 transition-all shadow-lg inline-flex items-center gap-3 group"
+                      class="px-8 py-4 bg-violet-600 text-white rounded-2xl font-black text-sm hover:bg-violet-500 hover:scale-105 transition-all inline-flex items-center gap-3 group"
                     >
-                      <ng-icon name="lucideSparkles" class="w-5 h-5 text-indigo-600 group-hover:rotate-12 transition-transform"></ng-icon>
+                      <ng-icon name="lucideSparkles" class="w-5 h-5 group-hover:rotate-12 transition-transform"></ng-icon>
                       Générer ma décision
                     </button>
                   </div>
                 </div>
 
-                <div class="pt-8 text-center text-slate-400">
+                <div class="pt-8 text-center text-zinc-500">
                   <button
                     (click)="analysisResult = null"
-                    class="text-xs font-bold hover:text-blue-600 transition-colors"
+                    class="text-xs font-bold hover:text-violet-400 transition-colors"
                   >
                     Générer une nouvelle analyse
                   </button>
@@ -317,23 +305,23 @@ import {
                 class="flex flex-col items-center justify-center h-full text-center py-12"
               >
                 <div
-                  class="size-20 rounded-full bg-blue-50 flex items-center justify-center mb-6 shadow-inner"
+                  class="size-20 rounded-2xl bg-zinc-800 border border-dashed border-zinc-800/50 flex items-center justify-center mb-6"
                 >
                   <ng-icon
                     name="lucideSparkles"
-                    class="size-10 text-blue-300"
+                    class="size-10 text-zinc-400"
                   ></ng-icon>
                 </div>
-                <h4 class="text-xl font-bold text-slate-900 mb-2">
+                <h4 class="text-xl font-bold text-zinc-50 mb-2">
                   Prêt pour l'analyse ?
                 </h4>
-                <p class="text-slate-500 max-w-sm mb-8">
+                <p class="text-zinc-500 max-w-sm mb-8">
                   Obtenez un rapport personnalisé sur vos points forts et les
                   opportunités de croissance.
                 </p>
                 <button
                   hlmBtn
-                  class="px-8 py-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-xl shadow-blue-500/20"
+                  class="px-8 py-6 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-lg"
                   (click)="runAnalysis()"
                 >
                   Lancer l'audit stratégique
@@ -581,30 +569,30 @@ export class AiInsightsComponent implements OnInit {
   getStatusCardClass(status: string): string {
     switch (status.toLowerCase()) {
       case 'inactive':
-        return 'bg-red-50/50 border-red-200';
+        return 'bg-rose-500/10 border-rose-500/30';
       case 'stable':
-        return 'bg-slate-50 border-slate-200';
+        return 'bg-zinc-800/40 border-zinc-700/50';
       case 'en_croissance':
-        return 'bg-emerald-50/50 border-emerald-200';
+        return 'bg-emerald-500/10 border-emerald-500/30';
       case 'en_déclin':
-        return 'bg-orange-50/50 border-orange-200';
+        return 'bg-amber-500/10 border-amber-500/30';
       default:
-        return 'bg-slate-50 border-slate-200';
+        return 'bg-zinc-800/40 border-zinc-700/50';
     }
   }
 
   getStatusBadgeClass(status: string): string {
     switch (status.toLowerCase()) {
       case 'inactive':
-        return 'bg-red-500 text-white';
+        return 'bg-rose-500 text-white';
       case 'stable':
-        return 'bg-slate-500 text-white';
+        return 'bg-zinc-700 text-zinc-50';
       case 'en_croissance':
         return 'bg-emerald-500 text-white';
       case 'en_déclin':
-        return 'bg-orange-500 text-white';
+        return 'bg-amber-500 text-white';
       default:
-        return 'bg-slate-500 text-white';
+        return 'bg-zinc-700 text-zinc-50';
     }
   }
 

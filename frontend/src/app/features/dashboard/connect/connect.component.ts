@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { YouTubeService } from '../../../core/services/youtube.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
-import { HlmCardImports } from '@spartan-ng/helm/card';
-import { HlmButton } from '@spartan-ng/helm/button';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { 
   lucideYoutube, 
@@ -16,13 +14,15 @@ import {
   lucideAlertTriangle, 
   lucideShieldAlert,
   lucideHelpCircle,
-  lucideMousePointerClick
+  lucideMousePointerClick,
+  lucideChevronRight
 } from '@ng-icons/lucide';
+import { NerraLoaderComponent } from '../../../shared/components/nerra-loader/nerra-loader.component';
 
 @Component({
   selector: 'app-connect',
   standalone: true,
-  imports: [CommonModule, FormsModule, HlmCardImports, HlmButton, NgIconComponent],
+  imports: [CommonModule, FormsModule, NgIconComponent, NerraLoaderComponent],
   providers: [
     provideIcons({ 
       lucideYoutube, 
@@ -34,191 +34,193 @@ import {
       lucideAlertTriangle, 
       lucideShieldAlert,
       lucideHelpCircle,
-      lucideMousePointerClick
+      lucideMousePointerClick,
+      lucideChevronRight
     })
   ],
   template: `
-    <div class="space-y-8 animate-in fade-in duration-500">
+    <div class="space-y-8 animate-in fade-in duration-500 pb-12">
       <div class="flex flex-col gap-2">
-        <h2 class="text-3xl font-bold tracking-tight text-slate-900 font-heading">Connexion YouTube</h2>
-        <p class="text-muted-foreground">Gérez la connexion entre Nerra et votre chaîne YouTube.</p>
+        <h2 class="text-3xl font-bold tracking-tight text-zinc-50 font-heading">Connexion YouTube</h2>
+        <p class="text-zinc-400">Gérez la connexion entre Nerra et votre chaîne YouTube.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Status Card -->
-        <section hlmCard class="border-border/50 shadow-sm">
-          <div hlmCardHeader>
-            <h3 hlmCardTitle>État de la connexion</h3>
-            <p hlmCardDescription>Votre statut actuel sur la plateforme</p>
-          </div>
-          <div hlmCardContent class="py-6">
-            @if (isLoading) {
-              <div class="flex items-center gap-3 text-muted-foreground animate-pulse">
-                <div class="size-4 bg-slate-200 rounded-full"></div>
-                Vérification du profil...
-              </div>
-            } @else {
-              <div class="flex flex-col gap-6">
-                <!-- Current Profile Info -->
-                <div class="flex items-center gap-4">
-                  <div class="size-16 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-border/50">
-                    @if (profile?.youtube_channel_thumbnail) {
-                      <img [src]="profile.youtube_channel_thumbnail" class="w-full h-full object-cover">
-                    } @else {
-                      <ng-icon name="lucideYoutube" class="size-8 text-red-600"></ng-icon>
-                    }
-                  </div>
-                  <div>
-                    <h4 class="font-bold text-lg text-slate-900">
-                      {{ profile?.youtube_channel_title || 'Non connecté' }}
-                    </h4>
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                      @if (isConnected) {
-                        <span class="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                          <ng-icon name="lucideCheckCircle2" class="size-3"></ng-icon>
-                          Connecté
-                        </span>
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 flex flex-col justify-between">
+          <div>
+            <div class="mb-6">
+              <h3 class="text-lg font-bold text-zinc-50 tracking-tight">État de la connexion</h3>
+              <p class="text-xs text-zinc-500 font-medium mt-0.5">Votre statut actuel sur la plateforme</p>
+            </div>
+            
+            <div class="py-2">
+              @if (isLoading) {
+                <div class="py-8 flex items-center justify-center">
+                  <nerra-loader variant="section" message="Vérification du profil..."></nerra-loader>
+                </div>
+              } @else {
+                <div class="flex flex-col gap-6">
+                  <!-- Current Profile Info -->
+                  <div class="flex items-center gap-4">
+                    <div class="size-16 rounded-full bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-850">
+                      @if (profile?.youtube_channel_thumbnail) {
+                        <img [src]="profile.youtube_channel_thumbnail" class="w-full h-full object-cover">
                       } @else {
-                        <span class="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-                          <ng-icon name="lucideAlertCircle" class="size-3"></ng-icon>
-                          Déconnecté
-                        </span>
+                        <ng-icon name="lucideYoutube" class="size-8 text-rose-500"></ng-icon>
                       }
                     </div>
+                    <div>
+                      <h4 class="font-bold text-lg text-zinc-100 leading-snug">
+                        {{ profile?.youtube_channel_title || 'Non connecté' }}
+                      </h4>
+                      <div class="flex items-center gap-1.5 mt-1.5">
+                        @if (isConnected) {
+                          <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <ng-icon name="lucideCheckCircle2" class="size-3"></ng-icon>
+                            Connecté
+                          </span>
+                        } @else {
+                          <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            <ng-icon name="lucideAlertCircle" class="size-3"></ng-icon>
+                            Déconnecté
+                          </span>
+                        }
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                @if (isConnected) {
-                  <div class="p-4 bg-slate-50 rounded-xl border border-border/10 space-y-4">
-                    <p class="text-sm text-slate-600 leading-relaxed">
-                      Votre chaîne est correctement liée. Nerra importe automatiquement vos données pour générer des analyses.
-                    </p>
-                    <div class="flex flex-col gap-3">
-                       <button hlmBtn variant="outline" size="sm" class="w-full gap-2 text-xs py-5" (click)="connect()">
-                        <ng-icon name="lucideRotateCcw" class="size-3"></ng-icon>
+                  @if (isConnected) {
+                    <div class="p-4 bg-zinc-950 border border-zinc-850 rounded-xl space-y-4">
+                      <p class="text-xs text-zinc-400 leading-relaxed font-medium">
+                        Votre chaîne est correctement liée. Nerra importe automatiquement vos statistiques pour alimenter vos analyses.
+                      </p>
+                      <button class="w-full py-3 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer" (click)="connect()">
+                        <ng-icon name="lucideRotateCcw" class="size-3.5"></ng-icon>
                         Changer de compte ou de chaîne
                       </button>
                     </div>
-                  </div>
-                } @else {
-                  <div class="space-y-4">
-                    <p class="text-sm text-muted-foreground">
-                      Connectez votre compte Google pour autoriser Nerra à accéder à vos statistiques YouTube Analytics.
-                    </p>
-                    <button hlmBtn class="w-full py-6 text-base font-bold bg-[#FF0000] hover:bg-[#CC0000] text-white shadow-lg shadow-red-500/20 gap-3"
-                            (click)="connect()">
-                      <ng-icon name="lucideYoutube" class="size-5"></ng-icon>
-                      Se connecter avec YouTube
-                    </button>
-                  </div>
-                }
-
-                <!-- Troubleshooting Zone -->
-                <div class="mt-4 pt-6 border-t border-slate-100 space-y-4">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2 text-slate-500">
-                      <ng-icon name="lucideHelpCircle" class="size-4"></ng-icon>
-                      <h5 class="text-[10px] font-bold uppercase tracking-wider">Problème de compte ?</h5>
+                  } @else {
+                    <div class="space-y-4">
+                      <p class="text-xs text-zinc-450 leading-relaxed font-medium">
+                        Connectez votre compte Google pour autoriser Nerra à accéder à vos statistiques de performances de vidéos.
+                      </p>
+                      <button class="w-full py-4 text-sm font-bold bg-[#FF0000] hover:bg-[#CC0000] text-white rounded-xl shadow-lg shadow-red-650/10 flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
+                              (click)="connect()">
+                        <ng-icon name="lucideYoutube" class="size-4.5"></ng-icon>
+                        Se connecter avec YouTube
+                      </button>
                     </div>
-                    <span class="text-[9px] px-1.5 py-0.5 bg-red-100 text-red-700 font-bold rounded uppercase tracking-tighter animate-pulse">Solution critique</span>
-                  </div>
-                  
-                  <div class="p-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200/50 shadow-sm space-y-4">
-                    <div class="flex gap-2">
-                      <ng-icon name="lucideAlertTriangle" class="size-5 text-amber-600 shrink-0"></ng-icon>
-                      <p class="text-[13px] font-bold text-amber-900 leading-tight">Google ne vous demande pas de choisir votre chaîne ?</p>
+                  }
+
+                  <!-- Troubleshooting Zone -->
+                  <div class="mt-4 pt-6 border-t border-zinc-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2 text-zinc-450">
+                        <ng-icon name="lucideHelpCircle" class="size-4"></ng-icon>
+                        <h5 class="text-[10px] font-bold uppercase tracking-wider">Problème de compte ?</h5>
+                      </div>
+                      <span class="text-[9px] px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold rounded uppercase tracking-wider animate-pulse">Solution critique</span>
                     </div>
                     
-                    <div class="space-y-4">
-                      <!-- Manual ID Override -->
-                      <div class="p-4 bg-white/80 rounded-xl border border-amber-200 shadow-sm">
-                        <p class="text-xs text-amber-900 font-bold mb-2">Forcer une chaîne spécifique :</p>
-                        <p class="text-[11px] text-amber-700/80 mb-3 leading-snug">
-                          Si vos sous-chaînes n'apparaissent pas, connectez-vous avec votre profil principal ci-dessus, puis collez l'ID de votre chaîne ici (commence par UC...) :
-                        </p>
-                        <div class="flex gap-2">
-                          <input 
-                            type="text" 
-                            [(ngModel)]="manualChannelId" 
-                            placeholder="UCxxxxxxxxxxxxxxxxx" 
-                            class="flex-1 text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                            [disabled]="isGeneratingManual"
-                          />
-                          <button 
-                            hlmBtn 
-                            variant="default" 
-                            size="sm" 
-                            class="bg-amber-600 hover:bg-amber-700 text-white shrink-0" 
-                            (click)="forceChannelId()"
-                            [disabled]="!manualChannelId || isGeneratingManual"
-                          >
-                            Forcer
-                          </button>
-                        </div>
-                      </div>
-
-                      <div class="flex gap-3 items-start">
-                        <div class="size-5 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm border border-amber-200 text-[10px] font-bold text-amber-700">1</div>
-                        <p class="text-[12px] text-amber-800 leading-snug">
-                          <strong>Solution classique :</strong> Utilisez la <span class="bg-amber-200/50 px-1 rounded">Navigation Privée</span> (Incognito).
-                        </p>
+                    <div class="p-5 bg-rose-500/5 rounded-2xl border border-rose-500/10 space-y-4">
+                      <div class="flex gap-2">
+                        <ng-icon name="lucideAlertTriangle" class="size-4.5 text-amber-500 shrink-0 mt-0.5"></ng-icon>
+                        <p class="text-[13px] font-bold text-zinc-100 leading-tight">Google ne vous demande pas de choisir votre chaîne ?</p>
                       </div>
                       
-                      <div class="flex gap-3 items-start">
-                        <div class="size-5 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm border border-amber-200 text-[10px] font-bold text-amber-700">2</div>
-                        <div class="space-y-2">
-                          <p class="text-[12px] text-amber-800 leading-snug">
-                            <strong>Réinitialisation TOTALE :</strong> Ouvrez ce lien de gestion Google, cherchez <strong>Nerra</strong> / <strong>Stratly</strong> et supprimez l'accès.
+                      <div class="space-y-4">
+                        <!-- Manual ID Override -->
+                        <div class="p-4 bg-zinc-950 rounded-xl border border-zinc-800/80 shadow-sm">
+                          <p class="text-xs text-zinc-300 font-bold mb-2">Forcer une chaîne spécifique :</p>
+                          <p class="text-[11px] text-zinc-500 mb-3 leading-relaxed">
+                            Si vos sous-chaînes n'apparaissent pas, connectez-vous avec votre profil principal ci-dessus, puis collez l'ID de votre chaîne ici (UC...) :
                           </p>
-                          <a href="https://myaccount.google.com/permissions" target="_blank" hlmBtn variant="link" size="sm" class="h-auto p-0 text-orange-600 hover:text-orange-800 decoration-orange-600/30 font-bold text-[12px] gap-2 mt-1">
-                            <ng-icon name="lucideMousePointerClick" class="size-3.5"></ng-icon>
-                            Ouvrir Gestion des Permissions
-                          </a>
+                          <div class="flex gap-2">
+                            <input 
+                              type="text" 
+                              [(ngModel)]="manualChannelId" 
+                              placeholder="UCxxxxxxxxxxxxxxxxx" 
+                              class="flex-1 text-xs px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-zinc-100 placeholder:text-zinc-650"
+                              [disabled]="isGeneratingManual"
+                            />
+                            <button 
+                              class="bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 text-zinc-200 text-xs font-bold px-4 rounded-lg shrink-0 cursor-pointer disabled:opacity-50 transition-colors" 
+                              (click)="forceChannelId()"
+                              [disabled]="!manualChannelId || isGeneratingManual"
+                            >
+                              Forcer
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="flex gap-3 items-start">
+                          <div class="size-5 rounded-full bg-zinc-900 flex items-center justify-center shrink-0 border border-zinc-800 text-[10px] font-bold text-zinc-300">1</div>
+                          <p class="text-xs text-zinc-450 leading-relaxed font-medium">
+                            <strong>Solution classique :</strong> Utilisez la <span class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200 border border-zinc-750">Navigation Privée</span> (Incognito).
+                          </p>
+                        </div>
+                        
+                        <div class="flex gap-3 items-start">
+                          <div class="size-5 rounded-full bg-zinc-900 flex items-center justify-center shrink-0 border border-zinc-800 text-[10px] font-bold text-zinc-300">2</div>
+                          <div class="space-y-2">
+                            <p class="text-xs text-zinc-455 leading-relaxed font-medium">
+                              <strong>Réinitialisation TOTALE :</strong> Ouvrez ce lien de gestion Google, cherchez <strong>Nerra</strong> / <strong>Stratly</strong> et supprimez l'accès.
+                            </p>
+                            <a href="https://myaccount.google.com/permissions" target="_blank" class="inline-flex items-center text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors gap-1.5 mt-1 underline">
+                              <ng-icon name="lucideMousePointerClick" class="size-3.5"></ng-icon>
+                              Ouvrir Gestion des Permissions
+                            </a>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           </div>
-        </section>
+        </div>
 
         <!-- Info Card -->
-        <section hlmCard class="border-border/50 shadow-sm bg-slate-50/50">
-          <div hlmCardHeader>
-            <h3 hlmCardTitle>Pourquoi connecter YouTube ?</h3>
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 flex flex-col">
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-zinc-50 tracking-tight">Pourquoi connecter YouTube ?</h3>
+            <p class="text-xs text-zinc-500 font-medium mt-0.5">Avantages du protocole analytique</p>
           </div>
-          <div hlmCardContent class="space-y-4">
+          
+          <div class="space-y-5">
             <div class="flex gap-4">
-              <div class="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-border/10">
-                <span class="text-slate-900 font-bold">1</span>
+              <div class="size-8 rounded-lg bg-zinc-950 border border-zinc-850 shadow-sm flex items-center justify-center shrink-0">
+                <span class="text-violet-450 font-bold text-sm">1</span>
               </div>
               <div>
-                <p class="font-bold text-slate-900 text-sm">Analyses Précises</p>
-                <p class="text-sm text-muted-foreground">Accédez à vos données réelles de vues et d'abonnés directement depuis la console.</p>
+                <p class="font-bold text-zinc-100 text-sm">Analyses Précises</p>
+                <p class="text-xs text-zinc-400 leading-relaxed font-medium mt-0.5">Accédez à vos données réelles de vues et d'abonnés directement depuis la console.</p>
               </div>
             </div>
+            
             <div class="flex gap-4">
-              <div class="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-border/10">
-                <span class="text-slate-900 font-bold">2</span>
+              <div class="size-8 rounded-lg bg-zinc-950 border border-zinc-850 shadow-sm flex items-center justify-center shrink-0">
+                <span class="text-violet-450 font-bold text-sm">2</span>
               </div>
               <div>
-                <p class="font-bold text-slate-900 text-sm">IA Custom</p>
-                <p class="text-sm text-muted-foreground">L'IA analyse vos performances passées pour vous proposer des idées de vidéos sur mesure.</p>
+                <p class="font-bold text-zinc-100 text-sm">IA Custom</p>
+                <p class="text-xs text-zinc-400 leading-relaxed font-medium mt-0.5">L'IA analyse vos performances passées pour vous proposer des idées de vidéos sur mesure.</p>
               </div>
             </div>
+            
             <div class="flex gap-4">
-              <div class="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-border/10">
-                <span class="text-slate-900 font-bold">3</span>
+              <div class="size-8 rounded-lg bg-zinc-950 border border-zinc-850 shadow-sm flex items-center justify-center shrink-0">
+                <span class="text-violet-450 font-bold text-sm">3</span>
               </div>
               <div>
-                <p class="font-bold text-slate-900 text-sm">Suivi Quotidien</p>
-                <p class="text-sm text-muted-foreground">Visualisez votre croissance jour après jour avec des graphiques interactifs.</p>
+                <p class="font-bold text-zinc-100 text-sm">Suivi Quotidien</p>
+                <p class="text-xs text-zinc-400 leading-relaxed font-medium mt-0.5">Visualisez votre croissance jour après jour avec des graphiques interactifs.</p>
               </div>
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   `

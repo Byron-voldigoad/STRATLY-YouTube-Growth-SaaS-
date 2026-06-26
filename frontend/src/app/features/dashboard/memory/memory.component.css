@@ -1,3 +1,4 @@
+/* Memory page uses standard dark zinc theme - no custom light-mode animations */
 :host {
   display: block;
 }
@@ -16,22 +17,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* ── Skeleton pulse refinement ───────────────────── */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.animate-pulse > div {
-  background: linear-gradient(90deg,
-    #f1f5f9 25%,
-    #e2e8f0 50%,
-    #f1f5f9 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite ease-in-out;
 }
 
 /* ── History rows ────────────────────────────────── */
@@ -61,7 +46,7 @@
   }
 }
 
-/* Underline accent on history rows */
+/* Underline accent on history rows — violet brand color */
 .history-row {
   position: relative;
 }
@@ -73,7 +58,7 @@
   bottom: 0;
   height: 1px;
   width: 0;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: linear-gradient(90deg, #7c3aed, #8b5cf6);
   transition: width 0.25s ease;
 }
 

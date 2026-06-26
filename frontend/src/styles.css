@@ -6,7 +6,7 @@
 
 @layer base {
     body {
-        @apply antialiased text-gray-900;
+        @apply antialiased text-zinc-50 bg-zinc-950;
     }
 }
 
@@ -20,7 +20,7 @@
     }
 
     .card {
-        @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6;
+        @apply bg-zinc-900 border border-zinc-800 rounded-xl transition-colors p-6;
     }
 }
 

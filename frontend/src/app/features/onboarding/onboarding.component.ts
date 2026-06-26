@@ -8,23 +8,23 @@ import { GenkitService } from '../../core/services/genkit.service';
 import { DecisionService } from '../../core/services/decision.service';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { lucideYoutube, lucideLoader2, lucideCheckCircle, lucideAlertCircle } from '@ng-icons/lucide';
-import { HlmButton } from '@spartan-ng/helm/button';
+import { NerraLoaderComponent } from '../../shared/components/nerra-loader/nerra-loader.component';
 
 @Component({
   selector: 'app-onboarding',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgIconComponent, HlmButton],
+  imports: [CommonModule, FormsModule, NgIconComponent, NerraLoaderComponent],
   providers: [provideIcons({ lucideYoutube, lucideLoader2, lucideCheckCircle, lucideAlertCircle })],
   template: `
-    <div class="min-h-screen bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden font-heading">
+    <div class="min-h-screen bg-zinc-950 flex flex-col items-center justify-center relative overflow-hidden font-heading text-zinc-50 selection:bg-violet-500/30">
       <!-- Background elements -->
-      <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-      <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+      <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-600/[0.03] rounded-full blur-[120px] pointer-events-none"></div>
+      <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-500/[0.02] rounded-full blur-[100px] pointer-events-none"></div>
 
       <!-- Top Logo -->
       <div class="absolute top-8 left-0 right-0 flex justify-center">
-        <h1 class="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-          <img src="assets/images/nerra_ligth.png" alt="Nerra" class="h-10 w-auto object-contain drop-shadow-md">
+        <h1 class="text-3xl font-black tracking-tight text-zinc-50 flex items-center gap-2">
+          <img src="/assets/images/nerra_dark.png" alt="Nerra" class="h-8.5 w-auto object-contain">
         </h1>
       </div>
 
@@ -32,75 +32,74 @@ import { HlmButton } from '@spartan-ng/helm/button';
       <div class="w-full max-w-2xl mx-auto mb-12 px-6 relative z-10">
         <div class="flex items-center justify-between relative">
           <!-- Backing Line -->
-          <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-200 z-0"></div>
+          <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-zinc-800 z-0"></div>
           <!-- Progress Line -->
-          <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 z-0 transition-all duration-500"
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-violet-500 z-0 transition-all duration-500"
                [style.width]="(step === 1 ? '0%' : step === 2 ? '50%' : '100%')"></div>
 
           <!-- Step 1 -->
           <div class="relative z-10 flex flex-col items-center gap-2" [ngClass]="{'opacity-50': step < 1}">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors"
-                 [ngClass]="step >= 1 ? 'bg-indigo-600 border-indigo-100 text-white' : 'bg-white border-slate-200 text-slate-400'">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors duration-300"
+                 [ngClass]="step >= 1 ? 'bg-zinc-900 border-violet-500 text-zinc-50' : 'bg-zinc-950 border-zinc-800 text-zinc-500'">
               1
             </div>
-            <span class="text-xs font-bold" [ngClass]="step >= 1 ? 'text-indigo-900' : 'text-slate-400'">Connexion</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="step >= 1 ? 'text-zinc-300' : 'text-zinc-500'">Connexion</span>
           </div>
 
           <!-- Step 2 -->
           <div class="relative z-10 flex flex-col items-center gap-2" [ngClass]="{'opacity-50': step < 2}">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors"
-                 [ngClass]="step >= 2 ? 'bg-indigo-600 border-indigo-100 text-white' : 'bg-white border-slate-200 text-slate-400'">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors duration-300"
+                 [ngClass]="step >= 2 ? 'bg-zinc-900 border-violet-500 text-zinc-50' : 'bg-zinc-950 border-zinc-800 text-zinc-500'">
               2
             </div>
-            <span class="text-xs font-bold" [ngClass]="step >= 2 ? 'text-indigo-900' : 'text-slate-400'">Analyse</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="step >= 2 ? 'text-zinc-300' : 'text-zinc-500'">Analyse</span>
           </div>
 
           <!-- Step 3 -->
           <div class="relative z-10 flex flex-col items-center gap-2" [ngClass]="{'opacity-50': step < 3}">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors"
-                 [ngClass]="step >= 3 ? 'bg-indigo-600 border-indigo-100 text-white' : 'bg-white border-slate-200 text-slate-400'">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors duration-300"
+                 [ngClass]="step >= 3 ? 'bg-zinc-900 border-violet-500 text-zinc-50' : 'bg-zinc-950 border-zinc-800 text-zinc-500'">
               3
             </div>
-            <span class="text-xs font-bold" [ngClass]="step >= 3 ? 'text-indigo-900' : 'text-slate-400'">Décision</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="step >= 3 ? 'text-zinc-300' : 'text-zinc-500'">Décision</span>
           </div>
         </div>
       </div>
 
       <!-- Content Area -->
       <div class="w-full max-w-xl mx-auto px-6 relative z-10">
-        <div class="bg-white rounded-3xl p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100 animate-in zoom-in-95 duration-500">
+        <div class="bg-zinc-900 rounded-3xl p-8 md:p-12 border border-zinc-800/80 shadow-2xl shadow-black/40 animate-in zoom-in-95 duration-500">
           
           <!-- STEP 1: Connect -->
           @if (step === 1) {
-            <div class="text-center space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div class="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6 transform -rotate-6 shadow-inner">
-                <ng-icon name="lucideYoutube" class="w-10 h-10 text-red-600"></ng-icon>
+            <div class="text-center space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div class="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 transform -rotate-6 shadow-inner">
+                <ng-icon name="lucideYoutube" class="w-8 h-8 text-red-500"></ng-icon>
               </div>
-              <div>
-                <h2 class="text-2xl font-black text-slate-900 mb-2">Connecte ta chaîne YouTube</h2>
-                <p class="text-slate-500 font-medium leading-relaxed">
-                  Nerra a besoin d'accéder à tes données pour te donner des décisions basées sur ta réalité, pas sur des suppositions.
+              <div class="space-y-2">
+                <h2 class="text-2xl font-black text-zinc-50 tracking-tight">Connecte ta chaîne YouTube</h2>
+                <p class="text-zinc-400 font-medium text-sm leading-relaxed max-w-md mx-auto">
+                  Nerra a besoin d'accéder à tes données pour te proposer des décisions basées sur ta réalité, pas sur des suppositions.
                 </p>
               </div>
+              
               <!-- Manual ID Option (if they already connected but the channel picker issue happened) -->
               @if (profile?.youtube_refresh_token && !profile?.youtube_channel_id) {
-                <div class="p-4 bg-amber-50 rounded-xl border border-amber-200 shadow-sm mt-4 text-left">
-                  <p class="text-xs text-amber-900 font-bold mb-2">Forcer une chaîne spécifique :</p>
-                  <p class="text-[11px] text-amber-700/80 mb-3 leading-snug">
-                    Google ne vous a pas laissé choisir votre chaîne ? Collez son ID ici (UC...) :
+                <div class="p-5 bg-zinc-950 border border-zinc-800 rounded-2xl text-left mt-6">
+                  <p class="text-xs text-zinc-300 font-bold mb-1">Forcer une chaîne spécifique :</p>
+                  <p class="text-[11px] text-zinc-500 mb-3 leading-relaxed">
+                    Google ne vous a pas laissé choisir votre chaîne ? Collez son ID ici (commence par "UC") :
                   </p>
                   <div class="flex gap-2">
                     <input 
                       type="text" 
                       [(ngModel)]="manualChannelId" 
                       placeholder="UCxxxxxxxxxxxxxxxxx" 
-                      class="flex-1 text-xs px-3 py-2 border border-amber-200 rounded-lg focus:outline-none bg-white"
+                      class="flex-1 text-xs px-3.5 h-[38px] bg-zinc-900 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/25 focus:border-violet-500 text-zinc-100 placeholder:text-zinc-600"
                       [disabled]="isGeneratingManual"
                     />
                     <button 
-                      hlmBtn 
-                      size="sm" 
-                      class="bg-amber-600 hover:bg-amber-700 text-white shrink-0" 
+                      class="bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 text-zinc-200 text-xs font-bold px-4 rounded-xl shrink-0 cursor-pointer disabled:opacity-50 transition-colors" 
                       (click)="forceChannelId()"
                       [disabled]="!manualChannelId || isGeneratingManual"
                     >
@@ -110,7 +109,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
                 </div>
               }
 
-              <button hlmBtn class="w-full py-6 mt-4 text-base font-bold bg-[#FF0000] hover:bg-[#CC0000] text-white shadow-lg shadow-red-500/20"
+              <button class="w-full py-4 mt-6 text-sm font-bold bg-[#FF0000] hover:bg-[#CC0000] text-white rounded-xl transition-all shadow-lg shadow-red-600/10 cursor-pointer"
                       (click)="connectYouTube()">
                 Connecter ma chaîne
               </button>
@@ -119,27 +118,19 @@ import { HlmButton } from '@spartan-ng/helm/button';
 
           <!-- STEP 2: Analyze -->
           @if (step === 2) {
-            <div class="text-center space-y-8 animate-in fade-in slide-in-from-right-4">
+            <div class="text-center space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               @if (error) {
-                <div class="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <ng-icon name="lucideAlertCircle" class="w-10 h-10 text-rose-600"></ng-icon>
+                <div class="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <ng-icon name="lucideAlertCircle" class="w-8 h-8 text-rose-500"></ng-icon>
                 </div>
                 <div>
-                  <h2 class="text-xl font-black text-slate-900 mb-2">L'analyse a échoué</h2>
-                  <p class="text-rose-600 text-sm font-medium">{{ error }}</p>
+                  <h2 class="text-xl font-black text-zinc-50 mb-2">L'analyse a échoué</h2>
+                  <p class="text-rose-400 text-sm font-medium">{{ error }}</p>
                 </div>
-                <button hlmBtn class="w-full bg-slate-900 text-white hover:bg-slate-800" (click)="startAnalysis()">Réessayer</button>
+                <button class="w-full py-3.5 bg-zinc-900 border border-zinc-800 text-zinc-100 hover:bg-zinc-800/80 rounded-xl font-bold text-sm cursor-pointer transition-colors" (click)="startAnalysis()">Réessayer</button>
               } @else {
-                <div class="mb-10 w-full max-w-sm mx-auto">
-                  <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
-                    <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 w-1/2 rounded-full animate-[shimmer_1.5s_infinite_linear] bg-[length:200%_100%] shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                  </div>
-                </div>
-                <div>
-                  <h2 class="text-2xl font-black text-slate-900 mb-2">Nerra analyse ta chaîne...</h2>
-                  <p class="text-slate-500 font-medium leading-relaxed">
-                    On scanne tes patterns de succès et d'échec de tes dernières vidéos.
-                  </p>
+                <div class="py-6">
+                  <nerra-loader variant="decision" [messages]="['Initialisation de l\\'analyse...', 'Téléchargement de l\\'historique YouTube...', 'Examen des patterns de performance...', 'Calcul des tensions stratégiques...', 'Génération de la première décision...']"></nerra-loader>
                 </div>
               }
             </div>
@@ -147,27 +138,28 @@ import { HlmButton } from '@spartan-ng/helm/button';
 
           <!-- STEP 3: First Decision -->
           @if (step === 3) {
-            <div class="text-center space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div class="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <ng-icon name="lucideCheckCircle" class="w-10 h-10 text-emerald-600"></ng-icon>
+            <div class="text-center space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <ng-icon name="lucideCheckCircle" class="w-8 h-8 text-emerald-400"></ng-icon>
               </div>
-              <div>
-                <h2 class="text-2xl font-black text-slate-900 mb-2">Ton premier protocole est prêt.</h2>
-                <p class="text-slate-500 font-medium mb-6">
-                  L'audit est terminé. Nerra a généré sa première recommandation stricte pour ta croissance.
+              <div class="space-y-2">
+                <h2 class="text-2xl font-black text-zinc-50 tracking-tight">Premier protocole prêt</h2>
+                <p class="text-zinc-400 font-medium text-sm leading-relaxed max-w-sm mx-auto">
+                  L'audit initial est terminé. Nerra a conçu votre première recommandation décisionnelle.
                 </p>
               </div>
 
               @if (decisionPreview) {
-                <div class="p-6 bg-slate-50 border border-slate-200 rounded-2xl text-left shadow-sm">
-                  <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{{ decisionPreview.experiment_type }}</span>
-                  <p class="font-bold text-slate-900 mt-2 text-sm leading-snug">{{ decisionPreview.hypothesis }}</p>
+                <div class="p-6 bg-zinc-950 border border-zinc-800 rounded-2xl text-left shadow-sm space-y-2">
+                  <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">{{ decisionPreview.experiment_type }}</span>
+                  <p class="font-bold text-zinc-100 text-sm leading-snug">{{ decisionPreview.hypothesis }}</p>
                 </div>
               }
 
-              <button hlmBtn class="w-full py-6 mt-4 text-base font-black bg-slate-900 hover:bg-indigo-600 text-white shadow-lg shadow-slate-900/20 transition-all"
+              <button class="w-full py-4 mt-6 text-sm font-black bg-violet-600 hover:bg-violet-500 text-white rounded-xl transition-all shadow-lg shadow-violet-600/10 flex items-center justify-center gap-2 cursor-pointer"
                       (click)="finish()">
                 Voir ma décision complète
+                <span>→</span>
               </button>
             </div>
           }

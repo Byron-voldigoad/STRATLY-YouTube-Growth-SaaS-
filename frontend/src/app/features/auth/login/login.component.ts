@@ -3,13 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { SupabaseService } from '../../../core/services/supabase.service';
-
-import { HlmButton } from '@spartan-ng/helm/button';
+import { NerraLoaderComponent } from '../../../shared/components/nerra-loader/nerra-loader.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, NerraLoaderComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
 })
